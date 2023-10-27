@@ -1,29 +1,18 @@
-// Wrapper vertex invocations for VFX. Necessary to work around various null input geometry issues for vertex input layout on DX12 and Vulkan.
-void VertVFX(
+// Wrapper vertex invocations for VFX. Necesarry to work around various null input geometry issues for vertex input layout on DX12 and Vulkan.
 #if NULL_GEOMETRY_INPUT
-    uint vertexID : VERTEXID_SEMANTIC
-    , uint instanceID : INSTANCEID_SEMANTIC
-#else
-    Attributes input
-#endif
-
-#if (SHADERPASS == SHADERPASS_MOTION_VECTORS)
-    , out PackedMotionVectorPassVaryings packedMvOutput
-#endif
-    , out PackedVaryings packedOutput
-)
+PackedVaryings VertVFX(uint vertexID : VERTEXID_SEMANTIC, uint instanceID : INSTANCEID_SEMANTIC)
 {
-#if NULL_GEOMETRY_INPUT
     Attributes input;
     ZERO_INITIALIZE(Attributes, input);
+
     input.vertexID = vertexID;
     input.instanceID = instanceID;
-#endif
 
-#if (SHADERPASS != SHADERPASS_MOTION_VECTORS)
-    packedOutput = vert(input);
-#else
-    MotionVectorPassAttributes dummy = (MotionVectorPassAttributes)0;
-    vert(input, dummy, packedMvOutput, packedOutput);
-#endif
+    return vert(input);
 }
+#else
+PackedVaryings VertVFX(Attributes input)
+{
+    return vert(input);
+}
+#endif

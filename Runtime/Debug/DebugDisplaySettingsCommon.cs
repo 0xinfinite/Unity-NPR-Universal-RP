@@ -2,6 +2,25 @@ namespace UnityEngine.Rendering.Universal
 {
     class DebugDisplaySettingsCommon : IDebugDisplaySettingsData
     {
+        internal static class WidgetFactory
+        {
+            internal static DebugUI.Widget CreateMissingDebugShadersWarning() => new DebugUI.MessageBox
+            {
+                displayName = "Warning: the debug shader variants are missing. Ensure that the \"Strip Debug Variants\" option is disabled in URP Global Settings.",
+                style = DebugUI.MessageBox.Style.Warning,
+                isHiddenCallback = () =>
+                {
+#if UNITY_EDITOR
+                    return true;
+#else
+                    if (UniversalRenderPipelineGlobalSettings.instance != null)
+                        return !UniversalRenderPipelineGlobalSettings.instance.stripDebugVariants;
+                    return true;
+#endif
+                }
+            };
+        }
+
         [DisplayInfo(name = "Frequently Used", order = -1)]
         private class SettingsPanel : DebugDisplaySettingsPanel
         {
@@ -11,7 +30,7 @@ namespace UnityEngine.Rendering.Universal
 
             public SettingsPanel()
             {
-                AddWidget(new DebugUI.RuntimeDebugShadersMessageBox());
+                AddWidget(WidgetFactory.CreateMissingDebugShadersWarning());
 
                 foreach (var widget in DebugManager.instance.GetItems(DebugUI.Flags.FrequentlyUsed))
                 {
@@ -45,6 +64,15 @@ namespace UnityEngine.Rendering.Universal
 
         /// <inheritdoc/>
         public bool AreAnySettingsActive => false;
+
+        /// <inheritdoc/>
+        public bool IsPostProcessingAllowed => true;
+
+        /// <inheritdoc/>
+        public bool IsLightingActive => true;
+
+        /// <inheritdoc/>
+        public bool TryGetScreenClearColor(ref Color _) => false;
 
         /// <inheritdoc/>
         public IDebugDisplaySettingsPanelDisposable CreatePanel()

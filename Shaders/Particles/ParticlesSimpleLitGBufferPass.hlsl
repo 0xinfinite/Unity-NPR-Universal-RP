@@ -37,15 +37,7 @@ void InitializeInputData(VaryingsParticle input, half3 normalTS, out InputData i
 
     inputData.fogCoord = 0; // not used for deferred shading
     inputData.vertexLighting = half3(0.0h, 0.0h, 0.0h);
-#if (defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2))
-    inputData.bakedGI = SAMPLE_GI(input.vertexSH,
-        GetAbsolutePositionWS(inputData.positionWS),
-        inputData.normalWS,
-        inputData.viewDirectionWS,
-        input.clipPos.xy);
-#else
     inputData.bakedGI = SampleSHPixel(input.vertexSH, inputData.normalWS);
-#endif
     inputData.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(input.clipPos);
     inputData.shadowMask = half4(1, 1, 1, 1);
 
@@ -66,7 +58,7 @@ inline void InitializeParticleSimpleLitSurfaceData(VaryingsParticle input, out S
     outSurfaceData.albedo = AlphaModulate(albedo.rgb, albedo.a);
     outSurfaceData.alpha = albedo.a;
 #if defined(_EMISSION)
-    outSurfaceData.emission = BlendTexture(TEXTURE2D_ARGS(_EmissionMap, sampler_EmissionMap), particleParams.uv, particleParams.blendUv).rgb * _EmissionColor.rgb;
+    outSurfaceData.emission = BlendTexture(TEXTURE2D_ARGS(_EmissionMap, sampler_EmissionMap), particleParams.uv, particleParams.blendUv) * _EmissionColor.rgb;
 #else
     outSurfaceData.emission = half3(0, 0, 0);
 #endif
@@ -107,7 +99,7 @@ VaryingsParticle ParticlesLitGBufferVertex(AttributesParticle input)
     output.viewDirWS = viewDirWS;
 #endif
 
-    OUTPUT_SH4(vertexInput.positionWS, output.normalWS.xyz, GetWorldSpaceNormalizeViewDir(vertexInput.positionWS), output.vertexSH);
+    OUTPUT_SH(output.normalWS.xyz, output.vertexSH);
 
     output.positionWS.xyz = vertexInput.positionWS.xyz;
     output.positionWS.w = 0;

@@ -49,12 +49,6 @@ namespace UnityEditor.Rendering.Universal
             }
         }
 
-        private struct ToggleFoldoutResult
-        {
-            public bool foldoutState;
-            public bool toggleState;
-        }
-
         private static class Styles
         {
             public static readonly GUIContent InnerOuterSpotAngle = EditorGUIUtility.TrTextContent("Inner / Outer Spot Angle", "Adjusts the inner / outer angles of this light to change the angle ranges of this Spot Light’s beam.");
@@ -90,8 +84,6 @@ namespace UnityEditor.Rendering.Universal
             public static GUIContent generalLightOverlapOperation = EditorGUIUtility.TrTextContent("Overlap Operation", "Determines how this light blends with the other lights either through additive or alpha blending.");
             public static GUIContent generalLightOrder = EditorGUIUtility.TrTextContent("Light Order", "Determines the relative order in which lights of the same Blend Style get rendered. Lights with lower values are rendered first.");
             public static GUIContent generalShadowIntensity = EditorGUIUtility.TrTextContent("Strength", "Adjusts the amount of light occlusion from the Shadow Caster 2D component(s) when blocking this light.The higher the value, the more opaque the shadow becomes.");
-            public static GUIContent generalShadowSoftness = EditorGUIUtility.TrTextContent("Softness", "Adjusts the amount of softness at the edge of the shadow.");
-            public static GUIContent generalShadowSoftnessFalloffIntensity = EditorGUIUtility.TrTextContent("Falloff Strength", "Adjusts the falloff curve to control the softness of the shadow edges. The higher the falloff strength, the softer the edges of this shadow.");
             public static GUIContent generalShadowVolumeIntensity = EditorGUIUtility.TrTextContent("Shadow Strength", "Adjusts the amount of volume light occlusion from the Shadow Caster 2D component(s) when blocking this light.");
             public static GUIContent generalSortingLayerPrefixLabel = EditorGUIUtility.TrTextContent("Target Sorting Layers", "Determines which layers this light affects. To optimize performance, minimize the number of layers this light affects.");
             public static GUIContent generalLightNoLightEnabled = EditorGUIUtility.TrTextContentWithIcon("No valid blend styles are enabled.", MessageType.Error);
@@ -132,15 +124,13 @@ namespace UnityEditor.Rendering.Universal
         SerializedProperty m_LightColor;
         SerializedProperty m_LightIntensity;
         SerializedProperty m_UseNormalMap;
-        SerializedProperty m_ShadowsEnabled;
         SerializedProperty m_ShadowIntensity;
-        SerializedProperty m_ShadowSoftness;
-        SerializedProperty m_ShadowSoftnessFalloffIntensity;
+        SerializedProperty m_ShadowIntensityEnabled;
         SerializedProperty m_ShadowVolumeIntensity;
         SerializedProperty m_ShadowVolumeIntensityEnabled;
         SerializedProperty m_ApplyToSortingLayers;
         SerializedProperty m_VolumetricIntensity;
-        SerializedProperty m_VolumetricEnabled;
+        SerializedProperty m_VolumetricIntensityEnabled;
         SerializedProperty m_BlendStyleIndex;
         SerializedProperty m_FalloffIntensity;
         SerializedProperty m_NormalMapZDistance;
@@ -191,28 +181,6 @@ namespace UnityEditor.Rendering.Universal
             }
         }
 
-        private ToggleFoldoutResult DrawHeaderFoldoutWithToggle(GUIContent title, bool foldoutState, bool toggleState, string documentationURL = "")
-        {
-            ToggleFoldoutResult foldoutResult = new ToggleFoldoutResult();
-
-            const float height = 17f;
-            var backgroundRect = GUILayoutUtility.GetRect(0, 0);
-            float xMin = backgroundRect.xMin;
-
-            var labelRect = backgroundRect;
-            labelRect.yMax += height;
-            labelRect.xMin += 16f;
-            labelRect.xMax -= 20f;
-
-            foldoutResult.toggleState = GUI.Toggle(labelRect, toggleState, " ");  // Needs a space because the checkbox won't have a proper outline if we don't make a space here
-            foldoutResult.foldoutState = CoreEditorUtils.DrawHeaderFoldout("", foldoutState);
-            labelRect.xMin += 20;
-            EditorGUI.LabelField(labelRect, title, EditorStyles.boldLabel);
-
-
-            return foldoutResult;
-        }
-
         void OnEnable()
         {
             m_Analytics = Analytics.Renderer2DAnalytics.instance;
@@ -228,15 +196,13 @@ namespace UnityEditor.Rendering.Universal
             m_LightColor = serializedObject.FindProperty("m_Color");
             m_LightIntensity = serializedObject.FindProperty("m_Intensity");
             m_UseNormalMap = serializedObject.FindProperty("m_UseNormalMap");
-            m_ShadowsEnabled = serializedObject.FindProperty("m_ShadowsEnabled");
             m_ShadowIntensity = serializedObject.FindProperty("m_ShadowIntensity");
-            m_ShadowSoftness = serializedObject.FindProperty("m_ShadowSoftness");
-            m_ShadowSoftnessFalloffIntensity = serializedObject.FindProperty("m_ShadowSoftnessFalloffIntensity");
+            m_ShadowIntensityEnabled = serializedObject.FindProperty("m_ShadowIntensityEnabled");
             m_ShadowVolumeIntensity = serializedObject.FindProperty("m_ShadowVolumeIntensity");
             m_ShadowVolumeIntensityEnabled = serializedObject.FindProperty("m_ShadowVolumeIntensityEnabled");
             m_ApplyToSortingLayers = serializedObject.FindProperty("m_ApplyToSortingLayers");
             m_VolumetricIntensity = serializedObject.FindProperty("m_LightVolumeIntensity");
-            m_VolumetricEnabled = serializedObject.FindProperty("m_LightVolumeEnabled");
+            m_VolumetricIntensityEnabled = serializedObject.FindProperty("m_LightVolumeIntensityEnabled");
             m_BlendStyleIndex = serializedObject.FindProperty("m_BlendStyleIndex");
             m_FalloffIntensity = serializedObject.FindProperty("m_FalloffIntensity");
             m_NormalMapZDistance = serializedObject.FindProperty("m_NormalMapDistance");
@@ -299,8 +265,11 @@ namespace UnityEditor.Rendering.Universal
 
         internal void SendModifiedAnalytics(Analytics.Renderer2DAnalytics analytics, Light2D light)
         {
-            Analytics.LightDataAnalytic lightData = new Analytics.LightDataAnalytic(light.GetInstanceID(), false, light.lightType);
-            Analytics.Renderer2DAnalytics.instance.SendData(lightData);
+            Analytics.Light2DData lightData = new Analytics.Light2DData();
+            lightData.was_create_event = false;
+            lightData.instance_id = light.GetInstanceID();
+            lightData.light_type = light.lightType;
+            Analytics.Renderer2DAnalytics.instance.SendData(Analytics.AnalyticsDataTypes.k_LightDataString, lightData);
         }
 
         void OnDestroy()
@@ -333,42 +302,26 @@ namespace UnityEditor.Rendering.Universal
         void DrawShadowsGroup()
         {
             CoreEditorUtils.DrawSplitter(false);
-
-            ToggleFoldoutResult result = DrawHeaderFoldoutWithToggle(Styles.shadowsSettingsFoldout, m_ShadowsSettingsFoldout.value, m_ShadowsEnabled.boolValue);
-            m_ShadowsEnabled.boolValue = result.toggleState;
-            m_ShadowsSettingsFoldout.value = result.foldoutState;
-
+            m_ShadowsSettingsFoldout.value = CoreEditorUtils.DrawHeaderFoldout(Styles.shadowsSettingsFoldout, m_ShadowsSettingsFoldout.value);
             if (m_ShadowsSettingsFoldout.value)
             {
-                EditorGUI.indentLevel++;
-                EditorGUI.BeginDisabledGroup(!m_ShadowsEnabled.boolValue);
-                EditorGUILayout.PropertyField(m_ShadowIntensity, Styles.generalShadowIntensity);
-                EditorGUILayout.PropertyField(m_ShadowSoftness, Styles.generalShadowSoftness);
-                EditorGUILayout.PropertyField(m_ShadowSoftnessFalloffIntensity,Styles.generalShadowSoftnessFalloffIntensity);
-                EditorGUI.EndDisabledGroup();
-                EditorGUI.indentLevel--;
+                DrawToggleProperty(Styles.generalShadowIntensity, m_ShadowIntensityEnabled, m_ShadowIntensity);
             }
         }
 
         void DrawVolumetricGroup()
         {
             CoreEditorUtils.DrawSplitter(false);
-
-            ToggleFoldoutResult result = DrawHeaderFoldoutWithToggle(Styles.volumetricSettingsFoldout, m_VolumetricSettingsFoldout.value, m_VolumetricEnabled.boolValue);
-            m_VolumetricSettingsFoldout.value = result.foldoutState;
-            m_VolumetricEnabled.boolValue = result.toggleState;
+            m_VolumetricSettingsFoldout.value = CoreEditorUtils.DrawHeaderFoldout(Styles.volumetricSettingsFoldout, m_VolumetricSettingsFoldout.value);
             if (m_VolumetricSettingsFoldout.value)
             {
-                EditorGUI.indentLevel++;
-                EditorGUI.BeginDisabledGroup(!m_VolumetricEnabled.boolValue);
-
-                EditorGUILayout.PropertyField(m_VolumetricIntensity, Styles.generalVolumeIntensity);
+                DrawToggleProperty(Styles.generalVolumeIntensity, m_VolumetricIntensityEnabled, m_VolumetricIntensity);
                 if (m_VolumetricIntensity.floatValue < 0)
                     m_VolumetricIntensity.floatValue = 0;
 
+                EditorGUI.BeginDisabledGroup(!m_VolumetricIntensityEnabled.boolValue);
                 DrawToggleProperty(Styles.generalShadowVolumeIntensity, m_ShadowVolumeIntensityEnabled, m_ShadowVolumeIntensity);
                 EditorGUI.EndDisabledGroup();
-                EditorGUI.indentLevel--;
             }
         }
 

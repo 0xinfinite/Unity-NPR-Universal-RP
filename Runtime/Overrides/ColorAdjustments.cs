@@ -5,8 +5,7 @@ namespace UnityEngine.Rendering.Universal
     /// <summary>
     /// A volume component that holds settings for the Color Adjustments effect.
     /// </summary>
-    [Serializable, VolumeComponentMenu("Post-processing/Color Adjustments")]
-    [SupportedOnRenderPipeline(typeof(UniversalRenderPipelineAsset))]
+    [Serializable, VolumeComponentMenuForRenderPipeline("Post-processing/Color Adjustments", typeof(UniversalRenderPipeline))]
     [URPHelpURL("Post-Processing-Color-Adjustments")]
     public sealed class ColorAdjustments : VolumeComponent, IPostProcessComponent
     {
@@ -52,7 +51,6 @@ namespace UnityEngine.Rendering.Universal
         }
 
         /// <inheritdoc/>
-        [Obsolete("Unused #from(2023.1)", false)]
         public bool IsTileCompatible() => true;
     }
 }

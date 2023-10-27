@@ -67,18 +67,7 @@ float3 shadergraph_LWBakedGI(float3 positionWS, float3 normalWS, float2 uvStatic
     return SampleLightmap(uvStaticLightmap, normalWS);
 #endif
 #else
-    #if (defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2))
-    if (_EnableProbeVolumes)
-    {
-        float3 bakeDiffuseLighting;
-        EvaluateAdaptiveProbeVolume(positionWS, normalWS, GetWorldSpaceNormalizeViewDir(positionWS), 0.0, bakeDiffuseLighting);
-        return bakeDiffuseLighting;
-    }
-    else
-        return SampleSH(normalWS);
-    #else
     return SampleSH(normalWS);
-    #endif
 #endif
 }
 
@@ -86,7 +75,7 @@ float3 shadergraph_LWReflectionProbe(float3 viewDir, float3 normalOS, float lod)
 {
     float3 reflectVec = reflect(-viewDir, normalOS);
 #if USE_FORWARD_PLUS
-    return SAMPLE_TEXTURECUBE_LOD(_GlossyEnvironmentCubeMap, sampler_GlossyEnvironmentCubeMap, reflectVec, lod).rgb;
+    return half4(SAMPLE_TEXTURECUBE_LOD(_GlossyEnvironmentCubeMap, sampler_GlossyEnvironmentCubeMap, reflectVec, lod));
 #else
     return DecodeHDREnvironment(SAMPLE_TEXTURECUBE_LOD(unity_SpecCube0, samplerunity_SpecCube0, reflectVec, lod), unity_SpecCube0_HDR);
 #endif

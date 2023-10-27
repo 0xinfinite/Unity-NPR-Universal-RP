@@ -77,63 +77,69 @@ namespace UnityEngine.Rendering.Universal.Internal
             }
         }
 
-        private static void ExecutePass(RasterCommandBuffer cmd, RendererList rendererList)
+        private static void ExecutePass(ScriptableRenderContext context, PassData passData, ref RenderingData renderingData)
         {
+            var cmd = renderingData.commandBuffer;
+            var shaderTagId = passData.shaderTagId;
+            var filteringSettings = passData.filteringSettings;
+
             using (new ProfilingScope(cmd, ProfilingSampler.Get(URPProfileId.DepthPrepass)))
             {
-                cmd.DrawRendererList(rendererList);
+                context.ExecuteCommandBuffer(cmd);
+                cmd.Clear();
+
+                var sortFlags = renderingData.cameraData.defaultOpaqueSortFlags;
+                var drawSettings = RenderingUtils.CreateDrawingSettings(shaderTagId, ref renderingData, sortFlags);
+                drawSettings.perObjectData = PerObjectData.None;
+
+                context.DrawRenderers(renderingData.cullResults, ref drawSettings, ref filteringSettings);
             }
         }
 
         /// <inheritdoc/>
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
-            ContextContainer frameData = renderingData.frameData;
-            UniversalRenderingData universalRenderingData = frameData.Get<UniversalRenderingData>();
-            UniversalCameraData cameraData = frameData.Get<UniversalCameraData>();
-            UniversalLightData lightData = frameData.Get<UniversalLightData>();
-
-            var param = InitRendererListParams(universalRenderingData, cameraData, lightData);
-            RendererList rendererList = context.CreateRendererList(ref param);
-
-            ExecutePass(CommandBufferHelpers.GetRasterCommandBuffer(renderingData.commandBuffer), rendererList);
+            m_PassData.shaderTagId = this.shaderTagId;
+            m_PassData.filteringSettings = m_FilteringSettings;
+            ExecutePass(context, m_PassData, ref renderingData);
         }
 
         private class PassData
         {
-            internal RendererListHandle rendererList;
+            internal TextureHandle cameraDepthTexture;
+            internal RenderingData renderingData;
+            internal ShaderTagId shaderTagId;
+            internal FilteringSettings filteringSettings;
         }
 
-        private RendererListParams InitRendererListParams(UniversalRenderingData renderingData, UniversalCameraData cameraData, UniversalLightData lightData)
+        internal void Render(RenderGraph renderGraph, out TextureHandle cameraDepthTexture, ref RenderingData renderingData)
         {
-            var sortFlags = cameraData.defaultOpaqueSortFlags;
-            var drawSettings = RenderingUtils.CreateDrawingSettings(this.shaderTagId, renderingData, cameraData, lightData, sortFlags);
-            drawSettings.perObjectData = PerObjectData.None;
-            return new RendererListParams(renderingData.cullResults, drawSettings, m_FilteringSettings);
-        }
+            const GraphicsFormat k_DepthStencilFormat = GraphicsFormat.D32_SFloat_S8_UInt;
+            const int k_DepthBufferBits = 32;
 
-        internal void Render(RenderGraph renderGraph, ContextContainer frameData, ref TextureHandle cameraDepthTexture)
-        {
-            UniversalRenderingData renderingData = frameData.Get<UniversalRenderingData>();
-            UniversalCameraData cameraData = frameData.Get<UniversalCameraData>();
-            UniversalLightData lightData = frameData.Get<UniversalLightData>();
-
-            using (var builder = renderGraph.AddRasterRenderPass<PassData>("DepthOnly Prepass", out var passData, base.profilingSampler))
+            using (var builder = renderGraph.AddRenderPass<PassData>("DepthOnly Prepass", out var passData, base.profilingSampler))
             {
-                var param = InitRendererListParams(renderingData, cameraData, lightData);
-                passData.rendererList = renderGraph.CreateRendererList(param);
-                builder.UseRendererList(passData.rendererList);
+                var depthDescriptor = renderingData.cameraData.cameraTargetDescriptor;
+                depthDescriptor.graphicsFormat = GraphicsFormat.None;
+                depthDescriptor.depthStencilFormat = k_DepthStencilFormat;
+                depthDescriptor.depthBufferBits = k_DepthBufferBits;
+                depthDescriptor.msaaSamples = 1;// Depth-Only pass don't use MSAA
+                cameraDepthTexture = UniversalRenderer.CreateRenderGraphTexture(renderGraph, depthDescriptor, "_CameraDepthTexture", true);
 
-                builder.UseTextureFragmentDepth(cameraDepthTexture, IBaseRenderGraphBuilder.AccessFlags.Write);
+                passData.cameraDepthTexture = builder.UseDepthBuffer(cameraDepthTexture, DepthAccess.Write);
+                passData.renderingData = renderingData;
+                passData.shaderTagId = this.shaderTagId;
+                passData.filteringSettings = m_FilteringSettings;
 
                 //  TODO RENDERGRAPH: culling? force culling off for testing
                 builder.AllowPassCulling(false);
-                builder.AllowGlobalStateModification(true);
 
-                builder.SetRenderFunc((PassData data, RasterGraphContext context) =>
+                builder.SetRenderFunc((PassData data, RenderGraphContext context) =>
                 {
-                    ExecutePass(context.cmd, data.rendererList);
+                    ExecutePass(context.renderContext, data, ref data.renderingData);
                 });
+
+                return;
             }
         }
     }

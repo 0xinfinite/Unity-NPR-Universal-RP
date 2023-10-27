@@ -19,41 +19,43 @@ namespace UnityEngine.Rendering.Universal
             base.profilingSampler = new ProfilingSampler("XR Occlusion Pass");
         }
 
-        private static void ExecutePass(RasterCommandBuffer cmd, XRPass xr)
+        private static void ExecutePass(ScriptableRenderContext context, ref RenderingData renderingData)
         {
-            if (xr.hasValidOcclusionMesh)
+            var cmd = renderingData.commandBuffer;
+
+            if (renderingData.cameraData.xr.hasValidOcclusionMesh)
             {
-                xr.RenderOcclusionMesh(cmd);
+                renderingData.cameraData.xr.RenderOcclusionMesh(cmd);
+                context.ExecuteCommandBuffer(cmd);
+                cmd.Clear();
             }
         }
 
         /// <inheritdoc/>
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
-            ExecutePass(CommandBufferHelpers.GetRasterCommandBuffer(renderingData.commandBuffer), renderingData.cameraData.xr);
+            ExecutePass(context, ref renderingData);
         }
 
         private class PassData
         {
-            internal XRPass xr;
+            internal RenderingData renderingData;
             internal TextureHandle cameraDepthAttachment;
         }
 
-        internal void Render(RenderGraph renderGraph, ContextContainer frameData, in TextureHandle cameraDepthAttachment)
+        internal void Render(RenderGraph renderGraph, in TextureHandle cameraDepthAttachment, ref RenderingData renderingData)
         {
-            UniversalCameraData cameraData = frameData.Get<UniversalCameraData>();
-
-            using (var builder = renderGraph.AddRasterRenderPass<PassData>("XR Occlusion Pass", out var passData, base.profilingSampler))
+            using (var builder = renderGraph.AddRenderPass<PassData>("XR Occlusion Pass", out var passData, base.profilingSampler))
             {
-                passData.xr = cameraData.xr;
-                passData.cameraDepthAttachment = builder.UseTextureFragmentDepth(cameraDepthAttachment, IBaseRenderGraphBuilder.AccessFlags.Write);
+                passData.renderingData = renderingData;
+                passData.cameraDepthAttachment = builder.UseDepthBuffer(cameraDepthAttachment, DepthAccess.Write);
 
                 //  TODO RENDERGRAPH: culling? force culling off for testing
                 builder.AllowPassCulling(false);
 
-                builder.SetRenderFunc((PassData data, RasterGraphContext context) =>
+                builder.SetRenderFunc((PassData data, RenderGraphContext context) =>
                 {
-                    ExecutePass(context.cmd, data.xr);
+                    ExecutePass(context.renderContext, ref data.renderingData);
                 });
 
                 return;

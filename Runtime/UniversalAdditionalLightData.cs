@@ -128,11 +128,10 @@ namespace UnityEngine.Rendering.Universal
         [Obsolete("This is obsolete, please use m_RenderingLayerMask instead.", false)]
         [SerializeField] LightLayerEnum m_LightLayerMask = LightLayerEnum.LightLayerDefault;
 
-
         /// <summary>
         /// The layer(s) this light belongs to.
         /// </summary>
-        [Obsolete("This is obsolete, please use renderingLayerMask instead.", true)]
+        [Obsolete("This is obsolete, please use renderingLayerMask instead.", false)]
         public LightLayerEnum lightLayerMask
         {
             get { return m_LightLayerMask; }
@@ -168,7 +167,7 @@ namespace UnityEngine.Rendering.Universal
         /// <summary>
         /// The layer(s) for shadow.
         /// </summary>
-        [Obsolete("This is obsolete, please use shadowRenderingLayerMask instead.", true)]
+        [Obsolete("This is obsolete, please use shadowRenderingLayerMask instead.", false)]
         public LightLayerEnum shadowLayerMask
         {
             get { return m_ShadowLayerMask; }

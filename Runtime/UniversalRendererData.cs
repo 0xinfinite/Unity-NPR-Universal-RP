@@ -69,8 +69,8 @@ namespace UnityEngine.Rendering.Universal
             /// <summary>
             /// Screen Space Shadows shader.
             /// </summary>
-            [Obsolete("Obsolete, this feature will be supported by new 'ScreenSpaceShadows' renderer feature", true)]
-            public Shader screenSpaceShadowPS = null;
+            [Obsolete("Obsolete, this feature will be supported by new 'ScreenSpaceShadows' renderer feature")]
+            public Shader screenSpaceShadowPS;
 
             /// <summary>
             /// Sampling shader.
@@ -99,14 +99,14 @@ namespace UnityEngine.Rendering.Universal
             /// <summary>
             /// Material Error shader.
             /// </summary>
-            [Obsolete("Use fallbackErrorPS instead", true)]
-            public Shader materialErrorPS = null;
+            [Obsolete("Use fallbackErrorPS instead")]
+            [Reload("Shaders/Utils/MaterialError.shader")]
+            public Shader materialErrorPS;
 
             // Core blitter shaders, adapted from HDRP
             // TODO: move to core and share with HDRP
             [Reload("Shaders/Utils/CoreBlit.shader"), SerializeField]
             internal Shader coreBlitPS;
-
             [Reload("Shaders/Utils/CoreBlitColorAndDepth.shader"), SerializeField]
             internal Shader coreBlitColorAndDepthPS;
 
@@ -121,18 +121,12 @@ namespace UnityEngine.Rendering.Universal
             /// </summary>
             [Reload("Shaders/CameraMotionVectors.shader")]
             public Shader cameraMotionVector;
-            
+
             /// <summary>
-            /// Screen Space Lens Flare shader.
+            /// Object Motion Vectors shader.
             /// </summary>
-            [Reload("Shaders/PostProcessing/LensFlareScreenSpace.shader")]
-            public Shader screenSpaceLensFlare;
-            
-            /// <summary>
-            /// Data Driven Lens Flare shader.
-            /// </summary>
-            [Reload("Shaders/PostProcessing/LensFlareDataDriven.shader")]
-            public Shader dataDrivenLensFlare;
+            [Reload("Shaders/ObjectMotionVectors.shader")]
+            public Shader objectMotionVector;
         }
 
         /// <summary>
@@ -272,7 +266,7 @@ namespace UnityEngine.Rendering.Universal
         }
 
         /// <summary>
-        /// Use Octahedron normal vector encoding for gbuffer normals.
+        /// Use Octaedron Octahedron normal vector encoding for gbuffer normals.
         /// The overhead is negligible from desktop GPUs, while it should be avoided for mobile GPUs.
         /// </summary>
         public bool accurateGbufferNormals

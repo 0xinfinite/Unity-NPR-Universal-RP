@@ -226,8 +226,6 @@ namespace UnityEngine.Rendering.Universal
         Reflections,
         /// <summary>Display only reflections with smoothness.</summary>
         ReflectionsWithSmoothness,
-        /// <summary>Display the indirect irradiance</summary>
-        GlobalIllumination,
     }
 
     /// <summary>

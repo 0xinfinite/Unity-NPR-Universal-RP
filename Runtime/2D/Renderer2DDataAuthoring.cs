@@ -73,17 +73,17 @@ namespace UnityEngine.Rendering.Universal
             ResourceReloader.TryReloadAllNullIn(this, UniversalRenderPipelineAsset.packagePath);
         }
 
-        void RebuildBlendStyles(bool force = false)
+        private void Awake()
         {
             // Initialize Light Blend Styles
-            if (m_LightBlendStyles != null && !force)
+            if (m_LightBlendStyles != null)
             {
                 for (int i = 0; i < m_LightBlendStyles.Length; ++i)
                 {
                     ref var blendStyle = ref m_LightBlendStyles[i];
 
                     // Custom blend mode (99) now falls back to Multiply.
-                    if ((int) blendStyle.blendMode == 99)
+                    if ((int)blendStyle.blendMode == 99)
                         blendStyle.blendMode = Light2DBlendStyle.BlendMode.Multiply;
                 }
 
@@ -110,15 +110,6 @@ namespace UnityEngine.Rendering.Universal
             InitializeSpriteEditorPrefs();
         }
 
-        private void Awake()
-        {
-            RebuildBlendStyles();
-        }
-
-        void Reset()
-        {
-            RebuildBlendStyles(true);
-        }
 #endif
     }
 }

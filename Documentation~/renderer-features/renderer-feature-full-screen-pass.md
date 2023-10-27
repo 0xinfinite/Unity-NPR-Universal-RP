@@ -6,9 +6,9 @@ You can use this Renderer Feature to create [custom post-processing effects](../
 
 ## How to use the feature
 
-To add the Renderer Feature to your scene:
+To add the Renderer Feature to your Scene:
 
-1. [Add the Full Screen Pass Renderer Feature](urp-renderer-feature-how-to-add.md) to the URP Renderer.
+1. [Add the Full Screen Pass Renderer Feature](../urp-renderer-feature-how-to-add.md) to the URP Renderer.
 
 Refer to the following page for an example of how to use this feature:
 

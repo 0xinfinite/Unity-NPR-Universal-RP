@@ -25,13 +25,13 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
 #if HAS_VFX_GRAPH
         // VFX Properties
         VFXContext m_ContextVFX = null;
-        VFXTaskCompiledData m_TaskDataVFX;
+        VFXContextCompiledData m_ContextDataVFX;
         protected bool TargetsVFX() => m_ContextVFX != null;
 
-        public void ConfigureContextData(VFXContext context, VFXTaskCompiledData data)
+        public void ConfigureContextData(VFXContext context, VFXContextCompiledData data)
         {
             m_ContextVFX = context;
-            m_TaskDataVFX = data;
+            m_ContextDataVFX = data;
         }
 
 #endif
@@ -40,7 +40,7 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
         {
 #if HAS_VFX_GRAPH
             if (TargetsVFX())
-                return VFXSubTarget.PostProcessSubShader(subShaderDescriptor, m_ContextVFX, m_TaskDataVFX);
+                return VFXSubTarget.PostProcessSubShader(subShaderDescriptor, m_ContextVFX, m_ContextDataVFX);
 #endif
             return subShaderDescriptor;
         }
@@ -58,25 +58,10 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
         {
             var urpMetadata = ScriptableObject.CreateInstance<UniversalMetadata>();
             urpMetadata.shaderID = shaderID;
+            urpMetadata.allowMaterialOverride = target.allowMaterialOverride;
+            urpMetadata.surfaceType = target.surfaceType;
             urpMetadata.alphaMode = target.alphaMode;
-
-            if (shaderID != ShaderID.SG_SpriteLit && shaderID != ShaderID.SG_SpriteUnlit)
-            {
-                urpMetadata.allowMaterialOverride = target.allowMaterialOverride;
-                urpMetadata.surfaceType = target.surfaceType;
-                urpMetadata.castShadows = target.castShadows;
-                urpMetadata.hasVertexModificationInMotionVector = target.additionalMotionVectorMode != AdditionalMotionVectorMode.None || graphData.AnyVertexAnimationActive();
-            }
-            else
-            {
-                //Ignore unsupported settings in SpriteUnlit/SpriteLit
-                urpMetadata.allowMaterialOverride = false;
-                urpMetadata.surfaceType = SurfaceType.Transparent; 
-                urpMetadata.castShadows = false;
-                urpMetadata.hasVertexModificationInMotionVector = false;
-            }
-            
-            urpMetadata.isVFXCompatible = graphData.IsVFXCompatible();
+            urpMetadata.castShadows = target.castShadows;
             return urpMetadata;
         }
 

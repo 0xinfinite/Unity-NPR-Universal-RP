@@ -1,11 +1,12 @@
-using UnityEngine.Scripting.APIUpdating;
+using System.Collections.Generic;
+using UnityEngine.Rendering.Universal;
+using UnityEngine.Rendering;
 
-namespace UnityEngine.Rendering.Universal
+namespace UnityEngine.Experimental.Rendering.Universal
 {
     /// <summary>
     /// The queue type for the objects to render.
     /// </summary>
-    [MovedFrom(true, "UnityEngine.Experimental.Rendering.Universal")]
     public enum RenderQueueType
     {
         /// <summary>
@@ -22,9 +23,7 @@ namespace UnityEngine.Rendering.Universal
     /// <summary>
     /// The class for the render objects renderer feature.
     /// </summary>
-    [SupportedOnRenderer(typeof(UniversalRendererData))]
     [ExcludeFromPreset]
-    [MovedFrom(true, "UnityEngine.Experimental.Rendering.Universal")]
     [Tooltip("Render Objects simplifies the injection of additional render passes by exposing a selection of commonly used settings.")]
     [URPHelpURL("renderer-features/renderer-feature-render-objects")]
     public class RenderObjects : ScriptableRendererFeature
@@ -224,7 +223,7 @@ namespace UnityEngine.Rendering.Universal
             }
 
             if (settings.overrideDepthState)
-                renderObjectsPass.SetDepthState(settings.enableWrite, settings.depthCompareFunction);
+                renderObjectsPass.SetDetphState(settings.enableWrite, settings.depthCompareFunction);
 
             if (settings.stencilSettings.overrideStencilState)
                 renderObjectsPass.SetStencilState(settings.stencilSettings.stencilReference,

@@ -6,6 +6,7 @@ using Unity.Collections.LowLevel.Unsafe;
 
 namespace UnityEngine.Rendering.Universal.UTess
 {
+
     [StructLayout(LayoutKind.Sequential)]
     [DebuggerDisplay("Length = {Length}")]
     [DebuggerTypeProxy(typeof(ArraySliceDebugView<>))]
@@ -64,12 +65,12 @@ namespace UnityEngine.Rendering.Universal.UTess
             }
         }
 
-        public static bool operator==(ArraySlice<T> left, ArraySlice<T> right)
+        public static bool operator ==(ArraySlice<T> left, ArraySlice<T> right)
         {
             return left.Equals(right);
         }
 
-        public static bool operator!=(ArraySlice<T> left, ArraySlice<T> right)
+        public static bool operator !=(ArraySlice<T> left, ArraySlice<T> right)
         {
             return !left.Equals(right);
         }
@@ -187,6 +188,7 @@ namespace UnityEngine.Rendering.Universal.UTess
 
         public int Stride => m_Stride;
         public int Length => m_Length;
+
     }
 
     /// <summary>
@@ -206,4 +208,5 @@ namespace UnityEngine.Rendering.Universal.UTess
             get { return m_Slice.ToArray(); }
         }
     }
+
 }

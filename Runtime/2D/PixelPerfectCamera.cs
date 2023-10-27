@@ -1,6 +1,9 @@
+using System.Collections.Generic;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.Scripting.APIUpdating;
 
-namespace UnityEngine.Rendering.Universal
+namespace UnityEngine.Experimental.Rendering.Universal
 {
     /// <summary>
     /// The Pixel Perfect Camera component ensures your pixel art remains crisp and clear at different resolutions, and stable in motion.
@@ -9,7 +12,7 @@ namespace UnityEngine.Rendering.Universal
     [DisallowMultipleComponent]
     [AddComponentMenu("Rendering/2D/Pixel Perfect Camera")]
     [RequireComponent(typeof(Camera))]
-    [MovedFrom(true, "UnityEngine.Experimental.Rendering.Universal")]
+    [MovedFrom("UnityEngine.Experimental.Rendering")]
     [HelpURL("https://docs.unity3d.com/Packages/com.unity.render-pipelines.universal@latest/index.html?subfolder=/manual/2d-pixelperfect.html%23properties")]
     public class PixelPerfectCamera : MonoBehaviour, IPixelPerfectCamera, ISerializationCallbackReceiver
     {
@@ -349,14 +352,9 @@ namespace UnityEngine.Rendering.Universal
             Vector3 roundedCameraPosition = RoundToPixel(cameraPosition);
             Vector3 offset = roundedCameraPosition - cameraPosition;
             offset.z = -offset.z;
+            Matrix4x4 offsetMatrix = Matrix4x4.TRS(-offset, Quaternion.identity, new Vector3(1.0f, 1.0f, -1.0f));
 
-            // Get world to local camera matrix without scale
-            var invPos = Matrix4x4.TRS(cameraPosition + offset, Quaternion.identity, Vector3.one).inverse;
-            var invRot = Matrix4x4.Rotate(m_Camera.transform.rotation).inverse;
-            var scaleMatrix = Matrix4x4.Scale(new Vector3(1.0f, 1.0f, -1.0f));
-
-            // Calculate inverse TRS
-            m_Camera.worldToCameraMatrix = scaleMatrix * invRot * invPos;
+            m_Camera.worldToCameraMatrix = offsetMatrix * m_Camera.transform.worldToLocalMatrix;
         }
 
         void Awake()

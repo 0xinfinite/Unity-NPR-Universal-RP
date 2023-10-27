@@ -55,7 +55,9 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/NormalReconstruction.hlsl"
 #endif
 
+#if defined(_FOVEATED_RENDERING_NON_UNIFORM_RASTER)
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRendering.hlsl"
+#endif
 
 void MeshDecalsPositionZBias(inout Varyings input)
 {
@@ -90,15 +92,7 @@ void InitializeInputData(Varyings input, float3 positionWS, half3 normalWS, half
 #if defined(VARYINGS_NEED_DYNAMIC_LIGHTMAP_UV) && defined(DYNAMICLIGHTMAP_ON)
     inputData.bakedGI = SAMPLE_GI(input.staticLightmapUV, input.dynamicLightmapUV.xy, half3(input.sh), normalWS);
 #elif defined(VARYINGS_NEED_STATIC_LIGHTMAP_UV)
-#if (defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2))
-    inputData.bakedGI = SAMPLE_GI(input.sh,
-        GetAbsolutePositionWS(inputData.positionWS),
-        inputData.normalWS,
-        inputData.viewDirectionWS,
-        input.positionCS.xy);
-#else
     inputData.bakedGI = SAMPLE_GI(input.staticLightmapUV, half3(input.sh), normalWS);
-#endif
 #endif
 
 #if defined(VARYINGS_NEED_STATIC_LIGHTMAP_UV)
@@ -204,7 +198,7 @@ void Frag(PackedVaryings packedInput,
 
 #ifdef _DECAL_LAYERS
 #ifdef _RENDER_PASS_ENABLED
-    uint surfaceRenderingLayer = DecodeMeshRenderingLayer(LOAD_FRAMEBUFFER_X_INPUT(GBUFFER4, positionCS.xy).r);
+    uint surfaceRenderingLayer = DecodeMeshRenderingLayer(LOAD_FRAMEBUFFER_INPUT(GBUFFER4, positionCS.xy).r);
 #else
     uint surfaceRenderingLayer = LoadSceneRenderingLayer(positionCS.xy);
 #endif
@@ -218,13 +212,13 @@ void Frag(PackedVaryings packedInput,
 #if defined(DECAL_PROJECTOR)
 #if UNITY_REVERSED_Z
 #if _RENDER_PASS_ENABLED
-    float depth = LOAD_FRAMEBUFFER_X_INPUT(GBUFFER3, positionCS.xy);
+    float depth = LOAD_FRAMEBUFFER_INPUT(GBUFFER3, positionCS.xy);
 #else
     float depth = LoadSceneDepth(positionCS.xy);
 #endif
 #else
 #if _RENDER_PASS_ENABLED
-    float depth = lerp(UNITY_NEAR_CLIP_VALUE, 1, LOAD_FRAMEBUFFER_X_INPUT(GBUFFER3, positionCS.xy));
+    float depth = lerp(UNITY_NEAR_CLIP_VALUE, 1, LOAD_FRAMEBUFFER_INPUT(GBUFFER3, positionCS.xy));
 #else
     // Adjust z to match NDC for OpenGL
     float depth = lerp(UNITY_NEAR_CLIP_VALUE, 1, LoadSceneDepth(positionCS.xy));
@@ -246,11 +240,8 @@ void Frag(PackedVaryings packedInput,
 
     float2 positionSS = input.positionCS.xy * _ScreenSize.zw;
 
-#if defined(SUPPORTS_FOVEATED_RENDERING_NON_UNIFORM_RASTER)
-    UNITY_BRANCH if (_FOVEATED_RENDERING_NON_UNIFORM_RASTER)
-    {
-        positionSS = RemapFoveatedRenderingNonUniformToLinearCS(input.positionCS.xy, true) * _ScreenSize.zw;
-    }
+#if defined(_FOVEATED_RENDERING_NON_UNIFORM_RASTER)
+    positionSS = RemapFoveatedRenderingDistortCS(input.positionCS.xy, true) * _ScreenSize.zw;
 #endif
 
 #ifdef DECAL_PROJECTOR

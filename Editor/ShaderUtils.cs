@@ -28,7 +28,6 @@ namespace Unity.Rendering.Universal
             SpeedTree7 = ShaderPathID.SpeedTree7,
             SpeedTree7Billboard = ShaderPathID.SpeedTree7Billboard,
             SpeedTree8 = ShaderPathID.SpeedTree8,
-            ComplexLit = ShaderPathID.ComplexLit,
 
             // ShaderGraph IDs start at 1000, correspond to subtargets
             SG_Unlit = 1000,        // UniversalUnlitSubTarget
@@ -36,8 +35,7 @@ namespace Unity.Rendering.Universal
             SG_Decal,               // UniversalDecalSubTarget
             SG_SpriteUnlit,         // UniversalSpriteUnlitSubTarget
             SG_SpriteLit,           // UniversalSpriteLitSubTarget
-            SG_SpriteCustomLit,      // UniversalSpriteCustomLitSubTarget
-            SG_SixWaySmokeLit       // UniversalSixWaySubTarget
+            SG_SpriteCustomLit      // UniversalSpriteCustomLitSubTarget
         }
 
         internal static bool IsShaderGraph(this ShaderID id)
@@ -60,26 +58,6 @@ namespace Unity.Rendering.Universal
                 ShaderPathID pathID = UnityEngine.Rendering.Universal.ShaderUtils.GetEnumFromPath(shader.name);
                 return (ShaderID)pathID;
             }
-        }
-
-        internal static bool HasMotionVectorLightModeTag(ShaderID id)
-        {
-            // Currently only these ShaderIDs have a pass with a { "LightMode" = "MotionVectors" } tag in URP
-            // (this is a more efficient check than looping over all sub-shaders and their passes and checking the
-            // "LightMode" tag value with FindPassTagValue)
-            switch(id)
-            {
-                case ShaderID.Lit:
-                case ShaderID.Unlit:
-                case ShaderID.SimpleLit:
-                case ShaderID.ComplexLit:
-                case ShaderID.BakedLit:
-                case ShaderID.SG_Unlit:
-                case ShaderID.SG_Lit:
-                    return true;
-            }
-
-            return false;
         }
 
         internal enum MaterialUpdateType
@@ -155,10 +133,6 @@ namespace Unity.Rendering.Universal
                 case ShaderID.SG_SpriteLit:
                     break;
                 case ShaderID.SG_SpriteCustomLit:
-                    break;
-                case ShaderID.SG_SixWaySmokeLit:
-                    ShaderGraphLitGUI.UpdateMaterial(material, updateType);
-                    SixWayGUI.UpdateSixWayKeywords(material);
                     break;
                 default:
                     break;

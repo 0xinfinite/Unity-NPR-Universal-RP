@@ -29,14 +29,14 @@ namespace ShaderStrippingAndPrefiltering
             internal bool everyRendererHasSSAO;
             internal ShaderFeatures defaultURPAssetFeatures =
                   ShaderFeatures.MainLight
+                | ShaderFeatures.MainLightShadows
+                | ShaderFeatures.AdditionalLightShadows
                 | ShaderFeatures.MixedLighting
                 | ShaderFeatures.TerrainHoles
                 | ShaderFeatures.DrawProcedural
                 | ShaderFeatures.LightCookies
                 | ShaderFeatures.LODCrossFade
-                | ShaderFeatures.AutoSHMode
-                | ShaderFeatures.DataDrivenLensFlare
-                | ShaderFeatures.ScreenSpaceLensFlare;
+                | ShaderFeatures.AutoSHMode;
 
             internal RendererRequirements defaultRendererRequirements = new()
             {
@@ -147,7 +147,6 @@ namespace ShaderStrippingAndPrefiltering
                 urpAsset.supportsMainLightShadows = false;
                 urpAsset.additionalLightsRenderingMode = LightRenderingMode.Disabled;
                 urpAsset.supportsAdditionalLightShadows = false;
-                urpAsset.lightProbeSystem = LightProbeSystem.LegacyLightProbes;
                 urpAsset.reflectionProbeBlending = false;
                 urpAsset.reflectionProbeBoxProjection = false;
                 urpAsset.supportsSoftShadows = false;
@@ -208,7 +207,7 @@ namespace ShaderStrippingAndPrefiltering
             helper.urpAsset.mainLightRenderingMode = LightRenderingMode.PerPixel;
             helper.urpAsset.supportsMainLightShadows = true;
             actual = helper.GetSupportedShaderFeaturesFromAsset();
-            expected = helper.defaultURPAssetFeatures | ShaderFeatures.MainLightShadows | ShaderFeatures.MainLightShadowsCascade;
+            expected = helper.defaultURPAssetFeatures | ShaderFeatures.MainLightShadowsCascade;
             helper.AssertShaderFeaturesAndReset(expected, actual);
 
             // Clean up
@@ -261,14 +260,14 @@ namespace ShaderStrippingAndPrefiltering
             helper.urpAsset.mainLightRenderingMode = LightRenderingMode.PerPixel;
             helper.urpAsset.supportsMainLightShadows = true;
             helper.urpAsset.supportsSoftShadows = false;
-            expected = helper.defaultURPAssetFeatures | ShaderFeatures.MainLightShadows | ShaderFeatures.MainLightShadowsCascade;
+            expected = helper.defaultURPAssetFeatures | ShaderFeatures.MainLightShadowsCascade;
             actual = helper.GetSupportedShaderFeaturesFromAsset();
             helper.AssertShaderFeaturesAndReset(expected, actual);
 
             helper.urpAsset.mainLightRenderingMode = LightRenderingMode.PerPixel;
             helper.urpAsset.supportsMainLightShadows = true;
             helper.urpAsset.supportsSoftShadows = true;
-            expected = helper.defaultURPAssetFeatures | ShaderFeatures.MainLightShadows | ShaderFeatures.MainLightShadowsCascade | ShaderFeatures.SoftShadows;
+            expected = helper.defaultURPAssetFeatures | ShaderFeatures.MainLightShadowsCascade | ShaderFeatures.SoftShadows;
             actual = helper.GetSupportedShaderFeaturesFromAsset();
             helper.AssertShaderFeaturesAndReset(expected, actual);
 
@@ -290,42 +289,15 @@ namespace ShaderStrippingAndPrefiltering
             helper.urpAsset.additionalLightsRenderingMode = LightRenderingMode.PerPixel;
             helper.urpAsset.supportsAdditionalLightShadows = true;
             helper.urpAsset.supportsSoftShadows = false;
-            expected = helper.defaultURPAssetFeatures | ShaderFeatures.AdditionalLightShadows | ShaderFeatures.AdditionalLightsPixel;
+            expected = helper.defaultURPAssetFeatures | ShaderFeatures.AdditionalLightsPixel;
             actual = helper.GetSupportedShaderFeaturesFromAsset();
             helper.AssertShaderFeaturesAndReset(expected, actual);
 
             helper.urpAsset.additionalLightsRenderingMode = LightRenderingMode.PerPixel;
             helper.urpAsset.supportsAdditionalLightShadows = true;
             helper.urpAsset.supportsSoftShadows = true;
-            expected = helper.defaultURPAssetFeatures | ShaderFeatures.AdditionalLightShadows | ShaderFeatures.AdditionalLightsPixel | ShaderFeatures.SoftShadows;
+            expected = helper.defaultURPAssetFeatures | ShaderFeatures.AdditionalLightsPixel | ShaderFeatures.SoftShadows;
             actual = helper.GetSupportedShaderFeaturesFromAsset();
-            helper.AssertShaderFeaturesAndReset(expected, actual);
-
-            // Clean up
-            helper.Cleanup();
-        }
-
-        [Test]
-        public static void TestGetSupportedShaderFeaturesFromAsset_ProbeVolumes()
-        {
-            TestHelper helper = new ();
-            ShaderFeatures actual;
-            ShaderFeatures expected;
-
-            helper.urpAsset.lightProbeSystem = LightProbeSystem.LegacyLightProbes;
-            actual = helper.GetSupportedShaderFeaturesFromAsset();
-            expected = helper.defaultURPAssetFeatures;
-            helper.AssertShaderFeaturesAndReset(expected, actual);
-
-            helper.urpAsset.lightProbeSystem = LightProbeSystem.ProbeVolumes;
-            actual = helper.GetSupportedShaderFeaturesFromAsset();
-            expected = helper.defaultURPAssetFeatures | ShaderFeatures.ProbeVolumeL1;
-            helper.AssertShaderFeaturesAndReset(expected, actual);
-
-            helper.urpAsset.lightProbeSystem = LightProbeSystem.ProbeVolumes;
-            helper.urpAsset.probeVolumeSHBands = ProbeVolumeSHBands.SphericalHarmonicsL2;
-            actual = helper.GetSupportedShaderFeaturesFromAsset();
-            expected = helper.defaultURPAssetFeatures | ShaderFeatures.ProbeVolumeL2;
             helper.AssertShaderFeaturesAndReset(expected, actual);
 
             // Clean up
@@ -382,7 +354,6 @@ namespace ShaderStrippingAndPrefiltering
             helper.rendererData.renderingMode = RenderingMode.Deferred;
             expected = helper.defaultRendererRequirements;
             expected.renderingMode = helper.rendererData.renderingMode;
-            expected.needsRenderPass = true;
             actual = helper.GetRendererRequirements();
             helper.AssertRendererRequirementsAndReset(expected, actual);
 
@@ -407,7 +378,7 @@ namespace ShaderStrippingAndPrefiltering
             helper.ScriptableRenderer.useRenderPassEnabled = true;
             expected = helper.defaultRendererRequirements;
             expected.renderingMode = helper.rendererData.renderingMode;
-            expected.needsRenderPass = true;
+            expected.needsRenderPass = helper.ScriptableRenderer.useRenderPassEnabled;
             actual = helper.GetRendererRequirements();
             helper.AssertRendererRequirementsAndReset(expected, actual);
 
@@ -533,59 +504,59 @@ namespace ShaderStrippingAndPrefiltering
             // Initial state
             rendererRequirements = helper.defaultRendererRequirements;
             actual = helper.GetSupportedShaderFeaturesFromRenderer(rendererRequirements, ShaderFeatures.None);
-            expected = ShaderFeatures.DrawProcedural;
+            expected = ShaderFeatures.MainLightShadows | ShaderFeatures.AdditionalLightShadows | ShaderFeatures.DrawProcedural;
             helper.AssertShaderFeaturesAndReset(expected, actual);
 
             // Procedural...
             rendererRequirements = helper.defaultRendererRequirements;
             rendererRequirements.needsProcedural = false;
             actual = helper.GetSupportedShaderFeaturesFromRenderer(rendererRequirements, ShaderFeatures.None);
-            expected = ShaderFeatures.None;
+            expected = ShaderFeatures.MainLightShadows | ShaderFeatures.AdditionalLightShadows;
             helper.AssertShaderFeaturesAndReset(expected, actual);
 
             rendererRequirements = helper.defaultRendererRequirements;
             rendererRequirements.needsProcedural = true;
             actual = helper.GetSupportedShaderFeaturesFromRenderer(rendererRequirements, ShaderFeatures.None);
-            expected = ShaderFeatures.DrawProcedural;
+            expected = ShaderFeatures.MainLightShadows | ShaderFeatures.AdditionalLightShadows | ShaderFeatures.DrawProcedural;
             helper.AssertShaderFeaturesAndReset(expected, actual);
 
             // Rendering Modes...
             rendererRequirements = helper.defaultRendererRequirements;
             rendererRequirements.renderingMode = RenderingMode.Forward;
             actual = helper.GetSupportedShaderFeaturesFromRenderer(rendererRequirements, ShaderFeatures.None);
-            expected = ShaderFeatures.DrawProcedural;
+            expected = ShaderFeatures.MainLightShadows | ShaderFeatures.AdditionalLightShadows | ShaderFeatures.DrawProcedural;
             helper.AssertShaderFeaturesAndReset(expected, actual);
 
             rendererRequirements = helper.defaultRendererRequirements;
             rendererRequirements.renderingMode = RenderingMode.ForwardPlus;
             actual = helper.GetSupportedShaderFeaturesFromRenderer(rendererRequirements, ShaderFeatures.None);
-            expected = ShaderFeatures.DrawProcedural | ShaderFeatures.ForwardPlus | ShaderFeatures.AdditionalLightsKeepOffVariants;
+            expected = ShaderFeatures.MainLightShadows | ShaderFeatures.AdditionalLightShadows | ShaderFeatures.DrawProcedural | ShaderFeatures.ForwardPlus | ShaderFeatures.AdditionalLightsKeepOffVariants;
             helper.AssertShaderFeaturesAndReset(expected, actual);
 
             rendererRequirements = helper.defaultRendererRequirements;
             rendererRequirements.renderingMode = RenderingMode.Deferred;
             actual = helper.GetSupportedShaderFeaturesFromRenderer(rendererRequirements, ShaderFeatures.None);
-            expected = ShaderFeatures.DrawProcedural | ShaderFeatures.DeferredShading;
+            expected = ShaderFeatures.MainLightShadows | ShaderFeatures.AdditionalLightShadows | ShaderFeatures.DrawProcedural | ShaderFeatures.DeferredShading;
             helper.AssertShaderFeaturesAndReset(expected, actual);
 
             // The Off variant for Additional Lights
             rendererRequirements = helper.defaultRendererRequirements;
             rendererRequirements.needsAdditionalLightsOff = false;
             actual = helper.GetSupportedShaderFeaturesFromRenderer(rendererRequirements, ShaderFeatures.None);
-            expected = ShaderFeatures.DrawProcedural;
+            expected = ShaderFeatures.MainLightShadows | ShaderFeatures.AdditionalLightShadows | ShaderFeatures.DrawProcedural;
             helper.AssertShaderFeaturesAndReset(expected, actual);
 
             rendererRequirements = helper.defaultRendererRequirements;
             rendererRequirements.needsAdditionalLightsOff = true;
             actual = helper.GetSupportedShaderFeaturesFromRenderer(rendererRequirements, ShaderFeatures.None);
-            expected = ShaderFeatures.DrawProcedural | ShaderFeatures.AdditionalLightsKeepOffVariants;
+            expected = ShaderFeatures.MainLightShadows | ShaderFeatures.AdditionalLightShadows | ShaderFeatures.DrawProcedural | ShaderFeatures.AdditionalLightsKeepOffVariants;
             helper.AssertShaderFeaturesAndReset(expected, actual);
 
             // The Off variant for Main and Additional Light shadows
             rendererRequirements = helper.defaultRendererRequirements;
             rendererRequirements.needsShadowsOff = false;
             actual = helper.GetSupportedShaderFeaturesFromRenderer(rendererRequirements, ShaderFeatures.None);
-            expected = ShaderFeatures.DrawProcedural;
+            expected = ShaderFeatures.MainLightShadows | ShaderFeatures.AdditionalLightShadows | ShaderFeatures.DrawProcedural;
             helper.AssertShaderFeaturesAndReset(expected, actual);
 
             rendererRequirements = helper.defaultRendererRequirements;
@@ -598,78 +569,78 @@ namespace ShaderStrippingAndPrefiltering
             rendererRequirements = helper.defaultRendererRequirements;
             rendererRequirements.needsSoftShadows = false;
             actual = helper.GetSupportedShaderFeaturesFromRenderer(rendererRequirements, ShaderFeatures.None);
-            expected = ShaderFeatures.DrawProcedural;
+            expected = ShaderFeatures.MainLightShadows | ShaderFeatures.AdditionalLightShadows | ShaderFeatures.DrawProcedural;
             helper.AssertShaderFeaturesAndReset(expected, actual);
 
             rendererRequirements = helper.defaultRendererRequirements;
             rendererRequirements.needsSoftShadows = true;
             actual = helper.GetSupportedShaderFeaturesFromRenderer(rendererRequirements, ShaderFeatures.None);
-            expected = ShaderFeatures.DrawProcedural | ShaderFeatures.SoftShadows;
+            expected = ShaderFeatures.MainLightShadows | ShaderFeatures.AdditionalLightShadows | ShaderFeatures.DrawProcedural | ShaderFeatures.SoftShadows;
             helper.AssertShaderFeaturesAndReset(expected, actual);
 
             // Deferred GBuffer Rendering Layers
             rendererRequirements = helper.defaultRendererRequirements;
             rendererRequirements.needsGBufferRenderingLayers = false;
             actual = helper.GetSupportedShaderFeaturesFromRenderer(rendererRequirements, ShaderFeatures.None);
-            expected = ShaderFeatures.DrawProcedural;
+            expected = ShaderFeatures.MainLightShadows | ShaderFeatures.AdditionalLightShadows | ShaderFeatures.DrawProcedural;
             helper.AssertShaderFeaturesAndReset(expected, actual);
 
             rendererRequirements = helper.defaultRendererRequirements;
             rendererRequirements.needsGBufferRenderingLayers = true;
             actual = helper.GetSupportedShaderFeaturesFromRenderer(rendererRequirements, ShaderFeatures.None);
-            expected = ShaderFeatures.DrawProcedural | ShaderFeatures.GBufferWriteRenderingLayers;
+            expected = ShaderFeatures.MainLightShadows | ShaderFeatures.AdditionalLightShadows | ShaderFeatures.DrawProcedural | ShaderFeatures.GBufferWriteRenderingLayers;
             helper.AssertShaderFeaturesAndReset(expected, actual);
 
             // Deferred GBuffer Accurate Normals
             rendererRequirements = helper.defaultRendererRequirements;
             rendererRequirements.needsGBufferAccurateNormals = false;
             actual = helper.GetSupportedShaderFeaturesFromRenderer(rendererRequirements, ShaderFeatures.None);
-            expected = ShaderFeatures.DrawProcedural;
+            expected = ShaderFeatures.MainLightShadows | ShaderFeatures.AdditionalLightShadows | ShaderFeatures.DrawProcedural;
             helper.AssertShaderFeaturesAndReset(expected, actual);
 
             rendererRequirements = helper.defaultRendererRequirements;
             rendererRequirements.needsGBufferAccurateNormals = true;
             actual = helper.GetSupportedShaderFeaturesFromRenderer(rendererRequirements, ShaderFeatures.None);
-            expected = ShaderFeatures.DrawProcedural | ShaderFeatures.AccurateGbufferNormals;
+            expected = ShaderFeatures.MainLightShadows | ShaderFeatures.AdditionalLightShadows | ShaderFeatures.DrawProcedural | ShaderFeatures.AccurateGbufferNormals;
             helper.AssertShaderFeaturesAndReset(expected, actual);
 
             // Deferred GBuffer Native Render Pass
             rendererRequirements = helper.defaultRendererRequirements;
             rendererRequirements.needsRenderPass = false;
             actual = helper.GetSupportedShaderFeaturesFromRenderer(rendererRequirements, ShaderFeatures.None);
-            expected = ShaderFeatures.DrawProcedural;
+            expected = ShaderFeatures.MainLightShadows | ShaderFeatures.AdditionalLightShadows | ShaderFeatures.DrawProcedural;
             helper.AssertShaderFeaturesAndReset(expected, actual);
 
             rendererRequirements = helper.defaultRendererRequirements;
             rendererRequirements.needsRenderPass = true;
             actual = helper.GetSupportedShaderFeaturesFromRenderer(rendererRequirements, ShaderFeatures.None);
-            expected = ShaderFeatures.DrawProcedural | ShaderFeatures.RenderPassEnabled;
+            expected = ShaderFeatures.MainLightShadows | ShaderFeatures.AdditionalLightShadows | ShaderFeatures.DrawProcedural | ShaderFeatures.RenderPassEnabled;
             helper.AssertShaderFeaturesAndReset(expected, actual);
 
             // Reflection Probe Blending
             rendererRequirements = helper.defaultRendererRequirements;
             rendererRequirements.needsReflectionProbeBlending = false;
             actual = helper.GetSupportedShaderFeaturesFromRenderer(rendererRequirements, ShaderFeatures.None);
-            expected = ShaderFeatures.DrawProcedural;
+            expected = ShaderFeatures.MainLightShadows | ShaderFeatures.AdditionalLightShadows | ShaderFeatures.DrawProcedural;
             helper.AssertShaderFeaturesAndReset(expected, actual);
 
             rendererRequirements = helper.defaultRendererRequirements;
             rendererRequirements.needsReflectionProbeBlending = true;
             actual = helper.GetSupportedShaderFeaturesFromRenderer(rendererRequirements, ShaderFeatures.None);
-            expected = ShaderFeatures.DrawProcedural | ShaderFeatures.ReflectionProbeBlending;
+            expected = ShaderFeatures.MainLightShadows | ShaderFeatures.AdditionalLightShadows | ShaderFeatures.DrawProcedural | ShaderFeatures.ReflectionProbeBlending;
             helper.AssertShaderFeaturesAndReset(expected, actual);
 
             // Reflection Probe Box Projection
             rendererRequirements = helper.defaultRendererRequirements;
             rendererRequirements.needsReflectionProbeBoxProjection = false;
             actual = helper.GetSupportedShaderFeaturesFromRenderer(rendererRequirements, ShaderFeatures.None);
-            expected = ShaderFeatures.DrawProcedural;
+            expected = ShaderFeatures.MainLightShadows | ShaderFeatures.AdditionalLightShadows | ShaderFeatures.DrawProcedural;
             helper.AssertShaderFeaturesAndReset(expected, actual);
 
             rendererRequirements = helper.defaultRendererRequirements;
             rendererRequirements.needsReflectionProbeBoxProjection = true;
             actual = helper.GetSupportedShaderFeaturesFromRenderer(rendererRequirements, ShaderFeatures.None);
-            expected = ShaderFeatures.DrawProcedural | ShaderFeatures.ReflectionProbeBoxProjection;
+            expected = ShaderFeatures.MainLightShadows | ShaderFeatures.AdditionalLightShadows | ShaderFeatures.DrawProcedural | ShaderFeatures.ReflectionProbeBoxProjection;
             helper.AssertShaderFeaturesAndReset(expected, actual);
 
             helper.Cleanup();
@@ -781,7 +752,7 @@ namespace ShaderStrippingAndPrefiltering
             rendererRequirements.renderingMode = RenderingMode.Deferred;
             rendererRequirements.needsUnusedVariants = false;
             actual = helper.GetSupportedShaderFeaturesFromRendererFeatures(rendererRequirements);
-            expected = ShaderFeatures.DecalLayers | ShaderFeatures.DepthNormalPassRenderingLayers | ShaderFeatures.GBufferWriteRenderingLayers | ShaderFeatures.DBufferMRT3;
+            expected = ShaderFeatures.DecalLayers | ShaderFeatures.DepthNormalPassRenderingLayers | ShaderFeatures.DBufferMRT3;
             helper.AssertShaderFeaturesAndReset(expected, actual);
 
             // Screenspace
@@ -807,7 +778,7 @@ namespace ShaderStrippingAndPrefiltering
             rendererRequirements.renderingMode = RenderingMode.Deferred;
             rendererRequirements.needsUnusedVariants = false;
             actual = helper.GetSupportedShaderFeaturesFromRendererFeatures(rendererRequirements);
-            expected = ShaderFeatures.DecalGBuffer | ShaderFeatures.DecalNormalBlendLow | ShaderFeatures.DecalLayers | ShaderFeatures.DepthNormalPassRenderingLayers | ShaderFeatures.GBufferWriteRenderingLayers;
+            expected = ShaderFeatures.DecalGBuffer | ShaderFeatures.DecalNormalBlendLow | ShaderFeatures.DecalLayers | ShaderFeatures.GBufferWriteRenderingLayers;
             helper.AssertShaderFeaturesAndReset(expected, actual);
 
             // Clean up

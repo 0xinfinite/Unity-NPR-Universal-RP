@@ -35,7 +35,16 @@ namespace UnityEngine.Rendering.Universal
         }
 
         // Platform specific filtering overrides
-        [ShaderKeywordFilter.ApplyRulesIfGraphicsAPI(GraphicsDeviceType.OpenGLES3, GraphicsDeviceType.OpenGLCore)]
+        [ShaderKeywordFilter.ApplyRulesIfGraphicsAPI(GraphicsDeviceType.OpenGLES2)]
+        [ShaderKeywordFilter.RemoveIf(true, keywordNames: ShaderKeywordStrings.LightLayers)]
+        [ShaderKeywordFilter.RemoveIf(true, keywordNames: ShaderKeywordStrings.RenderPassEnabled)]
+        [ShaderKeywordFilter.RemoveIf(true, keywordNames: new [] {ShaderKeywordStrings.MainLightShadowCascades, ShaderKeywordStrings.MainLightShadowScreen})]
+        [ShaderKeywordFilter.RemoveIf(true, keywordNames: new [] {ShaderKeywordStrings._DETAIL_MULX2, ShaderKeywordStrings._DETAIL_SCALED})]
+        [ShaderKeywordFilter.RemoveIf(true, keywordNames: new [] {ShaderKeywordStrings._CLEARCOAT, ShaderKeywordStrings._CLEARCOATMAP})]
+        private const bool k_GLES2Defaults = true;
+
+        // Platform specific filtering overrides
+        [ShaderKeywordFilter.ApplyRulesIfGraphicsAPI(GraphicsDeviceType.OpenGLES2, GraphicsDeviceType.OpenGLES3, GraphicsDeviceType.OpenGLCore)]
         [ShaderKeywordFilter.RemoveIf(true, keywordNames: ShaderKeywordStrings.WriteRenderingLayers)]
         [ShaderKeywordFilter.RemoveIf(true, keywordNames: ShaderKeywordStrings.DBufferMRT1)]
         [ShaderKeywordFilter.RemoveIf(true, keywordNames: ShaderKeywordStrings.DBufferMRT2)]
@@ -44,7 +53,7 @@ namespace UnityEngine.Rendering.Universal
 
         // Foveated Rendering
         #if ENABLE_VR && ENABLE_XR_MODULE
-        [ShaderKeywordFilter.ApplyRulesIfNotGraphicsAPI(GraphicsDeviceType.PlayStation5NGGC, GraphicsDeviceType.Metal)]
+        [ShaderKeywordFilter.ApplyRulesIfNotGraphicsAPI(GraphicsDeviceType.PlayStation5NGGC)]
         #endif
         [ShaderKeywordFilter.RemoveIf(true, keywordNames: ShaderKeywordStrings.FoveatedRenderingNonUniformRaster)]
         private const bool k_PrefilterFoveatedRenderingNonUniformRaster = true;
@@ -107,7 +116,7 @@ namespace UnityEngine.Rendering.Universal
 
         // Filters out WriteRenderingLayers if nothing requires the feature
         // TODO: Implement a different filter triggers for different passes (i.e. per-pass filter attributes)
-        [ShaderKeywordFilter.ApplyRulesIfNotGraphicsAPI(GraphicsDeviceType.OpenGLES3, GraphicsDeviceType.OpenGLCore)]
+        [ShaderKeywordFilter.ApplyRulesIfNotGraphicsAPI(GraphicsDeviceType.OpenGLES2, GraphicsDeviceType.OpenGLES3, GraphicsDeviceType.OpenGLCore)]
         [ShaderKeywordFilter.RemoveIf(true, keywordNames: ShaderKeywordStrings.WriteRenderingLayers)]
         [SerializeField] private bool m_PrefilterWriteRenderingLayers = false;
 
@@ -138,36 +147,28 @@ namespace UnityEngine.Rendering.Universal
         [SerializeField] private bool m_PrefilterSSAOSampleCountHigh = false;
 
         // Decals
-        [ShaderKeywordFilter.ApplyRulesIfNotGraphicsAPI(GraphicsDeviceType.OpenGLES3, GraphicsDeviceType.OpenGLCore)]
+        [ShaderKeywordFilter.ApplyRulesIfNotGraphicsAPI(GraphicsDeviceType.OpenGLES2, GraphicsDeviceType.OpenGLES3, GraphicsDeviceType.OpenGLCore)]
         [ShaderKeywordFilter.RemoveIf(true, keywordNames: ShaderKeywordStrings.DBufferMRT1)]
         [SerializeField] private bool m_PrefilterDBufferMRT1 = false;
 
-        [ShaderKeywordFilter.ApplyRulesIfNotGraphicsAPI(GraphicsDeviceType.OpenGLES3, GraphicsDeviceType.OpenGLCore)]
+        [ShaderKeywordFilter.ApplyRulesIfNotGraphicsAPI(GraphicsDeviceType.OpenGLES2, GraphicsDeviceType.OpenGLES3, GraphicsDeviceType.OpenGLCore)]
         [ShaderKeywordFilter.RemoveIf(true, keywordNames: ShaderKeywordStrings.DBufferMRT2)]
         [SerializeField] private bool m_PrefilterDBufferMRT2 = false;
 
-        [ShaderKeywordFilter.ApplyRulesIfNotGraphicsAPI(GraphicsDeviceType.OpenGLES3, GraphicsDeviceType.OpenGLCore)]
+        [ShaderKeywordFilter.ApplyRulesIfNotGraphicsAPI(GraphicsDeviceType.OpenGLES2, GraphicsDeviceType.OpenGLES3, GraphicsDeviceType.OpenGLCore)]
         [ShaderKeywordFilter.RemoveIf(true, keywordNames: ShaderKeywordStrings.DBufferMRT3)]
         [SerializeField] private bool m_PrefilterDBufferMRT3 = false;
 
         // Decal Layers - Gets overridden in Decal renderer feature if enabled.
         [ShaderKeywordFilter.RemoveIf(true, keywordNames: ShaderKeywordStrings.DecalLayers)]
         private const bool k_DecalLayersDefault = true;
-        
-        [ShaderKeywordFilter.RemoveIf(true, keywordNames: ShaderKeywordStrings.SoftShadowsLow)]
-        [SerializeField] private bool m_PrefilterSoftShadowsQualityLow = false;
-        [ShaderKeywordFilter.RemoveIf(true, keywordNames: ShaderKeywordStrings.SoftShadowsMedium)]
-        [SerializeField] private bool m_PrefilterSoftShadowsQualityMedium = false;
-        [ShaderKeywordFilter.RemoveIf(true, keywordNames: ShaderKeywordStrings.SoftShadowsHigh)]
-        [SerializeField] private bool m_PrefilterSoftShadowsQualityHigh = false;
-        [ShaderKeywordFilter.RemoveIf(true, keywordNames: ShaderKeywordStrings.SoftShadows)]
-        [SerializeField] private bool m_PrefilterSoftShadows = false;
 
         // Screen Coord Override - Controlled by the Global Settings
         [ShaderKeywordFilter.RemoveIf(true, keywordNames: ShaderKeywordStrings.SCREEN_COORD_OVERRIDE)]
         [SerializeField] private bool m_PrefilterScreenCoord = false;
 
         // Native Render Pass
+        [ShaderKeywordFilter.ApplyRulesIfNotGraphicsAPI(GraphicsDeviceType.OpenGLES2)]
         [ShaderKeywordFilter.RemoveIf(true, keywordNames: ShaderKeywordStrings.RenderPassEnabled)]
         [SerializeField] private bool m_PrefilterNativeRenderPass = false;
 
@@ -193,9 +194,6 @@ namespace UnityEngine.Rendering.Universal
             public bool stripDBufferMRT2;
             public bool stripDBufferMRT3;
             public bool stripNativeRenderPass;
-            public bool stripSoftShadowsQualityLow;
-            public bool stripSoftShadowsQualityMedium;
-            public bool stripSoftShadowsQualityHigh;
 
             public bool stripSSAOBlueNoise;
             public bool stripSSAOInterleaved;
@@ -230,11 +228,6 @@ namespace UnityEngine.Rendering.Universal
             m_PrefilterDBufferMRT2                   = prefilteringData.stripDBufferMRT2;
             m_PrefilterDBufferMRT3                   = prefilteringData.stripDBufferMRT3;
             m_PrefilterNativeRenderPass              = prefilteringData.stripNativeRenderPass;
-
-            m_PrefilterSoftShadowsQualityLow         = prefilteringData.stripSoftShadowsQualityLow;
-            m_PrefilterSoftShadowsQualityMedium      = prefilteringData.stripSoftShadowsQualityMedium;
-            m_PrefilterSoftShadowsQualityHigh        = prefilteringData.stripSoftShadowsQualityHigh;
-            m_PrefilterSoftShadows                   = !m_PrefilterSoftShadowsQualityLow || !m_PrefilterSoftShadowsQualityMedium || !m_PrefilterSoftShadowsQualityHigh;
 
             m_PrefilterSSAOBlueNoise                 = prefilteringData.stripSSAOBlueNoise;
             m_PrefilterSSAOInterleaved               = prefilteringData.stripSSAOInterleaved;

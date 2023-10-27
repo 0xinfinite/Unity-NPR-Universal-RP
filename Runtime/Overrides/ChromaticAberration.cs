@@ -5,8 +5,7 @@ namespace UnityEngine.Rendering.Universal
     /// <summary>
     /// A volume component that holds settings for the Chromatic Aberration effect.
     /// </summary>
-    [Serializable, VolumeComponentMenu("Post-processing/Chromatic Aberration")]
-    [SupportedOnRenderPipeline(typeof(UniversalRenderPipelineAsset))]
+    [Serializable, VolumeComponentMenuForRenderPipeline("Post-processing/Chromatic Aberration", typeof(UniversalRenderPipeline))]
     [URPHelpURL("post-processing-chromatic-aberration")]
     public sealed class ChromaticAberration : VolumeComponent, IPostProcessComponent
     {
@@ -20,7 +19,6 @@ namespace UnityEngine.Rendering.Universal
         public bool IsActive() => intensity.value > 0f;
 
         /// <inheritdoc/>
-        [Obsolete("Unused #from(2023.1)", false)]
         public bool IsTileCompatible() => false;
     }
 }

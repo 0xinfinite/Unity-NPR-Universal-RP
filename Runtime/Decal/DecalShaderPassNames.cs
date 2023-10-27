@@ -13,10 +13,5 @@ namespace UnityEngine.Rendering.Universal
         public const string DecalMeshForwardEmissive = "DecalMeshForwardEmissive";
         public const string DecalScreenSpaceMesh = "DecalScreenSpaceMesh";
         public const string DecalGBufferMesh = "DecalGBufferMesh";
-
-        public const string DBufferProjectorVFX = "DBufferProjectorVFX";
-        public const string DecalProjectorForwardEmissiveVFX = "DecalProjectorForwardEmissiveVFX";
-        public const string DecalScreenSpaceProjectorVFX = "DecalScreenSpaceProjectorVFX";
-        public const string DecalGBufferProjectorVFX = "DecalGBufferProjectorVFX";
     }
 }

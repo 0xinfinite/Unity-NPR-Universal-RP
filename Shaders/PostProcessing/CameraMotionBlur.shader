@@ -1,6 +1,8 @@
 Shader "Hidden/Universal Render Pipeline/CameraMotionBlur"
 {
     HLSLINCLUDE
+        #pragma exclude_renderers gles
+
         #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
         #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Random.hlsl"
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
@@ -20,8 +22,6 @@ Shader "Hidden/Universal Render Pipeline/CameraMotionBlur"
         half _Clamp;
         half4 _SourceSize;
 
-        TEXTURE2D_X(_MotionVectorTexture);
-
         struct VaryingsCMB
         {
             float4 positionCS    : SV_POSITION;
@@ -35,11 +35,16 @@ Shader "Hidden/Universal Render Pipeline/CameraMotionBlur"
             UNITY_SETUP_INSTANCE_ID(input);
             UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
 
+#if SHADER_API_GLES
+            float4 pos = input.positionOS;
+            float2 uv  = input.uv;
+#else
             float4 pos = GetFullScreenTriangleVertexPosition(input.vertexID);
             float2 uv  = GetFullScreenTriangleTexCoord(input.vertexID);
+#endif
 
             output.positionCS  = pos;
-            output.texcoord.xy = DYNAMIC_SCALING_APPLY_SCALEBIAS(uv);
+            output.texcoord.xy = uv * _BlitScaleBias.xy + _BlitScaleBias.zw;
 
             float4 projPos = output.positionCS * 0.5;
             projPos.xy = projPos.xy + projPos.w;
@@ -52,13 +57,6 @@ Shader "Hidden/Universal Render Pipeline/CameraMotionBlur"
         {
             half len = length(velocity);
             return (len > 0.0) ? min(len, maxVelocity) * (velocity * rcp(len)) : 0.0;
-        }
-
-        half2 GetVelocity(float2 uv)
-        {
-            // Unity motion vectors are forward motion vectors in screen UV space
-            half2 offsetUv = SAMPLE_TEXTURE2D_X(_MotionVectorTexture, sampler_LinearClamp, uv).xy;
-            return -offsetUv;
         }
 
         // Per-pixel camera velocity
@@ -93,23 +91,12 @@ Shader "Hidden/Universal Render Pipeline/CameraMotionBlur"
             return SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_PointClamp, sampleUV).xyz;
         }
 
-        half4 DoMotionBlur(VaryingsCMB input, int iterations, int useMotionVectors)
+        half4 DoMotionBlur(VaryingsCMB input, int iterations)
         {
             UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 
             float2 uv = UnityStereoTransformScreenSpaceTex(input.texcoord.xy);
-
-            half2 velocity;
-            if(useMotionVectors == 1)
-            {
-                velocity = GetVelocity(uv) * _Intensity;
-                // Scale back to -1, 1 from 0..1 to match GetCameraVelocity. A workaround to keep existing visual look.
-                // TODO: There's bug in GetCameraVelocity, which is using NDC and not UV
-                velocity *= 2;
-            }
-            else
-                velocity = GetCameraVelocity(float4(uv, input.texcoord.zw)) * _Intensity;
-
+            half2 velocity = GetCameraVelocity(float4(uv, input.texcoord.zw)) * _Intensity;
             half randomVal = InterleavedGradientNoise(uv * _SourceSize.xy, 0);
             half invSampleCount = rcp(iterations * 2.0);
 
@@ -144,7 +131,7 @@ Shader "Hidden/Universal Render Pipeline/CameraMotionBlur"
 
                 half4 FragCMB(VaryingsCMB input) : SV_Target
                 {
-                    return DoMotionBlur(input, 2, 0);
+                    return DoMotionBlur(input, 2);
                 }
 
             ENDHLSL
@@ -161,7 +148,7 @@ Shader "Hidden/Universal Render Pipeline/CameraMotionBlur"
 
                 half4 FragCMB(VaryingsCMB input) : SV_Target
                 {
-                    return DoMotionBlur(input, 3, 0);
+                    return DoMotionBlur(input, 3);
                 }
 
             ENDHLSL
@@ -178,58 +165,7 @@ Shader "Hidden/Universal Render Pipeline/CameraMotionBlur"
 
                 half4 FragCMB(VaryingsCMB input) : SV_Target
                 {
-                    return DoMotionBlur(input, 4, 0);
-                }
-
-            ENDHLSL
-        }
-
-        Pass
-        {
-            Name "Camera And Object Motion Blur - Low Quality"
-
-            HLSLPROGRAM
-
-                #pragma vertex VertCMB
-                #pragma fragment FragCMB
-
-                half4 FragCMB(VaryingsCMB input) : SV_Target
-                {
-                    return DoMotionBlur(input, 2, 1);
-                }
-
-            ENDHLSL
-        }
-
-        Pass
-        {
-            Name "Camera And Object Motion Blur - Medium Quality"
-
-            HLSLPROGRAM
-
-                #pragma vertex VertCMB
-                #pragma fragment FragCMB
-
-                half4 FragCMB(VaryingsCMB input) : SV_Target
-                {
-                    return DoMotionBlur(input, 3, 1);
-                }
-
-            ENDHLSL
-        }
-
-        Pass
-        {
-            Name "Camera And Object Motion Blur - High Quality"
-
-            HLSLPROGRAM
-
-                #pragma vertex VertCMB
-                #pragma fragment FragCMB
-
-                half4 FragCMB(VaryingsCMB input) : SV_Target
-                {
-                    return DoMotionBlur(input, 4, 1);
+                    return DoMotionBlur(input, 4);
                 }
 
             ENDHLSL

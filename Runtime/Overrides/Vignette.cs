@@ -5,8 +5,7 @@ namespace UnityEngine.Rendering.Universal
     /// <summary>
     /// A volume component that holds settings for the Vignette effect.
     /// </summary>
-    [Serializable, VolumeComponentMenu("Post-processing/Vignette")]
-    [SupportedOnRenderPipeline(typeof(UniversalRenderPipelineAsset))]
+    [Serializable, VolumeComponentMenuForRenderPipeline("Post-processing/Vignette", typeof(UniversalRenderPipeline))]
     [URPHelpURL("post-processing-vignette")]
     public sealed class Vignette : VolumeComponent, IPostProcessComponent
     {
@@ -25,7 +24,7 @@ namespace UnityEngine.Rendering.Universal
         /// <summary>
         /// Controls the strength of the vignette effect.
         /// </summary>
-        [Tooltip("Use the slider to set the strength of the Vignette effect.")]
+        [Tooltip("Amount of vignetting on screen.")]
         public ClampedFloatParameter intensity = new ClampedFloatParameter(0f, 0f, 1f);
 
         /// <summary>
@@ -44,7 +43,6 @@ namespace UnityEngine.Rendering.Universal
         public bool IsActive() => intensity.value > 0f;
 
         /// <inheritdoc/>
-        [Obsolete("Unused #from(2023.1)", false)]
         public bool IsTileCompatible() => true;
     }
 }

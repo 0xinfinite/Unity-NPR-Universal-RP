@@ -1,22 +1,21 @@
-using System;
 using System.Collections.Generic;
-using UnityEngine.Experimental.Rendering;
 using UnityEngine.Experimental.Rendering.RenderGraphModule;
+using UnityEngine.Rendering.Universal;
+using UnityEngine.Rendering;
 using UnityEngine.Scripting.APIUpdating;
 
-namespace UnityEngine.Rendering.Universal
+namespace UnityEngine.Experimental.Rendering.Universal
 {
     /// <summary>
     /// The scriptable render pass used with the render objects renderer feature.
     /// </summary>
-    [MovedFrom(true, "UnityEngine.Experimental.Rendering.Universal")]
     public class RenderObjectsPass : ScriptableRenderPass
     {
         RenderQueueType renderQueueType;
         FilteringSettings m_FilteringSettings;
         RenderObjects.CustomCameraSettings m_CameraSettings;
         string m_ProfilerTag;
-        static ProfilingSampler s_ProfilingSampler;
+        ProfilingSampler m_ProfilingSampler;
 
         /// <summary>
         /// The override material to use.
@@ -39,25 +38,13 @@ namespace UnityEngine.Rendering.Universal
         public int overrideShaderPassIndex { get; set; }
 
         List<ShaderTagId> m_ShaderTagIdList = new List<ShaderTagId>();
-        private PassData m_PassData;
 
         /// <summary>
         /// Sets the write and comparison function for depth.
         /// </summary>
         /// <param name="writeEnabled">Sets whether it should write to depth or not.</param>
         /// <param name="function">The depth comparison function to use.</param>
-        [Obsolete("Use SetDepthState instead", true)]
         public void SetDetphState(bool writeEnabled, CompareFunction function = CompareFunction.Less)
-        {
-            SetDepthState(writeEnabled, function);
-        }
-
-        /// <summary>
-        /// Sets the write and comparison function for depth.
-        /// </summary>
-        /// <param name="writeEnabled">Sets whether it should write to depth or not.</param>
-        /// <param name="function">The depth comparison function to use.</param>
-        public void SetDepthState(bool writeEnabled, CompareFunction function = CompareFunction.Less)
         {
             m_RenderStateBlock.mask |= RenderStateMask.Depth;
             m_RenderStateBlock.depthState = new DepthState(writeEnabled, function);
@@ -101,10 +88,7 @@ namespace UnityEngine.Rendering.Universal
             base.profilingSampler = new ProfilingSampler(nameof(RenderObjectsPass));
 
             m_ProfilerTag = profilerTag;
-            s_ProfilingSampler = new ProfilingSampler(profilerTag);
-
-            m_PassData = new PassData();
-
+            m_ProfilingSampler = new ProfilingSampler(profilerTag);
             this.renderPassEvent = renderPassEvent;
             this.renderQueueType = renderQueueType;
             this.overrideMaterial = null;
@@ -135,188 +119,103 @@ namespace UnityEngine.Rendering.Universal
         internal RenderObjectsPass(URPProfileId profileId, RenderPassEvent renderPassEvent, string[] shaderTags, RenderQueueType renderQueueType, int layerMask, RenderObjects.CustomCameraSettings cameraSettings)
             : this(profileId.GetType().Name, renderPassEvent, shaderTags, renderQueueType, layerMask, cameraSettings)
         {
-            s_ProfilingSampler = ProfilingSampler.Get(profileId);
+            m_ProfilingSampler = ProfilingSampler.Get(profileId);
         }
 
         /// <inheritdoc/>
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
-            UniversalRenderingData universalRenderingData = renderingData.frameData.Get<UniversalRenderingData>();
-            UniversalCameraData cameraData = renderingData.frameData.Get<UniversalCameraData>();
-            UniversalLightData lightData = renderingData.frameData.Get<UniversalLightData>();
+            SortingCriteria sortingCriteria = (renderQueueType == RenderQueueType.Transparent)
+                ? SortingCriteria.CommonTransparent
+                : renderingData.cameraData.defaultOpaqueSortFlags;
 
-            InitPassData(cameraData, ref m_PassData);
-            InitRendererLists(universalRenderingData, lightData, ref m_PassData, context, default(RenderGraph), false);
+            DrawingSettings drawingSettings = CreateDrawingSettings(m_ShaderTagIdList, ref renderingData, sortingCriteria);
+            drawingSettings.overrideMaterial = overrideMaterial;
+            drawingSettings.overrideMaterialPassIndex = overrideMaterialPassIndex;
+            drawingSettings.overrideShader = overrideShader;
+            drawingSettings.overrideShaderPassIndex = overrideShaderPassIndex;
 
-            ExecutePass(m_PassData, CommandBufferHelpers.GetRasterCommandBuffer(renderingData.commandBuffer), m_PassData.rendererList, renderingData.cameraData.IsCameraProjectionMatrixFlipped());
-        }
-
-        private static void ExecutePass(PassData passData, RasterCommandBuffer cmd, RendererList rendererList, bool isYFlipped)
-        {
-            Camera camera = passData.cameraData.camera;
+            ref CameraData cameraData = ref renderingData.cameraData;
+            Camera camera = cameraData.camera;
 
             // In case of camera stacking we need to take the viewport rect from base camera
-            Rect pixelRect = passData.cameraData.pixelRect;
+            Rect pixelRect = renderingData.cameraData.pixelRect;
             float cameraAspect = (float)pixelRect.width / (float)pixelRect.height;
 
-            using (new ProfilingScope(cmd, s_ProfilingSampler))
+            var cmd = renderingData.commandBuffer;
+            using (new ProfilingScope(cmd, m_ProfilingSampler))
             {
-                if (passData.cameraSettings.overrideCamera)
+                if (m_CameraSettings.overrideCamera)
                 {
-                    if (passData.cameraData.xr.enabled)
+                    if (cameraData.xr.enabled)
                     {
                         Debug.LogWarning("RenderObjects pass is configured to override camera matrices. While rendering in stereo camera matrices cannot be overridden.");
                     }
                     else
                     {
-                        Matrix4x4 projectionMatrix = Matrix4x4.Perspective(passData.cameraSettings.cameraFieldOfView, cameraAspect,
+                        Matrix4x4 projectionMatrix = Matrix4x4.Perspective(m_CameraSettings.cameraFieldOfView, cameraAspect,
                             camera.nearClipPlane, camera.farClipPlane);
-                        projectionMatrix = GL.GetGPUProjectionMatrix(projectionMatrix, isYFlipped);
+                        projectionMatrix = GL.GetGPUProjectionMatrix(projectionMatrix, cameraData.IsCameraProjectionMatrixFlipped());
 
-                        Matrix4x4 viewMatrix = passData.cameraData.GetViewMatrix();
+                        Matrix4x4 viewMatrix = cameraData.GetViewMatrix();
                         Vector4 cameraTranslation = viewMatrix.GetColumn(3);
-                        viewMatrix.SetColumn(3, cameraTranslation + passData.cameraSettings.offset);
+                        viewMatrix.SetColumn(3, cameraTranslation + m_CameraSettings.offset);
 
                         RenderingUtils.SetViewAndProjectionMatrices(cmd, viewMatrix, projectionMatrix, false);
                     }
                 }
 
-                var activeDebugHandler = GetActiveDebugHandler(passData.cameraData);
+                var activeDebugHandler = GetActiveDebugHandler(ref renderingData);
                 if (activeDebugHandler != null)
                 {
-                    passData.debugRendererLists.DrawWithRendererList(cmd);
+                    activeDebugHandler.DrawWithDebugRenderState(context, cmd, ref renderingData, ref drawingSettings, ref m_FilteringSettings, ref m_RenderStateBlock,
+                        (ScriptableRenderContext ctx, ref RenderingData data, ref DrawingSettings ds, ref FilteringSettings fs, ref RenderStateBlock rsb) =>
+                        {
+                            ctx.DrawRenderers(data.cullResults, ref ds, ref fs, ref rsb);
+                        });
                 }
                 else
                 {
-                    cmd.DrawRendererList(rendererList);
+                    // Ensure we flush our command-buffer before we render...
+                    context.ExecuteCommandBuffer(cmd);
+                    cmd.Clear();
+
+                    // Render the objects...
+                    context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref m_FilteringSettings, ref m_RenderStateBlock);
                 }
 
-                if (passData.cameraSettings.overrideCamera && passData.cameraSettings.restoreCamera && !passData.cameraData.xr.enabled)
+                if (m_CameraSettings.overrideCamera && m_CameraSettings.restoreCamera && !cameraData.xr.enabled)
                 {
-                    RenderingUtils.SetViewAndProjectionMatrices(cmd, passData.cameraData.GetViewMatrix(), GL.GetGPUProjectionMatrix(passData.cameraData.GetProjectionMatrix(0), isYFlipped), false);
+                    RenderingUtils.SetViewAndProjectionMatrices(cmd, cameraData.GetViewMatrix(), cameraData.GetGPUProjectionMatrix(), false);
                 }
             }
         }
 
         private class PassData
         {
-            internal RenderObjects.CustomCameraSettings cameraSettings;
-            internal RenderPassEvent renderPassEvent;
-
-            internal TextureHandle color;
-            internal RendererListHandle rendererListHdl;
-            internal DebugRendererLists debugRendererLists;
-
-            internal UniversalCameraData cameraData;
-
-            // Required for code sharing purpose between RG and non-RG.
-            internal RendererList rendererList;
+            internal RenderObjectsPass pass;
+            internal RenderingData renderingData;
         }
 
-        private void InitPassData(UniversalCameraData cameraData, ref PassData passData)
+        internal override void RecordRenderGraph(RenderGraph renderGraph, ref RenderingData renderingData)
         {
-            passData.cameraSettings = m_CameraSettings;
-            passData.renderPassEvent = renderPassEvent;
-            passData.cameraData = cameraData;
-        }
+            UniversalRenderer renderer = (UniversalRenderer)renderingData.cameraData.renderer;
 
-        private void InitRendererLists(UniversalRenderingData renderingData, UniversalLightData lightData,
-            ref PassData passData, ScriptableRenderContext context, RenderGraph renderGraph, bool useRenderGraph)
-        {
-            SortingCriteria sortingCriteria = (renderQueueType == RenderQueueType.Transparent)
-                ? SortingCriteria.CommonTransparent
-                : passData.cameraData.defaultOpaqueSortFlags;
-            DrawingSettings drawingSettings = RenderingUtils.CreateDrawingSettings(m_ShaderTagIdList, renderingData,
-                passData.cameraData, lightData, sortingCriteria);
-            drawingSettings.overrideMaterial = overrideMaterial;
-            drawingSettings.overrideMaterialPassIndex = overrideMaterialPassIndex;
-            drawingSettings.overrideShader = overrideShader;
-            drawingSettings.overrideShaderPassIndex = overrideShaderPassIndex;
-
-            var activeDebugHandler = GetActiveDebugHandler(passData.cameraData);
-            var filterSettings = m_FilteringSettings;
-            if (useRenderGraph)
+            using (var builder = renderGraph.AddRenderPass<PassData>("Render Objects Pass", out var passData, m_ProfilingSampler))
             {
-                if (activeDebugHandler != null)
-                {
-                    passData.debugRendererLists = activeDebugHandler.CreateRendererListsWithDebugRenderState(renderGraph,
-                        ref renderingData.cullResults, ref drawingSettings, ref m_FilteringSettings, ref m_RenderStateBlock);
-                }
-                else
-                {
-                    RenderingUtils.CreateRendererListWithRenderStateBlock(renderGraph, ref renderingData.cullResults, drawingSettings,
-                        m_FilteringSettings, m_RenderStateBlock, ref passData.rendererListHdl);
-                }
-            }
-            else
-            {
-                if (activeDebugHandler != null)
-                {
-                    passData.debugRendererLists = activeDebugHandler.CreateRendererListsWithDebugRenderState(context, ref renderingData.cullResults, ref drawingSettings, ref m_FilteringSettings, ref m_RenderStateBlock);
-                }
-                else
-                {
-                    RenderingUtils.CreateRendererListWithRenderStateBlock(context, ref renderingData.cullResults, drawingSettings, m_FilteringSettings, m_RenderStateBlock, ref passData.rendererList);
-                }
-            }
-        }
-
-        /// <inheritdoc />
-        public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
-        {
-            UniversalCameraData cameraData = frameData.Get<UniversalCameraData>();
-            UniversalRenderingData renderingData = frameData.Get<UniversalRenderingData>();
-            UniversalLightData lightData = frameData.Get<UniversalLightData>();
-
-            UniversalRenderer renderer = (UniversalRenderer)cameraData.renderer;
-            using (var builder = renderGraph.AddRasterRenderPass<PassData>("Render Objects Pass", out var passData, s_ProfilingSampler))
-            {
-                UniversalResourceData resourceData = frameData.Get<UniversalResourceData>();
-
-                InitPassData(cameraData, ref passData);
-
-                passData.color = builder.UseTextureFragment(resourceData.activeColorTexture, 0, IBaseRenderGraphBuilder.AccessFlags.Write);
-                builder.UseTextureFragmentDepth(resourceData.activeDepthTexture, IBaseRenderGraphBuilder.AccessFlags.Write);
-
-                TextureHandle mainShadowsTexture = resourceData.mainShadowsTexture;
-                TextureHandle additionalShadowsTexture = resourceData.additionalShadowsTexture;
-
-                if (mainShadowsTexture.IsValid())
-                    builder.UseTexture(mainShadowsTexture, IBaseRenderGraphBuilder.AccessFlags.Read);
-
-                if (additionalShadowsTexture.IsValid())
-                    builder.UseTexture(additionalShadowsTexture, IBaseRenderGraphBuilder.AccessFlags.Read);
-
-                TextureHandle[] dBufferHandles = resourceData.dBuffer;
-                for (int i = 0; i < dBufferHandles.Length; ++i)
-                {
-                    TextureHandle dBuffer = dBufferHandles[i];
-                    if (dBuffer.IsValid())
-                        builder.UseTexture(dBuffer, IBaseRenderGraphBuilder.AccessFlags.Read);
-                }
-
-                TextureHandle ssaoTexture = resourceData.ssaoTexture;
-                if (ssaoTexture.IsValid())
-                    builder.UseTexture(ssaoTexture, IBaseRenderGraphBuilder.AccessFlags.Read);
-
-                InitRendererLists(renderingData, lightData, ref passData, default(ScriptableRenderContext), renderGraph, true);
-                var activeDebugHandler = GetActiveDebugHandler(passData.cameraData);
-                if (activeDebugHandler != null)
-                {
-                    passData.debugRendererLists.PrepareRendererListForRasterPass(builder);
-                }
-                else
-                {
-                    builder.UseRendererList(passData.rendererListHdl);
-                }
+                TextureHandle color = UniversalRenderer.m_ActiveRenderGraphColor;
+                builder.UseColorBuffer(color, 0);
+                builder.UseDepthBuffer(UniversalRenderer.m_ActiveRenderGraphDepth, DepthAccess.Write);
+                builder.ReadTexture(renderer.frameResources.mainShadowsTexture);
 
                 builder.AllowPassCulling(false);
-                builder.AllowGlobalStateModification(true);
 
-                builder.SetRenderFunc((PassData data, RasterGraphContext rgContext) =>
+                passData.pass = this;
+                passData.renderingData = renderingData;
+
+                builder.SetRenderFunc((PassData data, RenderGraphContext rgContext) =>
                 {
-                    var isYFlipped = data.cameraData.IsRenderTargetProjectionMatrixFlipped(data.color);
-                    ExecutePass(data, rgContext.cmd, data.rendererListHdl, isYFlipped);
+                    data.pass.Execute(rgContext.renderContext, ref data.renderingData);
                 });
             }
         }

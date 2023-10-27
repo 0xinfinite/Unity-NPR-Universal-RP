@@ -3,6 +3,7 @@ Shader "Hidden/Universal Render Pipeline/GaussianDepthOfField"
     HLSLINCLUDE
 
         #pragma target 3.5
+        #pragma exclude_renderers gles
 
         #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
         #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Filtering.hlsl"
@@ -75,7 +76,7 @@ Shader "Hidden/Universal Render Pipeline/GaussianDepthOfField"
         struct PrefilterOutput
         {
             half  coc   : SV_Target0;
-            half4 color : SV_Target1;
+            half3 color : SV_Target1;
         };
 
         PrefilterOutput FragPrefilter(Varyings input)
@@ -128,7 +129,7 @@ Shader "Hidden/Universal Render Pipeline/GaussianDepthOfField"
 
             PrefilterOutput o;
             o.coc   = farCoC;
-            o.color = half4(color, 0);
+            o.color = color;
             return o;
         }
 
@@ -178,7 +179,7 @@ Shader "Hidden/Universal Render Pipeline/GaussianDepthOfField"
             half3 baseColor = LOAD_TEXTURE2D_X(_BlitTexture, _SourceSize.xy * uv).xyz;
             half coc = LOAD_TEXTURE2D_X(_FullCoCTexture, _SourceSize.xy * uv).x;
 
-        #if _HIGH_QUALITY_SAMPLING
+        #if _HIGH_QUALITY_SAMPLING && !defined(SHADER_API_GLES)
             half3 farColor = SampleTexture2DBicubic(TEXTURE2D_X_ARGS(_ColorTexture, sampler_LinearClamp), uv, _SourceSize * _DownSampleScaleFactor, 1.0, unity_StereoEyeIndex).xyz;
         #else
             half3 farColor = SAMPLE_TEXTURE2D_X(_ColorTexture, sampler_LinearClamp, uv).xyz;

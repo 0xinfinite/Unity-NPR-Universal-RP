@@ -21,8 +21,7 @@ namespace UnityEngine.Rendering.Universal
     /// <summary>
     /// A volume component that holds settings for the Bloom effect.
     /// </summary>
-    [Serializable, VolumeComponentMenu("Post-processing/Bloom")]
-    [SupportedOnRenderPipeline(typeof(UniversalRenderPipelineAsset))]
+    [Serializable, VolumeComponentMenuForRenderPipeline("Post-processing/Bloom", typeof(UniversalRenderPipeline))]
     [URPHelpURL("post-processing-bloom")]
     public sealed partial class Bloom : VolumeComponent, IPostProcessComponent
     {
@@ -96,7 +95,6 @@ namespace UnityEngine.Rendering.Universal
         public bool IsActive() => intensity.value > 0f;
 
         /// <inheritdoc/>
-        [Obsolete("Unused #from(2023.1)", false)]
         public bool IsTileCompatible() => false;
     }
 

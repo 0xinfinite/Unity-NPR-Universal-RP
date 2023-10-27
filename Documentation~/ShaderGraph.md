@@ -1,15 +1,13 @@
-# Create a 2D sprite Shader Graph
+# 2D Renderer and Shader Graph
 
-Follow the steps below to create a shader that reacts to 2D lights when applied to materials.
+## Creating a Lit Shader
 
-## Create a Sprite Lit Shader Graph
-
-1. Create a new asset by selecting **Assets > Create > Shader Graph > URP > Sprite Lit Shader Graph**. The Shader Graph asset is then created in the asset window.
+1. Create a new Asset by selecting __Assets > Create > Shader Graph > URP > Sprite Lit Shader Graph__. The Shader Graph Asset is then created in the Asset window.
 
    ![](Images/2D/2d-urp12-create-lit-shader.png)
    <br/>
 
-2. Double-click the new asset to open the **Shader Graph**.
+2. Double-click the new Asset to open the __Shader Graph__.
    ![](Images/2D/2d-urp12-open-shader-graph.png)
    <br/>
 

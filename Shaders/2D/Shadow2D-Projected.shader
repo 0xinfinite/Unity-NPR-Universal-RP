@@ -9,19 +9,26 @@ Shader "Hidden/ShadowProjected2D"
     {
         Tags { "RenderType"="Transparent" }
 
-        Cull    Off
+        Cull Off
         BlendOp Add
-        Blend   One One, One One
-        ZWrite  Off
-        ZTest   Always
+        ZWrite Off
+        ZTest Always
 
-        // This pass draws the projected shadows
+        // This pass draws the projected shadow and sets the composite shadow bit.
         Pass
         {
-            Name "Projected Shadow (R)"
+            // Bit 0: Composite Shadow Bit, Bit 1: Global Shadow Bit
+            Stencil
+            {
+                Ref         5
+                ReadMask    4
+                WriteMask   1
+                Comp        NotEqual
+                Pass        Replace
+                Fail        Keep
+            }
 
-            // Draw the shadow
-            ColorMask R
+            ColorMask [_ShadowColorMask]
 
             HLSLPROGRAM
             #pragma vertex vert
@@ -30,45 +37,33 @@ Shader "Hidden/ShadowProjected2D"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/Shaders/2D/Include/ShadowProjectVertex.hlsl"
 
-            TEXTURE2D(_FalloffLookup);
-            SAMPLER(sampler_FalloffLookup);
-            half _ShadowSoftnessFalloffIntensity;
-
             Varyings vert (Attributes v)
             {
                 return ProjectShadow(v);
             }
 
-            half4 frag(Varyings i) : SV_Target
+            half4 frag (Varyings i) : SV_Target
             {
-                half2 mappedUV;
-
-                float clamppedY = clamp(i.shadow.y, MIN_SHADOW_Y, 1);
-                float value = 1.0f - saturate(abs(i.shadow.x) / clamppedY);
-                mappedUV.x = value;
-                mappedUV.y = _ShadowSoftnessFalloffIntensity;
-                value = SAMPLE_TEXTURE2D(_FalloffLookup, sampler_FalloffLookup, mappedUV).r;
-
-                half4 color = half4(value, value, value, value);
-                return color;
+                return half4(1,1,1,1);
             }
             ENDHLSL
         }
-        // This pass draws the projected unshadowing
+        // Sets the global shadow bit, and clears the composite shadow bit
         Pass
         {
+            // Bit 0: Composite Shadow Bit, Bit 1: Global Shadow Bit
             Stencil
             {
-                Ref       1
-                Comp      Equal
-                Pass      Keep
+                Ref         3
+                WriteMask   2
+                ReadMask    1
+                Comp        Equal
+                Pass        Replace
+                Fail        Keep
             }
 
-
-            Name "Projected Unshadow (R) - Stencil: Ref 1, Comp Eq, Pass Keep"
-
-            // Draw the shadow
-            ColorMask G
+            // We only want to change the stencil value in this pass
+            ColorMask 0
 
             HLSLPROGRAM
             #pragma vertex vert
@@ -77,28 +72,14 @@ Shader "Hidden/ShadowProjected2D"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/Shaders/2D/Include/ShadowProjectVertex.hlsl"
 
-            TEXTURE2D(_FalloffLookup);
-            SAMPLER(sampler_FalloffLookup);
-            half _ShadowSoftnessFalloffIntensity;
-
-
             Varyings vert (Attributes v)
             {
                 return ProjectShadow(v);
             }
 
-            half4 frag(Varyings i) : SV_Target
+            half4 frag (Varyings i) : SV_Target
             {
-                half2 mappedUV;
-
-                float clamppedY = clamp(i.shadow.y, MIN_SHADOW_Y, 1);
-                float value = 1.0f - saturate(abs(i.shadow.x) / clamppedY);
-                mappedUV.x = value;
-                mappedUV.y = _ShadowSoftnessFalloffIntensity;
-                value = SAMPLE_TEXTURE2D(_FalloffLookup, sampler_FalloffLookup, mappedUV).r;
-
-                half4 color = half4(value, value, value, value);
-                return color;
+                return half4(1,1,1,1);
             }
             ENDHLSL
         }

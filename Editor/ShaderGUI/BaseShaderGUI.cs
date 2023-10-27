@@ -244,7 +244,7 @@ namespace UnityEditor
             /// The text and tooltip for the alpha clipping GUI.
             /// </summary>
             public static readonly GUIContent alphaClipText = EditorGUIUtility.TrTextContent("Alpha Clipping",
-                "Makes your Material act like a Cutout shader. Use this to create a transparent effect with hard edges between opaque and transparent areas. Avoid using when Alpha is constant for the entire material as enabling in this case could introduce visual artifacts and will add an unnecessary performance cost when used with MSAA (due to AlphaToMask).");
+                "Makes your Material act like a Cutout shader. Use this to create a transparent effect with hard edges between opaque and transparent areas.");
 
             /// <summary>
             /// The text and tooltip for the alpha clipping threshold GUI.
@@ -371,10 +371,6 @@ namespace UnityEditor
         /// </summary>
         protected MaterialProperty receiveShadowsProp { get; set; }
 
-        /// <summary>
-        /// The MaterialProperty for pre-computed motion vectors (for Alembic).
-        /// </summary>
-        protected MaterialProperty addPrecomputedVelocityProp { get; set; }
 
         // Common Surface Input properties
 
@@ -430,7 +426,7 @@ namespace UnityEditor
         /// This function has been deprecated and has been renamed to ValidateMaterial.
         /// </summary>
         /// <param name="material">The material that has been changed.</param>
-        [Obsolete("MaterialChanged has been renamed ValidateMaterial", true)]
+        [Obsolete("MaterialChanged has been renamed ValidateMaterial", false)]
         public virtual void MaterialChanged(Material material)
         {
             ValidateMaterial(material);
@@ -453,7 +449,6 @@ namespace UnityEditor
             zwriteProp = FindProperty(Property.ZWriteControl, properties, false);
             ztestProp = FindProperty(Property.ZTest, properties, false);
             alphaClipProp = FindProperty(Property.AlphaClip, properties, false);
-            addPrecomputedVelocityProp = FindProperty(Property.AddPrecomputedVelocity, properties, false);
 
             // ShaderGraph Lit and Unlit Subtargets only
             castShadowsProp = FindProperty(Property.CastShadows, properties, false);
@@ -615,7 +610,6 @@ namespace UnityEditor
             if (autoQueueControl)
                 DrawQueueOffsetField();
             materialEditor.EnableInstancingField();
-            DrawMotionVectorOptions(material);
         }
 
         /// <summary>
@@ -625,12 +619,6 @@ namespace UnityEditor
         {
             if (queueOffsetProp != null)
                 materialEditor.IntSliderShaderProperty(queueOffsetProp, -queueOffsetRange, queueOffsetRange, Styles.queueSlider);
-        }
-
-        private void DrawMotionVectorOptions(Material material)
-        {
-            if(material.HasProperty(Property.AddPrecomputedVelocity))
-                DrawFloatToggleProperty(EditorUtils.Styles.alembicMotionVectors, addPrecomputedVelocityProp);
         }
 
         /// <summary>
@@ -780,44 +768,6 @@ namespace UnityEditor
                 CoreUtils.SetKeyword(material, ShaderKeywordStrings._RECEIVE_SHADOWS_OFF, material.GetFloat(Property.ReceiveShadows) == 0.0f);
         }
 
-        internal static void UpdateMotionVectorKeywordsAndPass(Material material)
-        {
-            ShaderID shaderId = GetShaderID(material.shader);
-
-            // For shaders which don't have an MV pass we don't want to disable it to avoid needlessly dirtying their
-            // materials (e.g. for our particle shaders)
-            bool motionVectorPassEnabled = true;
-            if (HasMotionVectorLightModeTag(shaderId))
-            {
-                if(material.HasProperty(Property.AddPrecomputedVelocity))
-                {
-                    // The URP text shaders are the only ones that have this property
-                    motionVectorPassEnabled = material.GetFloat(Property.AddPrecomputedVelocity) != 0.0f;
-                    CoreUtils.SetKeyword(material, ShaderKeywordStrings._ADD_PRECOMPUTED_VELOCITY, motionVectorPassEnabled);
-                }
-                else if (material.GetTag("AlwaysRenderMotionVectors", false, "false") != "true")
-                {
-                    // This branch will execute for all ShaderGraphs which DO NOT have any of the following:
-                    // *Automatic time based motion vectors
-                    // *Custom motion vector output
-                    // *Alembic motion vectors
-                    motionVectorPassEnabled = false;
-                }
-            }
-
-            // Check if the material is a SpeedTree material and whether it has wind turned on or off.
-            // We want to disable the custom motion vector pass for SpeedTrees which won't have any
-            // vertex animation due to no wind.
-            if(shaderId == ShaderID.SpeedTree8 && SpeedTree8MaterialUpgrader.DoesMaterialHaveSpeedTreeWindKeyword(material))
-            {
-                motionVectorPassEnabled = SpeedTree8MaterialUpgrader.IsWindEnabled(material);
-            }
-
-            // Calling this always as we might be in a situation where the material's shader was just changed to one
-            // which doesn't have a pass with the { "LightMode" = "MotionVectors" } tag so we want to stop disabling
-            material.SetShaderPassEnabled(MotionVectorRenderPass.k_MotionVectorsLightModeTag, motionVectorPassEnabled);
-        }
-
         // this function is shared between ShaderGraph and hand-written GUIs
         internal static void UpdateMaterialRenderQueueControl(Material material)
         {
@@ -877,13 +827,13 @@ namespace UnityEditor
                 material.doubleSidedGI = (RenderFace)material.GetFloat(Property.CullMode) != RenderFace.Front;
 
             // Temporary fix for lightmapping. TODO: to be replaced with attribute tag.
-            if (material.HasProperty("_MainTex") && material.HasProperty("_BaseMap"))
+            if (material.HasProperty("_MainTex"))
             {
                 material.SetTexture("_MainTex", material.GetTexture("_BaseMap"));
                 material.SetTextureScale("_MainTex", material.GetTextureScale("_BaseMap"));
                 material.SetTextureOffset("_MainTex", material.GetTextureOffset("_BaseMap"));
             }
-            if (material.HasProperty("_Color") && material.HasProperty("_BaseColor"))
+            if (material.HasProperty("_Color"))
                 material.SetColor("_Color", material.GetColor("_BaseColor"));
 
             // Emission
@@ -903,8 +853,6 @@ namespace UnityEditor
             // Normal Map
             if (material.HasProperty("_BumpMap"))
                 CoreUtils.SetKeyword(material, ShaderKeywordStrings._NORMALMAP, material.GetTexture("_BumpMap"));
-
-            BaseShaderGUI.UpdateMotionVectorKeywordsAndPass(material);
 
             // Shader specific keyword functions
             shadingModelFunc?.Invoke(material);
@@ -983,11 +931,16 @@ namespace UnityEditor
                     SetMaterialSrcDstBlendProperties(material, UnityEngine.Rendering.BlendMode.One, UnityEngine.Rendering.BlendMode.Zero);
                     zwrite = true;
                     material.DisableKeyword(ShaderKeywordStrings._ALPHAPREMULTIPLY_ON);
+                    material.DisableKeyword(ShaderKeywordStrings._SURFACE_TYPE_TRANSPARENT);
                     material.DisableKeyword(ShaderKeywordStrings._ALPHAMODULATE_ON);
                 }
                 else // SurfaceType Transparent
                 {
                     BlendMode blendMode = (BlendMode)material.GetFloat(Property.BlendMode);
+
+                    // Clear blend keyword state.
+                    material.DisableKeyword(ShaderKeywordStrings._ALPHAPREMULTIPLY_ON);
+                    material.DisableKeyword(ShaderKeywordStrings._ALPHAMODULATE_ON);
 
                     var srcBlendRGB = UnityEngine.Rendering.BlendMode.One;
                     var dstBlendRGB = UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha;
@@ -1034,6 +987,8 @@ namespace UnityEditor
                             dstBlendRGB = UnityEngine.Rendering.BlendMode.Zero;
                             srcBlendA = UnityEngine.Rendering.BlendMode.Zero;
                             dstBlendA = UnityEngine.Rendering.BlendMode.One;
+
+                            material.EnableKeyword(ShaderKeywordStrings._ALPHAMODULATE_ON);
                             break;
                     }
 
@@ -1046,6 +1001,7 @@ namespace UnityEditor
                     if (preserveSpecular)
                     {
                         srcBlendRGB = UnityEngine.Rendering.BlendMode.One;
+                        material.EnableKeyword(ShaderKeywordStrings._ALPHAPREMULTIPLY_ON);
                     }
 
                     // When doing off-screen transparency accumulation, we change blend factors as described here: https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch23.html
@@ -1056,12 +1012,10 @@ namespace UnityEditor
                     SetMaterialSrcDstBlendProperties(material, srcBlendRGB, dstBlendRGB, // RGB
                         srcBlendA, dstBlendA); // Alpha
 
-                    CoreUtils.SetKeyword(material, ShaderKeywordStrings._ALPHAPREMULTIPLY_ON, preserveSpecular);
-                    CoreUtils.SetKeyword(material, ShaderKeywordStrings._ALPHAMODULATE_ON, blendMode == BlendMode.Multiply);
-
                     // General Transparent Material Settings
                     material.SetOverrideTag("RenderType", "Transparent");
                     zwrite = false;
+                    material.EnableKeyword(ShaderKeywordStrings._SURFACE_TYPE_TRANSPARENT);
                     renderQueue = (int)RenderQueue.Transparent;
                 }
 

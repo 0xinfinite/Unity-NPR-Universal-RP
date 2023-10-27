@@ -13,7 +13,9 @@ namespace UnityEditor.VFX.URP
         {
             get
             {
-                return "Output Particle URP Lit " + primitiveType.ToString();
+                return !string.IsNullOrEmpty(shaderName)
+                    ? $"Output Particle {shaderName} {primitiveType.ToString()}"
+                    : "Output Particle URP Lit " + primitiveType.ToString();
             }
         }
         public override string codeGeneratorTemplate { get { return RenderPipeTemplate("VFXParticleLitPlanarPrimitive"); } }

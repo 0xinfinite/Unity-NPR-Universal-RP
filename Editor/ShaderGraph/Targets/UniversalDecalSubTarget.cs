@@ -805,7 +805,7 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
             public static PragmaCollection GBuffer = new PragmaCollection
             {
                 { Pragma.Target(ShaderModel.Target45) }, // MRT4
-                { Pragma.ExcludeRenderers(new[] { Platform.GLES3, Platform.GLCore }) },
+                { Pragma.ExcludeRenderers(new[] { Platform.GLES, Platform.GLES3, Platform.GLCore }) },
                 { Pragma.Vertex("Vert") },
                 { Pragma.Fragment("Frag") },
                 { Pragma.MultiCompileInstancing },
@@ -816,7 +816,6 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
             public static PragmaCollection MultipleRenderTargets = new PragmaCollection
             {
                 { Pragma.Target(ShaderModel.Target45) }, // MRT4
-                { Pragma.ExcludeRenderers(new[] { Platform.GLES3, Platform.GLCore }) },
                 { Pragma.Vertex("Vert") },
                 { Pragma.Fragment("Frag") },
                 { Pragma.MultiCompileInstancing },
@@ -974,6 +973,7 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
             public static KeywordCollection DBufferProjector = new KeywordCollection
             {
                 { CoreKeywordDescriptors.DBuffer },
+                { CoreKeywordDescriptors.FoveatedRendering },
                 { Descriptors.DecalLayers },
             };
 
@@ -991,15 +991,11 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
                 { CoreKeywordDescriptors.AdditionalLights },
                 { CoreKeywordDescriptors.AdditionalLightShadows },
                 { CoreKeywordDescriptors.ShadowsSoft },
-                { CoreKeywordDescriptors.ShadowsSoftLow },
-                { CoreKeywordDescriptors.ShadowsSoftMedium },
-                { CoreKeywordDescriptors.ShadowsSoftHigh },
                 { CoreKeywordDescriptors.LightmapShadowMixing },
                 { CoreKeywordDescriptors.ShadowsShadowmask },
                 { CoreKeywordDescriptors.ForwardPlus },
                 { Descriptors.DecalsNormalBlend },
                 { CoreKeywordDescriptors.LODFadeCrossFade, new FieldCondition(Fields.LodCrossFade, true) },
-                { CoreKeywordDescriptors.DebugDisplay },
             };
 
             public static readonly KeywordCollection ScreenSpaceMesh = new KeywordCollection
@@ -1015,11 +1011,8 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
                 { CoreKeywordDescriptors.AdditionalLights },
                 { CoreKeywordDescriptors.AdditionalLightShadows },
                 { CoreKeywordDescriptors.ShadowsSoft },
-                { CoreKeywordDescriptors.ShadowsSoftLow },
-                { CoreKeywordDescriptors.ShadowsSoftMedium },
-                { CoreKeywordDescriptors.ShadowsSoftHigh },
                 { CoreKeywordDescriptors.ForwardPlus },
-                { CoreKeywordDescriptors.DebugDisplay },
+                { CoreKeywordDescriptors.FoveatedRendering },
                 { Descriptors.DecalsNormalBlend },
                 { Descriptors.DecalLayers },
             };
@@ -1031,9 +1024,6 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
                 { CoreKeywordDescriptors.DirectionalLightmapCombined },
                 { CoreKeywordDescriptors.MainLightShadows },
                 { CoreKeywordDescriptors.ShadowsSoft },
-                { CoreKeywordDescriptors.ShadowsSoftLow },
-                { CoreKeywordDescriptors.ShadowsSoftMedium },
-                { CoreKeywordDescriptors.ShadowsSoftHigh },
                 { CoreKeywordDescriptors.LightmapShadowMixing },
                 { CoreKeywordDescriptors.MixedLightingSubtractive },
                 { Descriptors.DecalsNormalBlend },
@@ -1047,9 +1037,6 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
             {
                 { CoreKeywordDescriptors.MainLightShadows },
                 { CoreKeywordDescriptors.ShadowsSoft },
-                { CoreKeywordDescriptors.ShadowsSoftLow },
-                { CoreKeywordDescriptors.ShadowsSoftMedium },
-                { CoreKeywordDescriptors.ShadowsSoftHigh },
                 { Descriptors.DecalsNormalBlend },
                 { Descriptors.DecalLayers },
                 { CoreKeywordDescriptors.GBufferNormalsOct },
@@ -1089,7 +1076,6 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
                 { CoreIncludes.DOTSPregraph },
                 { CoreIncludes.CorePregraph },
                 { CoreIncludes.ShaderGraphPregraph },
-                { CoreIncludes.ProbeVolumePregraph },
                 { DecalPregraph },
                 { kDBuffer, IncludeLocation.Pregraph },
                 { kLODCrossFade, IncludeLocation.Pregraph, new FieldCondition(Fields.LodCrossFade, true) },
@@ -1104,7 +1090,6 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
                 { CoreIncludes.DOTSPregraph },
                 { CoreIncludes.CorePregraph },
                 { CoreIncludes.ShaderGraphPregraph },
-                { CoreIncludes.ProbeVolumePregraph },
                 { DecalPregraph },
                 { kLODCrossFade, IncludeLocation.Pregraph, new FieldCondition(Fields.LodCrossFade, true) },
 
@@ -1118,7 +1103,6 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
                 { CoreIncludes.DOTSPregraph },
                 { CoreIncludes.CorePregraph },
                 { CoreIncludes.ShaderGraphPregraph },
-                { CoreIncludes.ProbeVolumePregraph },
                 { kGBuffer, IncludeLocation.Pregraph },
                 { DecalPregraph },
                 { kLODCrossFade, IncludeLocation.Pregraph, new FieldCondition(Fields.LodCrossFade, true) },

@@ -29,6 +29,7 @@ Shader "Hidden/Universal Render Pipeline/BRGPicking"
             HLSLPROGRAM
 
             #pragma target 4.5
+            #pragma exclude_renderers gles
 
             #pragma editor_sync_compilation
             #pragma multi_compile DOTS_INSTANCING_ON
@@ -87,6 +88,8 @@ Shader "Hidden/Universal Render Pipeline/BRGPicking"
             HLSLPROGRAM
 
             #pragma target 4.5
+            #pragma exclude_renderers gles
+
             #pragma editor_sync_compilation
 
             #pragma multi_compile DOTS_INSTANCING_ON

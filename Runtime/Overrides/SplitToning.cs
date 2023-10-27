@@ -5,8 +5,7 @@ namespace UnityEngine.Rendering.Universal
     /// <summary>
     /// A volume component that holds settings for the Split Toning effect.
     /// </summary>
-    [Serializable, VolumeComponentMenu("Post-processing/Split Toning")]
-    [SupportedOnRenderPipeline(typeof(UniversalRenderPipelineAsset))]
+    [Serializable, VolumeComponentMenuForRenderPipeline("Post-processing/Split Toning", typeof(UniversalRenderPipeline))]
     [URPHelpURL("Post-Processing-Split-Toning")]
     public sealed class SplitToning : VolumeComponent, IPostProcessComponent
     {
@@ -32,7 +31,6 @@ namespace UnityEngine.Rendering.Universal
         public bool IsActive() => shadows != Color.grey || highlights != Color.grey;
 
         /// <inheritdoc/>
-        [Obsolete("Unused #from(2023.1)", false)]
         public bool IsTileCompatible() => true;
     }
 }

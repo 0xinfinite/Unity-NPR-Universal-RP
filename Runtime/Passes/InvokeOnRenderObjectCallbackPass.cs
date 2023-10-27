@@ -20,7 +20,7 @@ namespace UnityEngine.Rendering.Universal
         /// <inheritdoc/>
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
-            renderingData.commandBuffer.InvokeOnRenderObjectCallbacks();
+            context.InvokeOnRenderObjectCallback();
         }
 
         private class PassData
@@ -29,17 +29,17 @@ namespace UnityEngine.Rendering.Universal
             internal TextureHandle depthTarget;
         }
 
-        internal void Render(RenderGraph renderGraph, TextureHandle colorTarget, TextureHandle depthTarget)
+        internal void Render(RenderGraph renderGraph, TextureHandle colorTarget, TextureHandle depthTarget, ref RenderingData renderingData)
         {
-            using (var builder = renderGraph.AddLowLevelPass<PassData>("OnRenderObject Callback Pass", out var passData,
+            using (var builder = renderGraph.AddRenderPass<PassData>("OnRenderObject Callback Pass", out var passData,
                 base.profilingSampler))
             {
-                passData.colorTarget = builder.UseTexture(colorTarget, IBaseRenderGraphBuilder.AccessFlags.Write);
-                passData.depthTarget = builder.UseTexture(depthTarget, IBaseRenderGraphBuilder.AccessFlags.Write);
+                passData.colorTarget = builder.UseColorBuffer(colorTarget, 0);
+                passData.depthTarget = builder.UseDepthBuffer(depthTarget, DepthAccess.ReadWrite);
                 builder.AllowPassCulling(false);
-                builder.SetRenderFunc((PassData data, LowLevelGraphContext context) =>
+                builder.SetRenderFunc((PassData data, RenderGraphContext context) =>
                 {
-                    context.cmd.InvokeOnRenderObjectCallbacks();
+                    context.renderContext.InvokeOnRenderObjectCallback();
                 });
             }
         }

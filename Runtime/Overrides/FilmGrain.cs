@@ -67,8 +67,7 @@ namespace UnityEngine.Rendering.Universal
     /// <summary>
     /// A volume component that holds settings for the Film Grain effect.
     /// </summary>
-    [Serializable, VolumeComponentMenu("Post-processing/Film Grain")]
-    [SupportedOnRenderPipeline(typeof(UniversalRenderPipelineAsset))]
+    [Serializable, VolumeComponentMenuForRenderPipeline("Post-processing/Film Grain", typeof(UniversalRenderPipeline))]
     [URPHelpURL("Post-Processing-Film-Grain")]
     public sealed class FilmGrain : VolumeComponent, IPostProcessComponent
     {
@@ -100,7 +99,6 @@ namespace UnityEngine.Rendering.Universal
         public bool IsActive() => intensity.value > 0f && (type.value != FilmGrainLookup.Custom || texture.value != null);
 
         /// <inheritdoc/>
-        [Obsolete("Unused #from(2023.1)", false)]
         public bool IsTileCompatible() => true;
     }
 

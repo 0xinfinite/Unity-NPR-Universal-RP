@@ -79,14 +79,14 @@ namespace UnityEngine.Rendering.Universal
             }
         }
 
-        internal void SetupNativeRenderPassFrameData(UniversalCameraData cameraData, bool isRenderPassEnabled)
+        internal void SetupNativeRenderPassFrameData(ref CameraData cameraData, bool isRenderPassEnabled)
         {
             //TODO: edge cases to detect that should affect possible passes to merge
             // - total number of color attachment > 8
 
             // Go through all the passes and mark the final one as last pass
 
-            using (new ProfilingScope(Profiling.setupFrameData))
+            using (new ProfilingScope(null, Profiling.setupFrameData))
             {
                 int lastPassIndex = m_ActiveRenderPassQueue.Count - 1;
 
@@ -106,7 +106,7 @@ namespace UnityEngine.Rendering.Universal
                     if (!RPEnabled)
                         continue;
 
-                    var rpDesc = InitializeRenderPassDescriptor(cameraData, renderPass);
+                    var rpDesc = InitializeRenderPassDescriptor(ref cameraData, renderPass);
 
                     Hash128 hash = CreateRenderPassHash(rpDesc, currentHashIndex);
 
@@ -141,7 +141,7 @@ namespace UnityEngine.Rendering.Universal
             }
         }
 
-        internal void UpdateFinalStoreActions(int[] currentMergeablePasses, UniversalCameraData cameraData)
+        internal void UpdateFinalStoreActions(int[] currentMergeablePasses, ref CameraData cameraData)
         {
             for (int i = 0; i < m_FinalColorStoreAction.Length; ++i)
                 m_FinalColorStoreAction[i] = RenderBufferStoreAction.Store;
@@ -181,9 +181,9 @@ namespace UnityEngine.Rendering.Universal
             }
         }
 
-        internal void SetNativeRenderPassMRTAttachmentList(ScriptableRenderPass renderPass, UniversalCameraData cameraData, bool needCustomCameraColorClear, ClearFlag cameraClearFlag)
+        internal void SetNativeRenderPassMRTAttachmentList(ScriptableRenderPass renderPass, ref CameraData cameraData, bool needCustomCameraColorClear, ClearFlag cameraClearFlag)
         {
-            using (new ProfilingScope(Profiling.setMRTAttachmentsList))
+            using (new ProfilingScope(null, Profiling.setMRTAttachmentsList))
             {
                 int currentPassIndex = renderPass.renderPassQueueIndex;
                 Hash128 currentPassHash = m_PassIndexToPassHash[currentPassIndex];
@@ -195,7 +195,7 @@ namespace UnityEngine.Rendering.Universal
 
                 m_RenderPassesAttachmentCount[currentPassHash] = 0;
 
-                UpdateFinalStoreActions(currentMergeablePasses, cameraData);
+                UpdateFinalStoreActions(currentMergeablePasses, ref cameraData);
 
                 int currentAttachmentIdx = 0;
                 bool hasInput = false;
@@ -218,7 +218,7 @@ namespace UnityEngine.Rendering.Universal
                         AttachmentDescriptor currentAttachmentDescriptor =
                             new AttachmentDescriptor(pass.renderTargetFormat[i] != GraphicsFormat.None ? pass.renderTargetFormat[i] : UniversalRenderPipeline.MakeRenderTextureGraphicsFormat(cameraData.isHdrEnabled, cameraData.hdrColorBufferPrecision, Graphics.preserveFramebufferAlpha));
 
-                        var colorHandle = pass.overrideCameraTarget ? pass.colorAttachmentHandles[i] : m_CameraColorTarget;
+                        var colorHandle = pass.overrideCameraTarget ? pass.colorAttachmentHandles[i] : m_CameraColorTarget.handle;
 
                         int existingAttachmentIndex = FindAttachmentDescriptorIndexInList(colorHandle.nameID, m_ActiveColorAttachmentDescriptors);
 
@@ -232,7 +232,7 @@ namespace UnityEngine.Rendering.Universal
                             bool passHasClearColor = (pass.clearFlag & ClearFlag.Color) != 0;
                             m_ActiveColorAttachmentDescriptors[currentAttachmentIdx].ConfigureTarget(colorHandle.nameID, !passHasClearColor, true);
 
-                            if (pass.colorAttachmentHandles[i].nameID == m_CameraColorTarget.nameID && needCustomCameraColorClear && (cameraClearFlag & ClearFlag.Color) != 0)
+                            if (pass.colorAttachmentHandles[i] == m_CameraColorTarget.handle && needCustomCameraColorClear && (cameraClearFlag & ClearFlag.Color) != 0)
                                 m_ActiveColorAttachmentDescriptors[currentAttachmentIdx].ConfigureClear(cameraData.backgroundColor, 1.0f, 0);
                             else if (passHasClearColor)
                                 m_ActiveColorAttachmentDescriptors[currentAttachmentIdx].ConfigureClear(CoreUtils.ConvertSRGBToActiveColorSpace(pass.clearColor), 1.0f, 0);
@@ -278,9 +278,9 @@ namespace UnityEngine.Rendering.Universal
             return false;
         }
 
-        internal void SetNativeRenderPassAttachmentList(ScriptableRenderPass renderPass, UniversalCameraData cameraData, RTHandle passColorAttachment, RTHandle passDepthAttachment, ClearFlag finalClearFlag, Color finalClearColor)
+        internal void SetNativeRenderPassAttachmentList(ScriptableRenderPass renderPass, ref CameraData cameraData, RTHandle passColorAttachment, RTHandle passDepthAttachment, ClearFlag finalClearFlag, Color finalClearColor)
         {
-            using (new ProfilingScope(Profiling.setAttachmentList))
+            using (new ProfilingScope(null, Profiling.setAttachmentList))
             {
                 int currentPassIndex = renderPass.renderPassQueueIndex;
                 Hash128 currentPassHash = m_PassIndexToPassHash[currentPassIndex];
@@ -292,7 +292,7 @@ namespace UnityEngine.Rendering.Universal
 
                 m_RenderPassesAttachmentCount[currentPassHash] = 0;
 
-                UpdateFinalStoreActions(currentMergeablePasses, cameraData);
+                UpdateFinalStoreActions(currentMergeablePasses, ref cameraData);
 
                 int currentAttachmentIdx = 0;
                 foreach (var passIdx in currentMergeablePasses)
@@ -381,9 +381,9 @@ namespace UnityEngine.Rendering.Universal
             }
         }
 
-        internal void ExecuteNativeRenderPass(ScriptableRenderContext context, ScriptableRenderPass renderPass, UniversalCameraData cameraData, ref RenderingData renderingData)
+        internal void ExecuteNativeRenderPass(ScriptableRenderContext context, ScriptableRenderPass renderPass, ref CameraData cameraData, ref RenderingData renderingData)
         {
-            using (new ProfilingScope(Profiling.execute))
+            using (new ProfilingScope(null, Profiling.execute))
             {
                 int currentPassIndex = renderPass.renderPassQueueIndex;
                 Hash128 currentPassHash = m_PassIndexToPassHash[currentPassIndex];
@@ -403,7 +403,7 @@ namespace UnityEngine.Rendering.Universal
                 if (useDepth && !depthOnly)
                     attachments[validColorBuffersCount] = m_ActiveDepthAttachmentDescriptor;
 
-                var rpDesc = InitializeRenderPassDescriptor(cameraData, renderPass);
+                var rpDesc = InitializeRenderPassDescriptor(ref cameraData, renderPass);
 
                 int validPassCount = GetValidPassIndexCount(currentMergeablePasses);
 
@@ -534,7 +534,7 @@ namespace UnityEngine.Rendering.Universal
             uint lastSubPassAttCount = GetSubPassAttachmentIndicesCount(lastSubPass);
             uint currentSubPassAttCount = GetSubPassAttachmentIndicesCount(currentSubPass);
 
-            if (currentSubPassAttCount != lastSubPassAttCount)
+            if (currentSubPassAttCount > lastSubPassAttCount)
                 return false;
 
             uint numEqualAttachments = 0;
@@ -647,7 +647,7 @@ namespace UnityEngine.Rendering.Universal
             return CreateRenderPassHash(desc.w, desc.h, desc.depthID, desc.samples, hashIndex);
         }
 
-        private RenderPassDescriptor InitializeRenderPassDescriptor(UniversalCameraData cameraData, ScriptableRenderPass renderPass)
+        private RenderPassDescriptor InitializeRenderPassDescriptor(ref CameraData cameraData, ScriptableRenderPass renderPass)
         {
             RenderTextureDescriptor targetRT;
             if (!renderPass.overrideCameraTarget || (renderPass.colorAttachmentHandle.rt == null && renderPass.depthAttachmentHandle.rt == null))

@@ -1,5 +1,4 @@
 using UnityEngine.Experimental.Rendering.RenderGraphModule;
-using UnityEngine.Experimental.Rendering;
 
 namespace UnityEngine.Rendering.Universal
 {
@@ -10,9 +9,6 @@ namespace UnityEngine.Rendering.Universal
     /// </summary>
     public class DrawSkyboxPass : ScriptableRenderPass
     {
-        private PassData m_PassData;
-        private RendererList m_SkyRendererList;
-
         /// <summary>
         /// Creates a new <c>DrawSkyboxPass</c> instance.
         /// </summary>
@@ -23,14 +19,15 @@ namespace UnityEngine.Rendering.Universal
             base.profilingSampler = new ProfilingSampler(nameof(DrawSkyboxPass));
 
             renderPassEvent = evt;
-            m_PassData = new PassData();
         }
 
         /// <inheritdoc/>
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
-            UniversalCameraData cameraData = renderingData.frameData.Get<UniversalCameraData>();
-            var activeDebugHandler = GetActiveDebugHandler(cameraData);
+            ref CameraData cameraData = ref renderingData.cameraData;
+            Camera camera = cameraData.camera;
+
+            var activeDebugHandler = GetActiveDebugHandler(ref renderingData);
             if (activeDebugHandler != null)
             {
                 // TODO: The skybox needs to work the same as the other shaders, but until it does we'll not render it
@@ -41,89 +38,89 @@ namespace UnityEngine.Rendering.Universal
                 }
             }
 
-            InitSkyboxRendererList(context, cameraData);
-            InitPassData(ref m_PassData, cameraData.xr);
-            ExecutePass(CommandBufferHelpers.GetRasterCommandBuffer(renderingData.commandBuffer), m_PassData.xr, m_PassData.skyRendererList);
-        }
-
-        private static void ExecutePass(RasterCommandBuffer cmd, XRPass xr, RendererList rendererList)
-        {
 #if ENABLE_VR && ENABLE_XR_MODULE
-            if (xr.enabled && xr.singlePassEnabled)
-                cmd.SetSinglePassStereo(SystemInfo.supportsMultiview ? SinglePassStereoMode.Multiview : SinglePassStereoMode.Instancing);
-#endif
-            cmd.DrawRendererList(rendererList);
-
-#if ENABLE_VR && ENABLE_XR_MODULE
-            if (xr.enabled && xr.singlePassEnabled)
-                cmd.SetSinglePassStereo(SinglePassStereoMode.None);
-#endif
-        }
-
-        private class PassData
-        {
-            internal XRPass xr;
-            internal RendererList skyRendererList;
-        }
-
-        private void InitPassData(ref PassData passData, XRPass xr)
-        {
-            passData.xr = xr;
-            passData.skyRendererList = m_SkyRendererList;
-        }
-
-        private void InitSkyboxRendererList(ScriptableRenderContext context, UniversalCameraData cameraData)
-        {
-#if ENABLE_VR && ENABLE_XR_MODULE
+            // XRTODO: Remove this code once Skybox pass is moved to SRP land.
             if (cameraData.xr.enabled)
             {
                 // Setup Legacy XR buffer states
                 if (cameraData.xr.singlePassEnabled)
                 {
-                    m_SkyRendererList = context.CreateSkyboxRendererList(cameraData.camera,
-                        cameraData.GetProjectionMatrix(0), cameraData.GetViewMatrix(0),
-                        cameraData.GetProjectionMatrix(1), cameraData.GetViewMatrix(1));
+                    // Setup legacy skybox stereo buffer
+                    camera.SetStereoProjectionMatrix(Camera.StereoscopicEye.Left, cameraData.GetProjectionMatrix(0));
+                    camera.SetStereoViewMatrix(Camera.StereoscopicEye.Left, cameraData.GetViewMatrix(0));
+                    camera.SetStereoProjectionMatrix(Camera.StereoscopicEye.Right, cameraData.GetProjectionMatrix(1));
+                    camera.SetStereoViewMatrix(Camera.StereoscopicEye.Right, cameraData.GetViewMatrix(1));
+
+                    var cmd = renderingData.commandBuffer;
+
+                    // Use legacy stereo instancing mode to have legacy XR code path configured
+                    cmd.SetSinglePassStereo(SystemInfo.supportsMultiview ? SinglePassStereoMode.Multiview : SinglePassStereoMode.Instancing);
+                    context.ExecuteCommandBuffer(cmd);
+                    cmd.Clear();
+
+                    // Calling into built-in skybox pass
+                    context.DrawSkybox(camera);
+
+                    // Disable Legacy XR path
+                    cmd.SetSinglePassStereo(SinglePassStereoMode.None);
+                    context.ExecuteCommandBuffer(cmd);
+                    // We do not need to submit here due to special handling of stereo matrices in core.
+                    // context.Submit();
+                    cmd.Clear();
+
+                    camera.ResetStereoProjectionMatrices();
+                    camera.ResetStereoViewMatrices();
                 }
                 else
                 {
-                    m_SkyRendererList = context.CreateSkyboxRendererList(cameraData.camera, cameraData.GetProjectionMatrix(0), cameraData.GetViewMatrix(0));
+                    camera.projectionMatrix = cameraData.GetProjectionMatrix(0);
+                    camera.worldToCameraMatrix = cameraData.GetViewMatrix(0);
+
+                    context.DrawSkybox(camera);
+
+                    // XRTODO: remove this call because it creates issues with nested profiling scopes
+                    // See examples in UniversalRenderPipeline.RenderSingleCamera() and in ScriptableRenderer.Execute()
+                    context.Submit(); // Submit and execute the skybox pass before resetting the matrices
+
+                    camera.ResetProjectionMatrix();
+                    camera.ResetWorldToCameraMatrix();
                 }
             }
             else
 #endif
             {
-                m_SkyRendererList = context.CreateSkyboxRendererList(cameraData.camera);
+                context.DrawSkybox(camera);
             }
         }
 
-        internal void Render(RenderGraph renderGraph, ContextContainer frameData, ScriptableRenderContext context, TextureHandle colorTarget, TextureHandle depthTarget)
+        private class PassData
         {
-            UniversalCameraData cameraData = frameData.Get<UniversalCameraData>();
+            internal TextureHandle color;
+            internal TextureHandle depth;
 
-            var activeDebugHandler = GetActiveDebugHandler(cameraData);
-            if (activeDebugHandler != null)
-            {
-                // TODO: The skybox needs to work the same as the other shaders, but until it does we'll not render it
-                // when certain debug modes are active (e.g. wireframe/overdraw modes)
-                if (activeDebugHandler.IsScreenClearNeeded)
-                {
-                    return;
-                }
-            }
+            internal RenderingData renderingData;
 
-            using (var builder = renderGraph.AddRasterRenderPass<PassData>("Draw Skybox Pass", out var passData,
+            internal DrawSkyboxPass pass;
+        }
+
+        internal void Render(RenderGraph renderGraph, TextureHandle colorTarget, TextureHandle depthTarget, ref RenderingData renderingData)
+        {
+            Camera camera = renderingData.cameraData.camera;
+
+            using (var builder = renderGraph.AddRenderPass<PassData>("Draw Skybox Pass", out var passData,
                 base.profilingSampler))
             {
-                InitSkyboxRendererList(context, cameraData);
-                InitPassData(ref passData, cameraData.xr);
-                builder.UseTextureFragment(colorTarget, 0, IBaseRenderGraphBuilder.AccessFlags.Write);
-                builder.UseTextureFragmentDepth(depthTarget, IBaseRenderGraphBuilder.AccessFlags.Write);
+                passData.color = builder.UseColorBuffer(colorTarget, 0);
+                passData.depth = builder.UseDepthBuffer(depthTarget, DepthAccess.Read);
+
+                passData.renderingData = renderingData;
+                passData.pass = this;
 
                 builder.AllowPassCulling(false);
 
-                builder.SetRenderFunc((PassData data, RasterGraphContext context) =>
+                builder.SetRenderFunc((PassData data, RenderGraphContext context) =>
                 {
-                    ExecutePass(context.cmd, data.xr, data.skyRendererList);
+                    data.pass.Execute(context.renderContext, ref data.renderingData);
                 });
             }
         }

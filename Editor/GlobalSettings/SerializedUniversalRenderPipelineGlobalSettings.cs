@@ -1,22 +1,25 @@
 using System.Collections.Generic;
-using UnityEditorInternal;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
+using UnityEditorInternal;
 
 namespace UnityEditor.Rendering.Universal
 {
-    class SerializedUniversalRenderPipelineGlobalSettings
+    class SerializedUniversalRenderPipelineGlobalSettings : ISerializedRenderPipelineGlobalSettings
     {
-        public SerializedObject serializedObject;
+        #region ISerializedRenderPipelineGlobalSettings
+        public SerializedObject serializedObject { get; }
+        public SerializedProperty shaderVariantLogLevel { get; }
+        public SerializedProperty exportShaderVariants { get; }
+        #endregion
 
         private List<UniversalRenderPipelineGlobalSettings> serializedSettings = new List<UniversalRenderPipelineGlobalSettings>();
-
-        public SerializedProperty defaultVolumeProfile;
-
         public SerializedProperty renderingLayerNames;
+        public SerializedProperty stripDebugVariants;
+        public SerializedProperty stripUnusedPostProcessingVariants;
+        public SerializedProperty stripUnusedVariants;
+        public SerializedProperty stripScreenCoordOverrideVariants;
         public ReorderableList renderingLayerNameList;
-
-        public SerializedProperty enableRenderGraph;
 
         public SerializedUniversalRenderPipelineGlobalSettings(SerializedObject serializedObject)
         {
@@ -31,9 +34,14 @@ namespace UnityEditor.Rendering.Universal
                     throw new System.Exception($"Target object has an invalid object, objects must be of type {typeof(UniversalRenderPipelineGlobalSettings)}");
             }
 
-            defaultVolumeProfile = serializedObject.FindProperty("m_DefaultVolumeProfile");
-
             renderingLayerNames = serializedObject.FindProperty("m_RenderingLayerNames");
+
+            stripDebugVariants = serializedObject.FindProperty("m_StripDebugVariants");
+            stripUnusedPostProcessingVariants = serializedObject.FindProperty("m_StripUnusedPostProcessingVariants");
+            stripUnusedVariants = serializedObject.FindProperty("m_StripUnusedVariants");
+            shaderVariantLogLevel = serializedObject.FindProperty("m_ShaderVariantLogLevel");
+            exportShaderVariants = serializedObject.FindProperty("m_ExportShaderVariants");
+            stripScreenCoordOverrideVariants = serializedObject.FindProperty("m_StripScreenCoordOverrideVariants");
 
             renderingLayerNameList = new ReorderableList(serializedObject, renderingLayerNames, false, false, true, true)
             {
@@ -42,8 +50,6 @@ namespace UnityEditor.Rendering.Universal
                 onCanAddCallback = (ReorderableList list) => list.count < 32,
                 onAddCallback = OnAddElement,
             };
-
-            enableRenderGraph = serializedObject.FindProperty("m_EnableRenderGraph");
         }
 
         void OnAddElement(ReorderableList list)

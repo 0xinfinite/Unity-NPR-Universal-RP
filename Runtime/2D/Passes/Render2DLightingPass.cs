@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine.Profiling;
-using UnityEngine.Experimental.Rendering;
 
 namespace UnityEngine.Rendering.Universal
 {
@@ -8,9 +7,8 @@ namespace UnityEngine.Rendering.Universal
     {
         private static readonly int k_HDREmulationScaleID = Shader.PropertyToID("_HDREmulationScale");
         private static readonly int k_InverseHDREmulationScaleID = Shader.PropertyToID("_InverseHDREmulationScale");
+        private static readonly int k_UseSceneLightingID = Shader.PropertyToID("_UseSceneLighting");
         private static readonly int k_RendererColorID = Shader.PropertyToID("_RendererColor");
-        private static readonly int k_LightLookupID = Shader.PropertyToID("_LightLookup");
-        private static readonly int k_FalloffLookupID = Shader.PropertyToID("_FalloffLookup");
 
         private static readonly int[] k_ShapeLightTextureIDs =
         {
@@ -44,12 +42,36 @@ namespace UnityEngine.Rendering.Universal
             m_BlitMaterial = blitMaterial;
             m_SamplingMaterial = samplingMaterial;
 
-            m_CameraSortingLayerBoundsIndex = GetCameraSortingLayerBoundsIndex(m_Renderer2DData);
+            m_CameraSortingLayerBoundsIndex = GetCameraSortingLayerBoundsIndex();
         }
 
         internal void Setup(bool useDepth)
         {
             m_NeedsDepth = useDepth;
+        }
+
+        private void GetTransparencySortingMode(Camera camera, ref SortingSettings sortingSettings)
+        {
+            var mode = m_Renderer2DData.transparencySortMode;
+
+            if (mode == TransparencySortMode.Default)
+            {
+                mode = camera.orthographic ? TransparencySortMode.Orthographic : TransparencySortMode.Perspective;
+            }
+
+            switch (mode)
+            {
+                case TransparencySortMode.Perspective:
+                    sortingSettings.distanceMetric = DistanceMetric.Perspective;
+                    break;
+                case TransparencySortMode.Orthographic:
+                    sortingSettings.distanceMetric = DistanceMetric.Orthographic;
+                    break;
+                default:
+                    sortingSettings.distanceMetric = DistanceMetric.CustomAxis;
+                    sortingSettings.customAxis = m_Renderer2DData.transparencySortAxis;
+                    break;
+            }
         }
 
         private void CopyCameraSortingLayerRenderTexture(ScriptableRenderContext context, RenderingData renderingData, RenderBufferStoreAction mainTargetStoreAction)
@@ -71,17 +93,17 @@ namespace UnityEngine.Rendering.Universal
                 colorAttachmentHandle, RenderBufferLoadAction.Load, mainTargetStoreAction,
                 depthAttachmentHandle, RenderBufferLoadAction.Load, mainTargetStoreAction,
                 ClearFlag.None, Color.clear);
-            cmd.SetGlobalTexture(m_Renderer2DData.cameraSortingLayerRenderTarget.name, m_Renderer2DData.cameraSortingLayerRenderTarget.nameID);
+            cmd.SetGlobalTexture(m_Renderer2DData.cameraSortingLayerRenderTargetId, m_Renderer2DData.cameraSortingLayerRenderTarget.nameID);
             context.ExecuteCommandBuffer(cmd);
             cmd.Clear();
         }
 
-        public static short GetCameraSortingLayerBoundsIndex(Renderer2DData rendererData)
+        private short GetCameraSortingLayerBoundsIndex()
         {
             SortingLayer[] sortingLayers = Light2DManager.GetCachedSortingLayer();
             for (short i = 0; i < sortingLayers.Length; i++)
             {
-                if (sortingLayers[i].id == rendererData.cameraSortingLayerTextureBound)
+                if (sortingLayers[i].id == m_Renderer2DData.cameraSortingLayerTextureBound)
                     return (short)sortingLayers[i].value;
             }
 
@@ -115,7 +137,7 @@ namespace UnityEngine.Rendering.Universal
 
             if (m_Renderer2DData.useCameraSortingLayerTexture)
             {
-                var cameraSortingLayerBoundsIndex = GetCameraSortingLayerBoundsIndex(m_Renderer2DData);
+                var cameraSortingLayerBoundsIndex = GetCameraSortingLayerBoundsIndex();
                 var copyBatch = -1;
                 for (int i = startIndex; i < startIndex + batchesDrawn; i++)
                 {
@@ -139,21 +161,19 @@ namespace UnityEngine.Rendering.Universal
 
         private void Render(ScriptableRenderContext context, CommandBuffer cmd, ref RenderingData renderingData, ref FilteringSettings filterSettings, DrawingSettings drawSettings)
         {
-            UniversalCameraData cameraData = renderingData.frameData.Get<UniversalCameraData>();
-            var activeDebugHandler = GetActiveDebugHandler(cameraData);
+            var activeDebugHandler = GetActiveDebugHandler(ref renderingData);
             if (activeDebugHandler != null)
             {
-                UniversalRenderingData universalRenderingData = renderingData.universalRenderingData;
                 RenderStateBlock renderStateBlock = new RenderStateBlock();
-                var debugRendererLists = activeDebugHandler.CreateRendererListsWithDebugRenderState(context,
-                    ref universalRenderingData.cullResults, ref drawSettings, ref filterSettings, ref renderStateBlock);
-                debugRendererLists.DrawWithRendererList(CommandBufferHelpers.GetRasterCommandBuffer(renderingData.commandBuffer));
+                activeDebugHandler.DrawWithDebugRenderState(context, cmd, ref renderingData, ref drawSettings, ref filterSettings, ref renderStateBlock,
+                    (ScriptableRenderContext ctx, ref RenderingData data, ref DrawingSettings ds, ref FilteringSettings fs, ref RenderStateBlock rsb) =>
+                    {
+                        ctx.DrawRenderers(data.cullResults, ref ds, ref fs, ref rsb);
+                    });
             }
             else
             {
-                var param = new RendererListParams(renderingData.cullResults, drawSettings, filterSettings);
-                var rl = context.CreateRendererList(ref param);
-                cmd.DrawRendererList(rl);
+                context.DrawRenderers(renderingData.cullResults, ref drawSettings, ref filterSettings);
             }
         }
 
@@ -169,9 +189,7 @@ namespace UnityEngine.Rendering.Universal
             ref DrawingSettings drawSettings,
             ref RenderTextureDescriptor desc)
         {
-            UniversalCameraData cameraData = renderingData.frameData.Get<UniversalCameraData>();
-
-            var debugHandler = GetActiveDebugHandler(cameraData);
+            var debugHandler = GetActiveDebugHandler(ref renderingData);
             bool drawLights = debugHandler?.IsLightingActive ?? true;
             var batchesDrawn = 0;
             var rtCount = 0U;
@@ -201,13 +219,13 @@ namespace UnityEngine.Rendering.Universal
                     if (layerBatch.lightStats.totalNormalMapUsage > 0)
                     {
                         filterSettings.sortingLayerRange = layerBatch.layerRange;
-                        var depthTarget = m_NeedsDepth ? depthAttachmentHandle : null;
+                        var depthTarget = m_NeedsDepth ? depthAttachmentHandle.nameID : BuiltinRenderTextureType.None;
                         this.RenderNormals(context, renderingData, normalsDrawSettings, filterSettings, depthTarget, layerBatch.lightStats);
                     }
 
                     using (new ProfilingScope(cmd, m_ProfilingDrawLightTextures))
                     {
-                        this.RenderLights(renderingData, cmd, ref layerBatch, ref desc);
+                        this.RenderLights(renderingData, cmd, layerBatch.startLayerID, ref layerBatch, ref desc);
                     }
                 }
             }
@@ -255,7 +273,7 @@ namespace UnityEngine.Rendering.Universal
                                     cmd.SetGlobalTexture(k_ShapeLightTextureIDs[blendStyleIndex], identifier);
                                 }
 
-                                RendererLighting.EnableBlendStyle(CommandBufferHelpers.GetRasterCommandBuffer(cmd), blendStyleIndex, blendStyleUsed);
+                                RendererLighting.EnableBlendStyle(cmd, blendStyleIndex, blendStyleUsed);
                             }
                         }
                         else
@@ -263,14 +281,14 @@ namespace UnityEngine.Rendering.Universal
                             for (var blendStyleIndex = 0; blendStyleIndex < k_ShapeLightTextureIDs.Length; blendStyleIndex++)
                             {
                                 cmd.SetGlobalTexture(k_ShapeLightTextureIDs[blendStyleIndex], Texture2D.blackTexture);
-                                RendererLighting.EnableBlendStyle(CommandBufferHelpers.GetRasterCommandBuffer(cmd), blendStyleIndex, blendStyleIndex == 0);
+                                RendererLighting.EnableBlendStyle(cmd, blendStyleIndex, blendStyleIndex == 0);
                             }
                         }
 
                         context.ExecuteCommandBuffer(cmd);
                         cmd.Clear();
 
-                        short cameraSortingLayerBoundsIndex = GetCameraSortingLayerBoundsIndex(m_Renderer2DData);
+                        short cameraSortingLayerBoundsIndex = GetCameraSortingLayerBoundsIndex();
 
                         RenderBufferStoreAction copyStoreAction;
                         if (msaaEnabled)
@@ -307,7 +325,7 @@ namespace UnityEngine.Rendering.Universal
                                 storeAction = resolveDuringBatch == i && !resolveIsAfterCopy ? RenderBufferStoreAction.Resolve : RenderBufferStoreAction.StoreAndResolve;
                             else
                                 storeAction = RenderBufferStoreAction.Store;
-                            this.RenderLightVolumes(renderingData, cmd, ref layerBatch, colorAttachmentHandle.nameID, depthAttachmentHandle.nameID,
+                            this.RenderLightVolumes(renderingData, cmd, layerBatch.startLayerID, layerBatch.endLayerValue, colorAttachmentHandle.nameID, depthAttachmentHandle.nameID,
                                 RenderBufferStoreAction.Store, storeAction, false, m_Renderer2DData.lightCullResult.visibleLights);
 
                             cmd.EndSample(sampleName);
@@ -337,7 +355,7 @@ namespace UnityEngine.Rendering.Universal
                 isLitView = false;
 #endif
             var camera = renderingData.cameraData.camera;
-            var filterSettings = FilteringSettings.defaultValue;
+            var filterSettings = new FilteringSettings();
             filterSettings.renderQueueRange = RenderQueueRange.all;
             filterSettings.layerMask = -1;
             filterSettings.renderingLayerMask = 0xFFFFFFFF;
@@ -345,30 +363,26 @@ namespace UnityEngine.Rendering.Universal
 
             LayerUtility.InitializeBudget(m_Renderer2DData.lightRenderTextureMemoryBudget);
             ShadowRendering.InitializeBudget(m_Renderer2DData.shadowRenderTextureMemoryBudget);
-            RendererLighting.lightBatch.Reset();
 
             var isSceneLit = m_Renderer2DData.lightCullResult.IsSceneLit();
-            if (isSceneLit && isLitView)
+            if (isSceneLit)
             {
                 var combinedDrawSettings = CreateDrawingSettings(k_ShaderTags, ref renderingData, SortingCriteria.CommonTransparent);
                 var normalsDrawSettings = CreateDrawingSettings(k_NormalsRenderingPassName, ref renderingData, SortingCriteria.CommonTransparent);
 
                 var sortSettings = combinedDrawSettings.sortingSettings;
-                RendererLighting.GetTransparencySortingMode(m_Renderer2DData, camera, ref sortSettings);
+                GetTransparencySortingMode(camera, ref sortSettings);
                 combinedDrawSettings.sortingSettings = sortSettings;
                 normalsDrawSettings.sortingSettings = sortSettings;
 
                 var cmd = renderingData.commandBuffer;
                 cmd.SetGlobalFloat(k_HDREmulationScaleID, m_Renderer2DData.hdrEmulationScale);
                 cmd.SetGlobalFloat(k_InverseHDREmulationScaleID, 1.0f / m_Renderer2DData.hdrEmulationScale);
+                cmd.SetGlobalFloat(k_UseSceneLightingID, isLitView ? 1.0f : 0.0f);
                 cmd.SetGlobalColor(k_RendererColorID, Color.white);
-                cmd.SetGlobalTexture(k_FalloffLookupID, m_Renderer2DData.fallOffLookup);
-                cmd.SetGlobalTexture(k_LightLookupID, Light2DLookupTexture.GetLightLookupTexture());
-                RendererLighting.SetLightShaderGlobals(m_Renderer2DData, CommandBufferHelpers.GetRasterCommandBuffer(cmd));
+                this.SetShapeLightShaderGlobals(cmd);
 
                 var desc = this.GetBlendStyleRenderTextureDesc(renderingData);
-
-                ShadowRendering.CallOnBeforeRender(renderingData.cameraData.camera, m_Renderer2DData.lightCullResult);
 
                 var layerBatches = LayerUtility.CalculateBatches(m_Renderer2DData.lightCullResult, out var batchCount);
                 var batchesDrawn = 0;
@@ -376,7 +390,8 @@ namespace UnityEngine.Rendering.Universal
                 for (var i = 0; i < batchCount; i += batchesDrawn)
                     batchesDrawn = DrawLayerBatches(layerBatches, batchCount, i, cmd, context, ref renderingData, ref filterSettings, ref normalsDrawSettings, ref combinedDrawSettings, ref desc);
 
-                RendererLighting.DisableAllKeywords(CommandBufferHelpers.GetRasterCommandBuffer(cmd));
+                this.DisableAllKeywords(cmd);
+                this.ReleaseRenderTextures(cmd);
                 context.ExecuteCommandBuffer(cmd);
                 cmd.Clear();
             }
@@ -387,7 +402,7 @@ namespace UnityEngine.Rendering.Universal
                 var storeAction = msaaEnabled ? RenderBufferStoreAction.Resolve : RenderBufferStoreAction.Store;
 
                 var sortSettings = unlitDrawSettings.sortingSettings;
-                RendererLighting.GetTransparencySortingMode(m_Renderer2DData, camera, ref sortSettings);
+                GetTransparencySortingMode(camera, ref sortSettings);
                 unlitDrawSettings.sortingSettings = sortSettings;
 
                 var cmd = renderingData.commandBuffer;
@@ -398,6 +413,7 @@ namespace UnityEngine.Rendering.Universal
                         depthAttachmentHandle, RenderBufferLoadAction.Load, storeAction,
                         ClearFlag.None, Color.clear);
 
+                    cmd.SetGlobalFloat(k_UseSceneLightingID, isLitView ? 1.0f : 0.0f);
                     cmd.SetGlobalColor(k_RendererColorID, Color.white);
 
                     for (var blendStyleIndex = 0; blendStyleIndex < k_ShapeLightTextureIDs.Length; blendStyleIndex++)
@@ -405,11 +421,11 @@ namespace UnityEngine.Rendering.Universal
                         if (blendStyleIndex == 0)
                             cmd.SetGlobalTexture(k_ShapeLightTextureIDs[blendStyleIndex], Texture2D.blackTexture);
 
-                        RendererLighting.EnableBlendStyle(CommandBufferHelpers.GetRasterCommandBuffer(cmd), blendStyleIndex, blendStyleIndex == 0);
+                        RendererLighting.EnableBlendStyle(cmd, blendStyleIndex, blendStyleIndex == 0);
                     }
                 }
 
-                RendererLighting.DisableAllKeywords(CommandBufferHelpers.GetRasterCommandBuffer(cmd));
+                this.DisableAllKeywords(cmd);
                 context.ExecuteCommandBuffer(cmd);
                 cmd.Clear();
 
@@ -421,7 +437,7 @@ namespace UnityEngine.Rendering.Universal
 
                     CopyCameraSortingLayerRenderTexture(context, renderingData, storeAction);
 
-                    filterSettings.sortingLayerRange = new SortingLayerRange((short)(m_CameraSortingLayerBoundsIndex + 1), short.MaxValue);
+                    filterSettings.sortingLayerRange = new SortingLayerRange(m_CameraSortingLayerBoundsIndex, short.MaxValue);
                     Render(context, cmd, ref renderingData, ref filterSettings, unlitDrawSettings);
                 }
                 else
@@ -432,23 +448,12 @@ namespace UnityEngine.Rendering.Universal
             }
 
             filterSettings.sortingLayerRange = SortingLayerRange.all;
-
-            RendererList objectsWithErrorRendererList = RendererList.nullRendererList;
-            RenderingUtils.CreateRendererListObjectsWithError(context, ref renderingData.cullResults, camera, filterSettings, SortingCriteria.None, ref objectsWithErrorRendererList);
-            RenderingUtils.DrawRendererListObjectsWithError(CommandBufferHelpers.GetRasterCommandBuffer(renderingData.commandBuffer), ref objectsWithErrorRendererList);
+            RenderingUtils.RenderObjectsWithError(context, ref renderingData.cullResults, camera, filterSettings, SortingCriteria.None);
         }
 
         Renderer2DData IRenderPass2D.rendererData
         {
             get { return m_Renderer2DData; }
-        }
-
-        public void Dispose()
-        {
-            m_Renderer2DData.normalsRenderTarget?.Release();
-            m_Renderer2DData.normalsRenderTarget = null;
-            m_Renderer2DData.cameraSortingLayerRenderTarget?.Release();
-            m_Renderer2DData.cameraSortingLayerRenderTarget = null;
         }
     }
 }

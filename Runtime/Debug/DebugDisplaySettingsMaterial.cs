@@ -394,7 +394,7 @@ namespace UnityEngine.Rendering.Universal
             public SettingsPanel(DebugDisplaySettingsMaterial data)
                 : base(data)
             {
-                AddWidget(new DebugUI.RuntimeDebugShadersMessageBox());
+                AddWidget(DebugDisplaySettingsCommon.WidgetFactory.CreateMissingDebugShadersWarning());
 
                 AddWidget(new DebugUI.Foldout
                 {
@@ -458,6 +458,12 @@ namespace UnityEngine.Rendering.Universal
 
         /// <inheritdoc/>
         public bool IsLightingActive => !AreAnySettingsActive;
+
+        /// <inheritdoc/>
+        public bool TryGetScreenClearColor(ref Color color)
+        {
+            return false;
+        }
 
         /// <inheritdoc/>
         IDebugDisplaySettingsPanelDisposable IDebugDisplaySettingsData.CreatePanel()

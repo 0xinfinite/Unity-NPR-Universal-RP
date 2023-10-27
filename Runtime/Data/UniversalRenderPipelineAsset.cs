@@ -86,12 +86,7 @@ namespace UnityEngine.Rendering.Universal
         /// <summary>
         /// Use this for 4096x4096 shadow resolution.
         /// </summary>
-        _4096 = 4096,
-
-        /// <summary>
-        /// Use this for 8192x8192 shadow resolution.
-        /// </summary>
-        _8192 = 8192,
+        _4096 = 4096
     }
 
     /// <summary>
@@ -260,7 +255,7 @@ namespace UnityEngine.Rendering.Universal
     /// <summary>
     /// Defines if profiling is logged or not. This enum is not longer in use, use the Profiler instead.
     /// </summary>
-    [Obsolete("PipelineDebugLevel is replaced to use the profiler and has no effect.", true)]
+    [Obsolete("PipelineDebugLevel is replaced to use the profiler and has no effect.", false)]
     public enum PipelineDebugLevel
     {
         /// <summary>
@@ -292,6 +287,11 @@ namespace UnityEngine.Rendering.Universal
         /// Use this for 2D Renderer.
         /// </summary>
         _2DRenderer,
+        /// <summary>
+        /// This name was used before the Universal Renderer was implemented.
+        /// </summary>
+        [Obsolete("ForwardRenderer has been renamed (UnityUpgradable) -> UniversalRenderer", true)]
+        ForwardRenderer = UniversalRenderer,
     }
 
     /// <summary>
@@ -384,21 +384,8 @@ namespace UnityEngine.Rendering.Universal
     {
         /// <summary>Unity uses the Bayer matrix texture to compute the LOD cross-fade dithering.</summary>
         BayerMatrix,
-
         /// <summary>Unity uses the precomputed blue noise texture to compute the LOD cross-fade dithering.</summary>
         BlueNoise
-    }
-
-    /// <summary>
-    /// The available Probe system used.
-    /// </summary>
-    public enum LightProbeSystem
-    {
-        /// <summary>The light probe group system.</summary>
-        [InspectorName("Light Probe Groups")]
-        LegacyLightProbes = 0,
-        /// <summary>Probe Volume system.</summary>
-        ProbeVolumes = 1,
     }
 
     /// <summary>
@@ -427,13 +414,13 @@ namespace UnityEngine.Rendering.Universal
 #if UNITY_EDITOR
     [ShaderKeywordFilter.ApplyRulesIfTagsEqual("RenderPipeline", "UniversalPipeline")]
 #endif
-    public partial class UniversalRenderPipelineAsset : RenderPipelineAsset<UniversalRenderPipeline>, ISerializationCallbackReceiver, IProbeVolumeEnabledRenderPipeline, IGPUResidentRenderPipeline
+    public partial class UniversalRenderPipelineAsset : RenderPipelineAsset, ISerializationCallbackReceiver
     {
         Shader m_DefaultShader;
         ScriptableRenderer[] m_Renderers = new ScriptableRenderer[1];
 
         // Default values set when a new UniversalRenderPipeline asset is created
-        [SerializeField] int k_AssetVersion = 12;
+        [SerializeField] int k_AssetVersion = 11;
         [SerializeField] int k_AssetPreviousVersion = 11;
 
         // Deprecated settings for upgrading sakes
@@ -461,7 +448,7 @@ namespace UnityEngine.Rendering.Universal
         [SerializeField] bool m_FsrOverrideSharpness = false;
         [SerializeField] float m_FsrSharpness = FSRUtils.kDefaultSharpnessLinear;
 
-#if UNITY_EDITOR // multi_compile _ LOD_FADE_CROSSFADE
+#if UNITY_EDITOR // multi_compile_fragment _ LOD_FADE_CROSSFADE
         [ShaderKeywordFilter.RemoveIf(false, keywordNames: ShaderKeywordStrings.LOD_FADE_CROSSFADE)]
 #endif
         [SerializeField] bool m_EnableLODCrossFade = true;
@@ -474,23 +461,6 @@ namespace UnityEngine.Rendering.Universal
         [ShaderKeywordFilter.SelectIf(ShEvalMode.PerVertex, keywordNames: new [] { ShaderKeywordStrings.EVALUATE_SH_VERTEX })]
 #endif
         [SerializeField] ShEvalMode m_ShEvalMode = ShEvalMode.Auto;
-
-        // Probe volume settings
-#if UNITY_EDITOR
-        [ShaderKeywordFilter.RemoveIf(LightProbeSystem.LegacyLightProbes, keywordNames: new [] { ShaderKeywordStrings.ProbeVolumeL1, ShaderKeywordStrings.ProbeVolumeL2 })]
-        [ShaderKeywordFilter.SelectIf(LightProbeSystem.ProbeVolumes,      keywordNames: new [] { ShaderKeywordStrings.ProbeVolumeL1, ShaderKeywordStrings.ProbeVolumeL2 })]
-#endif
-        [SerializeField] LightProbeSystem m_LightProbeSystem = LightProbeSystem.LegacyLightProbes;
-        [SerializeField] ProbeVolumeTextureMemoryBudget m_ProbeVolumeMemoryBudget = ProbeVolumeTextureMemoryBudget.MemoryBudgetMedium;
-        [SerializeField] ProbeVolumeBlendingTextureMemoryBudget m_ProbeVolumeBlendingMemoryBudget = ProbeVolumeBlendingTextureMemoryBudget.MemoryBudgetMedium;
-        [SerializeField] bool m_SupportProbeVolumeStreaming = false;
-        [SerializeField] bool m_SupportProbeVolumeScenarios = false;
-        [SerializeField] bool m_SupportProbeVolumeScenarioBlending = false;
-#if UNITY_EDITOR
-        [ShaderKeywordFilter.RemoveIf(ProbeVolumeSHBands.SphericalHarmonicsL1, keywordNames: ShaderKeywordStrings.ProbeVolumeL2)]
-        [ShaderKeywordFilter.RemoveIf(ProbeVolumeSHBands.SphericalHarmonicsL2, keywordNames: ShaderKeywordStrings.ProbeVolumeL1)]
-#endif
-        [SerializeField] ProbeVolumeSHBands m_ProbeVolumeSHBands = ProbeVolumeSHBands.SphericalHarmonicsL1;
 
         // Main directional light Settings
         [SerializeField] LightRenderingMode m_MainLightRenderingMode = LightRenderingMode.PerPixel;
@@ -559,11 +529,13 @@ namespace UnityEngine.Rendering.Universal
         [SerializeField] bool m_SupportsLightCookies = true;
 #if UNITY_EDITOR
         // multi_compile_fragment _ _LIGHT_LAYERS
+        [ShaderKeywordFilter.ApplyRulesIfNotGraphicsAPI(GraphicsDeviceType.OpenGLES2)]
         [ShaderKeywordFilter.SelectOrRemove(true, keywordNames: ShaderKeywordStrings.LightLayers)]
 #endif
         [SerializeField] bool m_SupportsLightLayers = false;
-        [SerializeField] [Obsolete("",true)] PipelineDebugLevel m_DebugLevel;
+        [SerializeField] [Obsolete] PipelineDebugLevel m_DebugLevel;
         [SerializeField] StoreActionsOptimization m_StoreActionsOptimization = StoreActionsOptimization.Auto;
+        [SerializeField] bool m_EnableRenderGraph = false;
 
         // Adaptive performance settings
         [SerializeField] bool m_UseAdaptivePerformance = true;
@@ -575,26 +547,6 @@ namespace UnityEngine.Rendering.Universal
         [ShaderKeywordFilter.SelectOrRemove(true, keywordNames: ShaderKeywordStrings.UseFastSRGBLinearConversion)]
 #endif
         [SerializeField] bool m_UseFastSRGBLinearConversion = false;
-        [SerializeField] bool m_SupportDataDrivenLensFlare = true;
-        [SerializeField] bool m_SupportScreenSpaceLensFlare = true;
-
-        // GPU Resident Drawer
-        [FormerlySerializedAs("m_MacroBatcherMode"), SerializeField]
-        private GPUResidentDrawerMode m_GPUResidentDrawerMode = GPUResidentDrawerMode.Disabled;
-
-        GPUResidentDrawerSettings IGPUResidentRenderPipeline.gpuResidentDrawerSettings => new()
-        {
-            mode = m_GPUResidentDrawerMode,
-            supportDitheringCrossFade = m_EnableLODCrossFade,
-            allowInEditMode = true,
-#if UNITY_EDITOR
-            pickingShader = Shader.Find("Hidden/Universal Render Pipeline/BRGPicking"),
-#endif
-            errorShader = Shader.Find("Hidden/Universal Render Pipeline/FallbackError"),
-            loadingShader = Shader.Find("Hidden/Universal Render Pipeline/FallbackLoading"),
-        };
-
-        GPUResidentDrawerResources IGPUResidentRenderPipeline.gpuResidentDrawerResources => UniversalRenderPipelineGlobalSettings.instance.m_GPUResidentDrawerResources;
 
         // Deprecated settings
         [SerializeField] ShadowQuality m_ShadowType = ShadowQuality.HardShadows;
@@ -605,8 +557,6 @@ namespace UnityEngine.Rendering.Universal
 
         [SerializeField] VolumeFrameworkUpdateMode m_VolumeFrameworkUpdateMode = VolumeFrameworkUpdateMode.EveryFrame;
 
-        [SerializeField] VolumeProfile m_VolumeProfile;
-
         [SerializeField] TextureResources m_Textures;
 
         // Note: A lut size of 16^3 is barely usable with the HDR grading mode. 32 should be the
@@ -614,12 +564,12 @@ namespace UnityEngine.Rendering.Universal
         // 1D shaper lut but for now we'll keep it simple.
 
         /// <summary>
-        /// The minimum color grading LUT (lookup table) size.
+        /// The minimum size of the color grading LUT.
         /// </summary>
         public const int k_MinLutSize = 16;
 
         /// <summary>
-        /// The maximum color grading LUT (lookup table) size.
+        /// The maximum size of the color grading LUT.
         /// </summary>
         public const int k_MaxLutSize = 65;
 
@@ -627,29 +577,19 @@ namespace UnityEngine.Rendering.Universal
         internal const int k_ShadowCascadeMaxCount = 4;
 
         /// <summary>
-        /// The default low tier resolution for additional lights shadow texture.
+        /// The default value of `additionalLightsShadowResolutionTierLow`.
         /// </summary>
         public static readonly int AdditionalLightsDefaultShadowResolutionTierLow = 256;
 
         /// <summary>
-        /// The default medium tier resolution for additional lights shadow texture.
+        /// The default value of `additionalLightsShadowResolutionTierMedium`.
         /// </summary>
         public static readonly int AdditionalLightsDefaultShadowResolutionTierMedium = 512;
 
         /// <summary>
-        /// The default high tier resolution for additional lights shadow texture.
+        /// The default value of `additionalLightsShadowResolutionTierHigh`.
         /// </summary>
         public static readonly int AdditionalLightsDefaultShadowResolutionTierHigh = 1024;
-
-        /// <summary>
-        /// The list of renderer data used by this pipeline asset.
-        /// </summary>
-        public ReadOnlySpan<ScriptableRendererData> rendererDataList => m_RendererDataList;
-
-        /// <summary>
-        /// The list of renderers used by this pipeline asset.
-        /// </summary>
-        public ReadOnlySpan<ScriptableRenderer> renderers => m_Renderers;
 
 #if UNITY_EDITOR
         [NonSerialized]
@@ -720,6 +660,14 @@ namespace UnityEngine.Rendering.Universal
                     rendererData.postProcessData = PostProcessData.GetDefaultPostProcessData();
                     return rendererData;
                 }
+                // 2D renderer is experimental
+                case RendererType._2DRenderer:
+                {
+                    var rendererData = CreateInstance<Renderer2DData>();
+                    rendererData.postProcessData = PostProcessData.GetDefaultPostProcessData();
+                    return rendererData;
+                    // Universal Renderer is the fallback renderer that works on all platforms
+                }
             }
         }
 
@@ -765,18 +713,6 @@ namespace UnityEngine.Rendering.Universal
         }
 
         /// <summary>
-        /// Ensures Global Settings are ready and registered into GraphicsSettings
-        /// </summary>
-        protected override void EnsureGlobalSettings()
-        {
-            base.EnsureGlobalSettings();
-
-#if UNITY_EDITOR
-            UniversalRenderPipelineGlobalSettings.Ensure();
-#endif
-        }
-
-        /// <summary>
         /// Creates a <c>UniversalRenderPipeline</c> from the <c>UniversalRenderPipelineAsset</c>.
         /// </summary>
         /// <returns>Returns a <c>UniversalRenderPipeline</c> created from this UniversalRenderPipelineAsset.</returns>
@@ -787,10 +723,14 @@ namespace UnityEngine.Rendering.Universal
                 m_RendererDataList = new ScriptableRendererData[1];
 
             // If no default data we can't create pipeline instance
-            if (m_DefaultRendererIndex >= m_RendererDataList.Length || m_RendererDataList[m_DefaultRendererIndex] == null)
+            if (m_RendererDataList[m_DefaultRendererIndex] == null)
             {
                 // If previous version and current version are miss-matched then we are waiting for the upgrader to kick in
                 if (k_AssetPreviousVersion != k_AssetVersion)
+                    return null;
+
+                if (m_RendererDataList[m_DefaultRendererIndex].GetType().ToString()
+                    .Contains("Universal.ForwardRendererData"))
                     return null;
 
                 Debug.LogError(
@@ -814,7 +754,6 @@ namespace UnityEngine.Rendering.Universal
                 }
             }
 
-            IGPUResidentRenderPipeline.ReinitializeGPUResidentDrawer();
             return pipeline;
         }
 
@@ -1025,7 +964,7 @@ namespace UnityEngine.Rendering.Universal
                 GraphicsFormat result = GraphicsFormat.None;
                 foreach (var format in s_LightCookieFormatList[(int)m_AdditionalLightsCookieFormat])
                 {
-                    if (SystemInfo.IsFormatSupported(format, GraphicsFormatUsage.Render))
+                    if (SystemInfo.IsFormatSupported(format, FormatUsage.Render))
                     {
                         result = format;
                         break;
@@ -1066,8 +1005,8 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public bool supportsCameraDepthTexture
         {
-            get => m_RequireDepthTexture;
-            set => m_RequireDepthTexture = value;
+            get { return m_RequireDepthTexture; }
+            set { m_RequireDepthTexture = value; }
         }
 
         /// <summary>
@@ -1075,20 +1014,26 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public bool supportsCameraOpaqueTexture
         {
-            get => m_RequireOpaqueTexture;
-            set => m_RequireOpaqueTexture = value;
+            get { return m_RequireOpaqueTexture; }
+            set { m_RequireOpaqueTexture = value; }
         }
 
         /// <summary>
         /// Returns the downsampling method used when copying the camera color texture after rendering opaques.
         /// </summary>
-        public Downsampling opaqueDownsampling => m_OpaqueDownsampling;
+        public Downsampling opaqueDownsampling
+        {
+            get { return m_OpaqueDownsampling; }
+        }
 
         /// <summary>
         /// This settings controls if the asset <c>UniversalRenderPipelineAsset</c> supports terrain holes.
         /// </summary>
         /// <see href="https://docs.unity3d.com/Manual/terrain-PaintHoles.html"/>
-        public bool supportsTerrainHoles => m_SupportsTerrainHoles;
+        public bool supportsTerrainHoles
+        {
+            get { return m_SupportsTerrainHoles; }
+        }
 
         /// <summary>
         /// Returns the active store action optimization value.
@@ -1096,8 +1041,8 @@ namespace UnityEngine.Rendering.Universal
         /// <returns>Returns the active store action optimization value.</returns>
         public StoreActionsOptimization storeActionsOptimization
         {
-            get => m_StoreActionsOptimization;
-            set => m_StoreActionsOptimization = value;
+            get { return m_StoreActionsOptimization; }
+            set { m_StoreActionsOptimization = value; }
         }
 
         /// <summary>
@@ -1106,8 +1051,8 @@ namespace UnityEngine.Rendering.Universal
         /// <see href="https://docs.unity3d.com/Manual/HDR.html"/>
         public bool supportsHDR
         {
-            get => m_SupportsHDR;
-            set => m_SupportsHDR = value;
+            get { return m_SupportsHDR; }
+            set { m_SupportsHDR = value; }
         }
 
         /// <summary>
@@ -1115,18 +1060,18 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public HDRColorBufferPrecision hdrColorBufferPrecision
         {
-            get => m_HDRColorBufferPrecision;
-            set => m_HDRColorBufferPrecision = value;
+            get { return m_HDRColorBufferPrecision; }
+            set { m_HDRColorBufferPrecision = value; }
         }
 
         /// <summary>
         /// Specifies the msaa sample count used by this <c>UniversalRenderPipelineAsset</c>
         /// </summary>
-        /// <see cref="MsaaQuality"/>
+        /// <see cref="SampleCount"/>
         public int msaaSampleCount
         {
-            get => (int)m_MSAA;
-            set => m_MSAA = (MsaaQuality)value;
+            get { return (int)m_MSAA; }
+            set { m_MSAA = (MsaaQuality)value; }
         }
 
         /// <summary>
@@ -1134,19 +1079,25 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public float renderScale
         {
-            get => m_RenderScale;
-            set => m_RenderScale = ValidateRenderScale(value);
+            get { return m_RenderScale; }
+            set { m_RenderScale = ValidateRenderScale(value); }
         }
 
         /// <summary>
         /// Returns true if the cross-fade style blending between the current LOD and the next LOD is enabled.
         /// </summary>
-        public bool enableLODCrossFade => m_EnableLODCrossFade;
+        public bool enableLODCrossFade
+        {
+            get { return m_EnableLODCrossFade; }
+        }
 
         /// <summary>
         /// Returns the type of active LOD cross-fade.
         /// </summary>
-        public LODCrossFadeDitheringType lodCrossFadeDitheringType => m_LODCrossFadeDitheringType;
+        public LODCrossFadeDitheringType lodCrossFadeDitheringType
+        {
+            get { return m_LODCrossFadeDitheringType; }
+        }
 
         /// <summary>
         /// Returns the upscaling filter desired by the user
@@ -1155,8 +1106,8 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public UpscalingFilterSelection upscalingFilter
         {
-            get => m_UpscalingFilter;
-            set => m_UpscalingFilter = value;
+            get { return m_UpscalingFilter; }
+            set { m_UpscalingFilter = value; }
         }
 
         /// <summary>
@@ -1165,8 +1116,8 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public bool fsrOverrideSharpness
         {
-            get => m_FsrOverrideSharpness;
-            set => m_FsrOverrideSharpness = value;
+            get { return m_FsrOverrideSharpness; }
+            set { m_FsrOverrideSharpness = value; }
         }
 
         /// <summary>
@@ -1177,8 +1128,8 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public float fsrSharpness
         {
-            get => m_FsrSharpness;
-            set => m_FsrSharpness = value;
+            get { return m_FsrSharpness; }
+            set { m_FsrSharpness = value; }
         }
 
         /// <summary>
@@ -1186,71 +1137,8 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public ShEvalMode shEvalMode
         {
-            get => m_ShEvalMode;
-            internal set => m_ShEvalMode = value;
-        }
-
-        /// <summary>
-        /// Determines what system to use.
-        /// </summary>
-        public LightProbeSystem lightProbeSystem
-        {
-            get => m_LightProbeSystem;
-            internal set => m_LightProbeSystem = value;
-        }
-
-        /// <summary>
-        /// Probe Volume Memory Budget.
-        /// </summary>
-        public ProbeVolumeTextureMemoryBudget probeVolumeMemoryBudget
-        {
-            get => m_ProbeVolumeMemoryBudget;
-            internal set => m_ProbeVolumeMemoryBudget = value;
-        }
-
-        /// <summary>
-        /// Probe Volume Blending Memory Budget.
-        /// </summary>
-        public ProbeVolumeBlendingTextureMemoryBudget probeVolumeBlendingMemoryBudget
-        {
-            get => m_ProbeVolumeBlendingMemoryBudget;
-            internal set => m_ProbeVolumeBlendingMemoryBudget = value;
-        }
-
-        /// <summary>
-        /// Support Streaming for Probe Volumes.
-        /// </summary>
-        public bool supportProbeVolumeStreaming
-        {
-            get => m_SupportProbeVolumeStreaming;
-            internal set => m_SupportProbeVolumeStreaming = value;
-        }
-
-        /// <summary>
-        /// Support Lighting Scenario Baking for Probe Volumes.
-        /// </summary>
-        public bool supportProbeVolumeScenarios
-        {
-            get { return m_SupportProbeVolumeScenarios; }
-            internal set { m_SupportProbeVolumeScenarios = value; }
-        }
-
-        /// <summary>
-        /// Support Lighting Scenario Blending for Probe Volumes.
-        /// </summary>
-        public bool supportProbeVolumeScenarioBlending
-        {
-            get { return m_SupportProbeVolumeScenarioBlending; }
-            internal set { m_SupportProbeVolumeScenarioBlending = value; }
-        }
-
-        /// <summary>
-        /// Probe Volumes SH Bands.
-        /// </summary>
-        public ProbeVolumeSHBands probeVolumeSHBands
-        {
-            get => m_ProbeVolumeSHBands;
-            internal set => m_ProbeVolumeSHBands = value;
+            get { return m_ShEvalMode; }
+            internal set { m_ShEvalMode = value; }
         }
 
         /// <summary>
@@ -1259,8 +1147,8 @@ namespace UnityEngine.Rendering.Universal
         /// <see cref="LightRenderingMode"/>
         public LightRenderingMode mainLightRenderingMode
         {
-            get => m_MainLightRenderingMode;
-            internal set => m_MainLightRenderingMode = value;
+            get { return m_MainLightRenderingMode; }
+            internal set { m_MainLightRenderingMode = value; }
         }
 
         /// <summary>
@@ -1268,9 +1156,8 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public bool supportsMainLightShadows
         {
-            get => m_MainLightShadowsSupported;
-            internal set
-            {
+            get { return m_MainLightShadowsSupported; }
+            internal set {
                 m_MainLightShadowsSupported = value;
 #if UNITY_EDITOR
                 m_AnyShadowsSupported = m_MainLightShadowsSupported || m_AdditionalLightShadowsSupported;
@@ -1283,8 +1170,8 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public int mainLightShadowmapResolution
         {
-            get => (int)m_MainLightShadowmapResolution;
-            set => m_MainLightShadowmapResolution = (ShadowResolution)value;
+            get { return (int)m_MainLightShadowmapResolution; }
+            internal set { m_MainLightShadowmapResolution = (ShadowResolution)value; }
         }
 
         /// <summary>
@@ -1293,8 +1180,8 @@ namespace UnityEngine.Rendering.Universal
         /// <see cref="LightRenderingMode"/>
         public LightRenderingMode additionalLightsRenderingMode
         {
-            get => m_AdditionalLightsRenderingMode;
-            internal set => m_AdditionalLightsRenderingMode = value;
+            get { return m_AdditionalLightsRenderingMode; }
+            internal set { m_AdditionalLightsRenderingMode = value; }
         }
 
         /// <summary>
@@ -1302,8 +1189,8 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public int maxAdditionalLightsCount
         {
-            get => m_AdditionalLightsPerObjectLimit;
-            set => m_AdditionalLightsPerObjectLimit = ValidatePerObjectLights(value);
+            get { return m_AdditionalLightsPerObjectLimit; }
+            set { m_AdditionalLightsPerObjectLimit = ValidatePerObjectLights(value); }
         }
 
         /// <summary>
@@ -1311,9 +1198,8 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public bool supportsAdditionalLightShadows
         {
-            get => m_AdditionalLightShadowsSupported;
-            internal set
-            {
+            get { return m_AdditionalLightShadowsSupported; }
+            internal set {
                 m_AdditionalLightShadowsSupported = value;
 #if UNITY_EDITOR
                 m_AnyShadowsSupported = m_MainLightShadowsSupported || m_AdditionalLightShadowsSupported;
@@ -1326,8 +1212,8 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public int additionalLightsShadowmapResolution
         {
-            get => (int)m_AdditionalLightsShadowmapResolution;
-            set => m_AdditionalLightsShadowmapResolution = (ShadowResolution)value;
+            get { return (int)m_AdditionalLightsShadowmapResolution; }
+            internal set { m_AdditionalLightsShadowmapResolution = (ShadowResolution)value; }
         }
 
         /// <summary>
@@ -1335,8 +1221,8 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public int additionalLightsShadowResolutionTierLow
         {
-            get => m_AdditionalLightsShadowResolutionTierLow;
-            internal set => m_AdditionalLightsShadowResolutionTierLow = value;
+            get { return (int)m_AdditionalLightsShadowResolutionTierLow; }
+            internal set { m_AdditionalLightsShadowResolutionTierLow = value; }
         }
 
         /// <summary>
@@ -1344,8 +1230,8 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public int additionalLightsShadowResolutionTierMedium
         {
-            get => m_AdditionalLightsShadowResolutionTierMedium;
-            internal set => m_AdditionalLightsShadowResolutionTierMedium = value;
+            get { return (int)m_AdditionalLightsShadowResolutionTierMedium; }
+            internal set { m_AdditionalLightsShadowResolutionTierMedium = value; }
         }
 
         /// <summary>
@@ -1353,8 +1239,8 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public int additionalLightsShadowResolutionTierHigh
         {
-            get => m_AdditionalLightsShadowResolutionTierHigh;
-            internal set => m_AdditionalLightsShadowResolutionTierHigh = value;
+            get { return (int)m_AdditionalLightsShadowResolutionTierHigh; }
+            internal set { m_AdditionalLightsShadowResolutionTierHigh = value; }
         }
 
         internal int GetAdditionalLightsShadowResolution(int additionalLightsShadowResolutionTier)
@@ -1376,8 +1262,8 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public bool reflectionProbeBlending
         {
-            get => m_ReflectionProbeBlending;
-            internal set => m_ReflectionProbeBlending = value;
+            get { return m_ReflectionProbeBlending; }
+            internal set { m_ReflectionProbeBlending = value; }
         }
 
         /// <summary>
@@ -1385,8 +1271,8 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public bool reflectionProbeBoxProjection
         {
-            get => m_ReflectionProbeBoxProjection;
-            internal set => m_ReflectionProbeBoxProjection = value;
+            get { return m_ReflectionProbeBoxProjection; }
+            internal set { m_ReflectionProbeBoxProjection = value; }
         }
 
         /// <summary>
@@ -1394,8 +1280,8 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public float shadowDistance
         {
-            get => m_ShadowDistance;
-            set => m_ShadowDistance = Mathf.Max(0.0f, value);
+            get { return m_ShadowDistance; }
+            set { m_ShadowDistance = Mathf.Max(0.0f, value); }
         }
 
         /// <summary>
@@ -1403,7 +1289,7 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public int shadowCascadeCount
         {
-            get => m_ShadowCascadeCount;
+            get { return m_ShadowCascadeCount; }
             set
             {
                 if (value < k_ShadowCascadeMinCount || value > k_ShadowCascadeMaxCount)
@@ -1420,8 +1306,8 @@ namespace UnityEngine.Rendering.Universal
         /// <returns>Returns a Float with the split value.</returns>
         public float cascade2Split
         {
-            get => m_Cascade2Split;
-            set => m_Cascade2Split = value;
+            get { return m_Cascade2Split; }
+            internal set { m_Cascade2Split = value; }
         }
 
         /// <summary>
@@ -1430,8 +1316,8 @@ namespace UnityEngine.Rendering.Universal
         /// <returns>Returns a Vector2 with the split values.</returns>
         public Vector2 cascade3Split
         {
-            get => m_Cascade3Split;
-            set => m_Cascade3Split = value;
+            get { return m_Cascade3Split; }
+            internal set { m_Cascade3Split = value; }
         }
 
         /// <summary>
@@ -1440,8 +1326,8 @@ namespace UnityEngine.Rendering.Universal
         /// <returns>Returns a Vector3 with the split values.</returns>
         public Vector3 cascade4Split
         {
-            get => m_Cascade4Split;
-            set => m_Cascade4Split = value;
+            get { return m_Cascade4Split; }
+            internal set { m_Cascade4Split = value; }
         }
 
         /// <summary>
@@ -1449,8 +1335,8 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public float cascadeBorder
         {
-            get => m_CascadeBorder;
-            set => m_CascadeBorder = value;
+            get { return m_CascadeBorder; }
+            set { m_CascadeBorder = value; }
         }
 
         /// <summary>
@@ -1458,8 +1344,8 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public float shadowDepthBias
         {
-            get => m_ShadowDepthBias;
-            set => m_ShadowDepthBias = ValidateShadowBias(value);
+            get { return m_ShadowDepthBias; }
+            set { m_ShadowDepthBias = ValidateShadowBias(value); }
         }
 
         /// <summary>
@@ -1467,8 +1353,8 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public float shadowNormalBias
         {
-            get => m_ShadowNormalBias;
-            set => m_ShadowNormalBias = ValidateShadowBias(value);
+            get { return m_ShadowNormalBias; }
+            set { m_ShadowNormalBias = ValidateShadowBias(value); }
         }
 
         /// <summary>
@@ -1476,8 +1362,8 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public bool supportsSoftShadows
         {
-            get => m_SoftShadowsSupported;
-            internal set => m_SoftShadowsSupported = value;
+            get { return m_SoftShadowsSupported; }
+            internal set { m_SoftShadowsSupported = value; }
         }
 
         /// <summary>
@@ -1485,8 +1371,8 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         internal SoftShadowQuality softShadowQuality
         {
-            get => m_SoftShadowQuality;
-            set => m_SoftShadowQuality = value;
+            get { return m_SoftShadowQuality; }
+            set { m_SoftShadowQuality = value; }
         }
 
         /// <summary>
@@ -1495,31 +1381,43 @@ namespace UnityEngine.Rendering.Universal
         /// <see href="https://docs.unity3d.com/Manual/DrawCallBatching.html"/>
         public bool supportsDynamicBatching
         {
-            get => m_SupportsDynamicBatching;
-            set => m_SupportsDynamicBatching = value;
+            get { return m_SupportsDynamicBatching; }
+            set { m_SupportsDynamicBatching = value; }
         }
 
         /// <summary>
         /// Returns true if the Render Pipeline Asset supports mixed lighting, false otherwise.
         /// </summary>
         /// <see href="https://docs.unity3d.com/Manual/LightMode-Mixed.html"/>
-        public bool supportsMixedLighting => m_MixedLightingSupported;
+        public bool supportsMixedLighting
+        {
+            get { return m_MixedLightingSupported; }
+        }
 
         /// <summary>
         /// Returns true if the Render Pipeline Asset supports light cookies, false otherwise.
         /// </summary>
-        public bool supportsLightCookies => m_SupportsLightCookies;
+        public bool supportsLightCookies
+        {
+            get { return m_SupportsLightCookies; }
+        }
 
         /// <summary>
         /// Returns true if the Render Pipeline Asset supports light layers, false otherwise.
         /// </summary>
-        [Obsolete("This is obsolete, UnityEngine.Rendering.ShaderVariantLogLevel instead.", true)]
-        public bool supportsLightLayers => m_SupportsLightLayers;
+        [Obsolete("This is obsolete, UnityEngine.Rendering.ShaderVariantLogLevel instead.", false)]
+        public bool supportsLightLayers
+        {
+            get { return m_SupportsLightLayers; }
+        }
 
         /// <summary>
         /// Returns true if the Render Pipeline Asset supports rendering layers for lights, false otherwise.
         /// </summary>
-        public bool useRenderingLayers => m_SupportsLightLayers;
+        public bool useRenderingLayers
+        {
+            get { return m_SupportsLightLayers; }
+        }
 
         /// <summary>
         /// Returns the selected update mode for volumes.
@@ -1527,20 +1425,13 @@ namespace UnityEngine.Rendering.Universal
         public VolumeFrameworkUpdateMode volumeFrameworkUpdateMode => m_VolumeFrameworkUpdateMode;
 
         /// <summary>
-        /// A volume profile that can be used to override global default volume profile values. This provides a way e.g.
-        /// to have different volume default values per quality level without having to place global volumes in scenes.
-        /// </summary>
-        public VolumeProfile volumeProfile
-        {
-            get => m_VolumeProfile;
-            set => m_VolumeProfile = value;
-        }
-
-        /// <summary>
         /// Previously returned the debug level for this Render Pipeline Asset but is now deprecated. Replaced to use the profiler and is no longer used.
         /// </summary>
-        [Obsolete("PipelineDebugLevel is deprecated and replaced to use the profiler. Calling debugLevel is not necessary.", true)]
-        public PipelineDebugLevel debugLevel => PipelineDebugLevel.Disabled;
+        [Obsolete("PipelineDebugLevel is deprecated and replaced to use the profiler. Calling debugLevel is not necessary.", false)]
+        public PipelineDebugLevel debugLevel
+        {
+            get => PipelineDebugLevel.Disabled;
+        }
 
         /// <summary>
         /// Specifies if SRPBacher is used by this <c>UniversalRenderPipelineAsset</c>.
@@ -1548,28 +1439,17 @@ namespace UnityEngine.Rendering.Universal
         /// <see href="https://docs.unity3d.com/Manual/SRPBatcher.html"/>
         public bool useSRPBatcher
         {
-            get => m_UseSRPBatcher;
-            set => m_UseSRPBatcher = value;
+            get { return m_UseSRPBatcher; }
+            set { m_UseSRPBatcher = value; }
         }
 
         /// <summary>
         /// Controls whether the RenderGraph render path is enabled.
         /// </summary>
-        public bool enableRenderGraph
+        internal bool enableRenderGraph
         {
-            get
-            {
-#if RENDER_GRAPH_ENABLED
-                if (UniversalRenderPipelineGlobalSettings.instance)
-                    return UniversalRenderPipelineGlobalSettings.instance.enableRenderGraph || RenderGraphGraphicsAutomatedTests.enabled;
-#endif
-                return RenderGraphGraphicsAutomatedTests.enabled;
-            }
-        }
-
-        internal void OnEnableRenderGraphChanged()
-        {
-            OnValidate();
+            get { return m_EnableRenderGraph; }
+            set { m_EnableRenderGraph = value; }
         }
 
         /// <summary>
@@ -1578,8 +1458,8 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public ColorGradingMode colorGradingMode
         {
-            get => m_ColorGradingMode;
-            set => m_ColorGradingMode = value;
+            get { return m_ColorGradingMode; }
+            set { m_ColorGradingMode = value; }
         }
 
         /// <summary>
@@ -1587,24 +1467,17 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public int colorGradingLutSize
         {
-            get => m_ColorGradingLutSize;
-            set => m_ColorGradingLutSize = Mathf.Clamp(value, k_MinLutSize, k_MaxLutSize);
+            get { return m_ColorGradingLutSize; }
+            set { m_ColorGradingLutSize = Mathf.Clamp(value, k_MinLutSize, k_MaxLutSize); }
         }
 
         /// <summary>
         /// Returns true if fast approximation functions are used when converting between the sRGB and Linear color spaces, false otherwise.
         /// </summary>
-        public bool useFastSRGBLinearConversion => m_UseFastSRGBLinearConversion;
-
-        /// <summary>
-        /// Returns true if Screen Space Lens Flare are supported by this asset, false otherwise.
-        /// </summary>
-        public bool supportScreenSpaceLensFlare => m_SupportScreenSpaceLensFlare;
-
-        /// <summary>
-        /// Returns true if Data Driven Lens Flare are supported by this asset, false otherwise.
-        /// </summary>
-        public bool supportDataDrivenLensFlare => m_SupportDataDrivenLensFlare;
+        public bool useFastSRGBLinearConversion
+        {
+            get { return m_UseFastSRGBLinearConversion; }
+        }
 
         /// <summary>
         /// Set to true to allow Adaptive performance to modify graphics quality settings during runtime.
@@ -1612,8 +1485,8 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public bool useAdaptivePerformance
         {
-            get => m_UseAdaptivePerformance;
-            set => m_UseAdaptivePerformance = value;
+            get { return m_UseAdaptivePerformance; }
+            set { m_UseAdaptivePerformance = value; }
         }
 
         /// <summary>
@@ -1621,8 +1494,8 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public bool conservativeEnclosingSphere
         {
-            get => m_ConservativeEnclosingSphere;
-            set => m_ConservativeEnclosingSphere = value;
+            get { return m_ConservativeEnclosingSphere; }
+            set { m_ConservativeEnclosingSphere = value; }
         }
 
         /// <summary>
@@ -1631,69 +1504,99 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public int numIterationsEnclosingSphere
         {
-            get => m_NumIterationsEnclosingSphere;
-            set => m_NumIterationsEnclosingSphere = value;
+            get { return m_NumIterationsEnclosingSphere; }
+            set { m_NumIterationsEnclosingSphere = value; }
         }
 
         /// <summary>
         /// Returns the default Material.
         /// </summary>
         /// <returns>Returns the default Material.</returns>
-        public override Material defaultMaterial => GetMaterial(DefaultMaterialType.Standard);
+        public override Material defaultMaterial
+        {
+            get { return GetMaterial(DefaultMaterialType.Standard); }
+        }
 
         /// <summary>
         /// Returns the default particle Material.
         /// </summary>
         /// <returns>Returns the default particle Material.</returns>
-        public override Material defaultParticleMaterial => GetMaterial(DefaultMaterialType.Particle);
+        public override Material defaultParticleMaterial
+        {
+            get { return GetMaterial(DefaultMaterialType.Particle); }
+        }
 
         /// <summary>
         /// Returns the default line Material.
         /// </summary>
         /// <returns>Returns the default line Material.</returns>
-        public override Material defaultLineMaterial => GetMaterial(DefaultMaterialType.Particle);
+        public override Material defaultLineMaterial
+        {
+            get { return GetMaterial(DefaultMaterialType.Particle); }
+        }
 
         /// <summary>
         /// Returns the default terrain Material.
         /// </summary>
         /// <returns>Returns the default terrain Material.</returns>
-        public override Material defaultTerrainMaterial => GetMaterial(DefaultMaterialType.Terrain);
+        public override Material defaultTerrainMaterial
+        {
+            get { return GetMaterial(DefaultMaterialType.Terrain); }
+        }
 
         /// <summary>
         /// Returns the default UI Material.
         /// </summary>
         /// <returns>Returns the default UI Material.</returns>
-        public override Material defaultUIMaterial => GetMaterial(DefaultMaterialType.UnityBuiltinDefault);
+        public override Material defaultUIMaterial
+        {
+            get { return GetMaterial(DefaultMaterialType.UnityBuiltinDefault); }
+        }
 
         /// <summary>
         /// Returns the default UI overdraw Material.
         /// </summary>
         /// <returns>Returns the default UI overdraw Material.</returns>
-        public override Material defaultUIOverdrawMaterial => GetMaterial(DefaultMaterialType.UnityBuiltinDefault);
+        public override Material defaultUIOverdrawMaterial
+        {
+            get { return GetMaterial(DefaultMaterialType.UnityBuiltinDefault); }
+        }
 
         /// <summary>
         /// Returns the default UIETC1 supported Material for this asset.
         /// </summary>
         /// <returns>Returns the default UIETC1 supported Material.</returns>
-        public override Material defaultUIETC1SupportedMaterial => GetMaterial(DefaultMaterialType.UnityBuiltinDefault);
+        public override Material defaultUIETC1SupportedMaterial
+        {
+            get { return GetMaterial(DefaultMaterialType.UnityBuiltinDefault); }
+        }
 
         /// <summary>
         /// Returns the default material for the 2D renderer.
         /// </summary>
         /// <returns>Returns the material containing the default lit and unlit shader passes for sprites in the 2D renderer.</returns>
-        public override Material default2DMaterial => GetMaterial(DefaultMaterialType.Sprite);
+        public override Material default2DMaterial
+        {
+            get { return GetMaterial(DefaultMaterialType.Sprite); }
+        }
 
         /// <summary>
         /// Returns the default sprite mask material for the 2D renderer.
         /// </summary>
         /// <returns>Returns the material containing the default shader pass for sprite mask in the 2D renderer.</returns>
-        public override Material default2DMaskMaterial => GetMaterial(DefaultMaterialType.SpriteMask);
+        public override Material default2DMaskMaterial
+        {
+            get { return GetMaterial(DefaultMaterialType.SpriteMask); }
+        }
 
         /// <summary>
         /// Returns the Material that Unity uses to render decals.
         /// </summary>
         /// <returns>Returns the Material containing the Unity decal shader.</returns>
-        public Material decalMaterial => GetMaterial(DefaultMaterialType.Decal);
+        public Material decalMaterial
+        {
+            get { return GetMaterial(DefaultMaterialType.Decal); }
+        }
 
         /// <summary>
         /// Returns the default shader for the specified renderer. When creating new objects in the editor, the materials of those objects will use the selected default shader.
@@ -1735,49 +1638,73 @@ namespace UnityEngine.Rendering.Universal
         /// Returns the Autodesk Interactive shader that this asset uses.
         /// </summary>
         /// <returns>Returns the Autodesk Interactive shader that this asset uses.</returns>
-        public override Shader autodeskInteractiveShader => editorResources?.shaders.autodeskInteractivePS;
+        public override Shader autodeskInteractiveShader
+        {
+            get { return editorResources?.shaders.autodeskInteractivePS; }
+        }
 
         /// <summary>
         /// Returns the Autodesk Interactive transparent shader that this asset uses.
         /// </summary>
         /// <returns>Returns the Autodesk Interactive transparent shader that this asset uses.</returns>
-        public override Shader autodeskInteractiveTransparentShader => editorResources?.shaders.autodeskInteractiveTransparentPS;
+        public override Shader autodeskInteractiveTransparentShader
+        {
+            get { return editorResources?.shaders.autodeskInteractiveTransparentPS; }
+        }
 
         /// <summary>
         /// Returns the Autodesk Interactive mask shader that this asset uses.
         /// </summary>
         /// <returns>Returns the Autodesk Interactive mask shader that this asset uses</returns>
-        public override Shader autodeskInteractiveMaskedShader => editorResources?.shaders.autodeskInteractiveMaskedPS;
+        public override Shader autodeskInteractiveMaskedShader
+        {
+            get { return editorResources?.shaders.autodeskInteractiveMaskedPS; }
+        }
 
         /// <summary>
         /// Returns the terrain detail lit shader that this asset uses.
         /// </summary>
         /// <returns>Returns the terrain detail lit shader that this asset uses.</returns>
-        public override Shader terrainDetailLitShader => editorResources?.shaders.terrainDetailLitPS;
+        public override Shader terrainDetailLitShader
+        {
+            get { return editorResources?.shaders.terrainDetailLitPS; }
+        }
 
         /// <summary>
         /// Returns the terrain detail grass shader that this asset uses.
         /// </summary>
         /// <returns>Returns the terrain detail grass shader that this asset uses.</returns>
-        public override Shader terrainDetailGrassShader => editorResources?.shaders.terrainDetailGrassPS;
+        public override Shader terrainDetailGrassShader
+        {
+            get { return editorResources?.shaders.terrainDetailGrassPS; }
+        }
 
         /// <summary>
         /// Returns the terrain detail grass billboard shader that this asset uses.
         /// </summary>
         /// <returns>Returns the terrain detail grass billboard shader that this asset uses.</returns>
-        public override Shader terrainDetailGrassBillboardShader => editorResources?.shaders.terrainDetailGrassBillboardPS;
+        public override Shader terrainDetailGrassBillboardShader
+        {
+            get { return editorResources?.shaders.terrainDetailGrassBillboardPS; }
+        }
 
         /// <summary>
         /// Returns the default SpeedTree7 shader that this asset uses.
         /// </summary>
         /// <returns>Returns the default SpeedTree7 shader that this asset uses.</returns>
-        public override Shader defaultSpeedTree7Shader => editorResources?.shaders.defaultSpeedTree7PS;
+        public override Shader defaultSpeedTree7Shader
+        {
+            get { return editorResources?.shaders.defaultSpeedTree7PS; }
+        }
 
         /// <summary>
         /// Returns the default SpeedTree8 shader that this asset uses.
         /// </summary>
         /// <returns>Returns the default SpeedTree8 shader that this asset uses.</returns>
-        public override Shader defaultSpeedTree8Shader => editorResources?.shaders.defaultSpeedTree8PS;
+        public override Shader defaultSpeedTree8Shader
+        {
+            get { return editorResources?.shaders.defaultSpeedTree8PS; }
+        }
 
         /// <inheritdoc/>
         public override string renderPipelineShaderTag => UniversalRenderPipeline.k_ShaderTagName;
@@ -1792,7 +1719,7 @@ namespace UnityEngine.Rendering.Universal
         /// <summary>
         /// Names used for display of light layers.
         /// </summary>
-        [Obsolete("This is obsolete, please use renderingLayerMaskNames instead.", true)]
+        [Obsolete("This is obsolete, please use renderingLayerMaskNames instead.", false)]
         public string[] lightLayerMaskNames => new string[0];
 
         /// <summary>
@@ -1812,54 +1739,6 @@ namespace UnityEngine.Rendering.Universal
 
                 return m_Textures;
             }
-        }
-
-        /// <summary>
-        /// GPUResidentDrawerMode configured on this pipeline asset
-        /// </summary>
-        public GPUResidentDrawerMode gpuResidentDrawerMode
-        {
-            get => m_GPUResidentDrawerMode;
-            set
-            {
-                if (value == m_GPUResidentDrawerMode)
-                    return;
-
-                m_GPUResidentDrawerMode = value;
-                OnValidate();
-            }
-        }
-
-        /// <summary>
-        /// Is the GPU resident drawer supported on this render pipeline.
-        /// </summary>
-        /// <param name="logReason">Should the reason for non support be logged?</param>
-        /// <returns>true if supported</returns>
-        public bool IsGPUResidentDrawerSupportedBySRP(bool logReason = false)
-        {
-            // if any of the renderers are not set to Forward+ return false
-            bool supported = true;
-            foreach (var renderer in m_Renderers)
-            {
-                if (renderer is UniversalRenderer universalRenderer)
-                {
-                    if (universalRenderer.renderingModeRequested != RenderingMode.ForwardPlus)
-                    {
-                        supported = false;
-                        break;
-                    }
-                }
-                else
-                {
-                    supported = false;
-                    break;
-                }
-            }
-
-            if(!supported && logReason)
-                Debug.LogWarning("GPUResidentDrawer: Disabled due to some configured Universal Renderers not supporting Forward+ ");
-
-            return supported;
         }
 
         /// <summary>
@@ -1965,12 +1844,6 @@ namespace UnityEngine.Rendering.Universal
                 k_AssetVersion = 11;
             }
 
-            if (k_AssetVersion < 12)
-            {
-                k_AssetPreviousVersion = k_AssetVersion;
-                k_AssetVersion = 12;
-            }
-
 #if UNITY_EDITOR
             if (k_AssetPreviousVersion != k_AssetVersion)
             {
@@ -2023,16 +1896,6 @@ namespace UnityEngine.Rendering.Universal
                 asset.k_AssetPreviousVersion = 11;
             }
 
-            if (asset.k_AssetPreviousVersion < 12)
-            {
-                var globalSettings = UniversalRenderPipelineGlobalSettings.Ensure();
-#pragma warning disable CS0618 // Type or member is obsolete
-                if (asset.apvScenesData != null)
-                    globalSettings.apvScenesData = asset.apvScenesData;
-#pragma warning restore CS0618 // Type or member is obsolete
-                asset.k_AssetPreviousVersion = 12;
-            }
-
             EditorUtility.SetDirty(asset);
         }
 
@@ -2074,11 +1937,6 @@ namespace UnityEngine.Rendering.Universal
             return index < m_RendererDataList.Length ? m_RendererDataList[index] != null : false;
         }
 
-        #region APV
-        [SerializeField, Obsolete("Kept for migration. #from(2023.3")]
-        internal ProbeVolumeSceneData apvScenesData;
-        #endregion
-
         /// <summary>
         /// Class containing texture resources used in URP.
         /// </summary>
@@ -2104,31 +1962,6 @@ namespace UnityEngine.Rendering.Universal
             public bool NeedsReload()
             {
                 return blueNoise64LTex == null || bayerMatrixTex == null;
-            }
-        }
-
-        /// <summary>
-        /// Indicates the maximum number of SH Bands used by this render pipeline instance.
-        /// </summary>
-        public ProbeVolumeSHBands maxSHBands
-        {
-            get
-            {
-                if (lightProbeSystem == LightProbeSystem.ProbeVolumes)
-                    return probeVolumeSHBands;
-                else
-                    return ProbeVolumeSHBands.SphericalHarmonicsL1;
-            }
-        }
-
-        /// <summary>
-        /// Returns the projects global ProbeVolumeSceneData instance.
-        /// </summary>
-        public ProbeVolumeSceneData probeVolumeSceneData
-        {
-            get
-            {
-                return UniversalRenderPipelineGlobalSettings.instance?.apvScenesData;
             }
         }
     }

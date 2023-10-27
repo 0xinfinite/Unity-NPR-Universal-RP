@@ -48,7 +48,7 @@ namespace UnityEngine.Rendering.Universal
         /// <summary>
         /// Whether debug overdraw mode is active.
         /// </summary>
-        [Obsolete("overdraw has been deprecated. Use overdrawMode instead.", true)]
+        [Obsolete("overdraw has been deprecated. Use overdrawMode instead.", false)]
 
         public bool overdraw
         {
@@ -244,6 +244,7 @@ namespace UnityEngine.Rendering.Universal
 #else
                     switch (SystemInfo.graphicsDeviceType)
                     {
+                        case GraphicsDeviceType.OpenGLES2:
                         case GraphicsDeviceType.OpenGLES3:
                         case GraphicsDeviceType.Vulkan:
                             return panel.data.wireframeMode == DebugWireframeMode.None;
@@ -360,7 +361,7 @@ namespace UnityEngine.Rendering.Universal
             public SettingsPanel(DebugDisplaySettingsRendering data)
                 : base(data)
             {
-                AddWidget(new DebugUI.RuntimeDebugShadersMessageBox());
+                AddWidget(DebugDisplaySettingsCommon.WidgetFactory.CreateMissingDebugShadersWarning());
 
                 AddWidget(new DebugUI.Foldout
                 {
@@ -402,22 +403,6 @@ namespace UnityEngine.Rendering.Universal
                                 WidgetFactory.CreatePixelValueRangeMax(this)
                             }
                         }
-                    }
-                });
-
-                AddWidget(new DebugUI.Foldout
-                {
-                    displayName = "HDR Output",
-                    isHeader = true,
-                    opened = true,
-                    children =
-                    {
-                        new DebugUI.MessageBox
-                        {
-                            displayName = "The values on the Rendering Debugger editor window might not be accurate. Please use the playmode debug UI (Ctrl+Backspace).",
-                            style = DebugUI.MessageBox.Style.Warning,
-                        },
-                        DebugDisplaySettingsHDROutput.CreateHDROuputDisplayTable()
                     }
                 });
             }

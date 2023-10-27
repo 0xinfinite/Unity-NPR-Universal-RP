@@ -5,8 +5,7 @@ namespace UnityEngine.Rendering.Universal
     /// <summary>
     /// A volume component that holds settings for the Panini Projection effect.
     /// </summary>
-    [Serializable, VolumeComponentMenu("Post-processing/Panini Projection")]
-    [SupportedOnRenderPipeline(typeof(UniversalRenderPipelineAsset))]
+    [Serializable, VolumeComponentMenuForRenderPipeline("Post-processing/Panini Projection", typeof(UniversalRenderPipeline))]
     [URPHelpURL("Post-Processing-Panini-Projection")]
     public sealed class PaniniProjection : VolumeComponent, IPostProcessComponent
     {
@@ -26,7 +25,6 @@ namespace UnityEngine.Rendering.Universal
         public bool IsActive() => distance.value > 0f;
 
         /// <inheritdoc/>
-        [Obsolete("Unused #from(2023.1)", false)]
         public bool IsTileCompatible() => false;
     }
 }

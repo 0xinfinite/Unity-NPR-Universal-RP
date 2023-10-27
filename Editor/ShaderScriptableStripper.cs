@@ -23,7 +23,6 @@ namespace UnityEditor.Rendering.Universal
 
             public bool isGLDevice { get; set; }
             public bool strip2DPasses { get; set; }
-            public bool stripSoftShadowQualityLevels { get; set; }
             public bool stripDebugDisplayShaders { get; set; }
             public bool stripScreenCoordOverrideVariants { get; set; }
             public bool stripUnusedVariants { get; set; }
@@ -54,9 +53,12 @@ namespace UnityEditor.Rendering.Universal
             public ShaderFeatures shaderFeatures { get; set; }
             public VolumeFeatures volumeFeatures { get; set; }
 
-            public bool isGLDevice { get => variantData.shaderCompilerPlatform == ShaderCompilerPlatform.GLES3x || variantData.shaderCompilerPlatform == ShaderCompilerPlatform.OpenGLCore; set{} }
-
-            public bool stripSoftShadowQualityLevels { get; set; }
+            public bool isGLDevice {
+                get => variantData.shaderCompilerPlatform == ShaderCompilerPlatform.GLES20
+                       || variantData.shaderCompilerPlatform == ShaderCompilerPlatform.GLES3x
+                       || variantData.shaderCompilerPlatform == ShaderCompilerPlatform.OpenGLCore;
+                set{}
+            }
             public bool strip2DPasses { get; set; }
             public bool stripDebugDisplayShaders { get; set; }
             public bool stripScreenCoordOverrideVariants { get; set; }
@@ -70,7 +72,9 @@ namespace UnityEditor.Rendering.Universal
             public string passName { get => passData.passName; set {} }
             public PassType passType { get => passData.passType; set {} }
             public PassIdentifier passIdentifier { get => passData.pass; set {} }
-            public bool IsHDRShaderVariantValid { get => HDROutputUtils.IsShaderVariantValid(variantData.shaderKeywordSet, PlayerSettings.allowHDRDisplaySupport); set { } }
+
+            public bool IsHDRShaderVariantValid { get => HDROutputUtils.IsShaderVariantValid(variantData.shaderKeywordSet, PlayerSettings.useHDRDisplay); set{ } }
+
 
             public bool IsKeywordEnabled(LocalKeyword keyword)
             {
@@ -106,8 +110,6 @@ namespace UnityEditor.Rendering.Universal
         Shader m_StencilDeferred = Shader.Find("Hidden/Universal Render Pipeline/StencilDeferred");
         Shader m_UberPostShader = Shader.Find("Hidden/Universal Render Pipeline/UberPost");
         Shader m_HDROutputBlitShader = Shader.Find("Hidden/Universal/BlitHDROverlay");
-        Shader m_DataDrivenLensFlareShader = Shader.Find("Hidden/Universal Render Pipeline/LensFlareDataDriven");
-        Shader m_ScreenSpaceLensFlareShader = Shader.Find("Hidden/Universal Render Pipeline/LensFlareScreenSpace");
 
         // Pass names
         public static readonly string kPassNameUniversal2D = "Universal2D";
@@ -126,9 +128,6 @@ namespace UnityEditor.Rendering.Universal
         LocalKeyword m_ReflectionProbeBoxProjection;
         LocalKeyword m_CastingPunctualLightShadow;
         LocalKeyword m_SoftShadows;
-        LocalKeyword m_SoftShadowsLow;
-        LocalKeyword m_SoftShadowsMedium;
-        LocalKeyword m_SoftShadowsHigh;
         LocalKeyword m_MixedLightingSubtractive;
         LocalKeyword m_LightmapShadowMixing;
         LocalKeyword m_ShadowsShadowMask;
@@ -137,6 +136,7 @@ namespace UnityEditor.Rendering.Universal
         LocalKeyword m_DirectionalLightmap;
         LocalKeyword m_AlphaTestOn;
         LocalKeyword m_GbufferNormalsOct;
+        LocalKeyword m_UseDrawProcedural;
         LocalKeyword m_ScreenSpaceOcclusion;
         LocalKeyword m_UseFastSRGBLinearConversion;
         LocalKeyword m_LightLayers;
@@ -155,6 +155,10 @@ namespace UnityEditor.Rendering.Universal
         LocalKeyword m_EditorVisualization;
         LocalKeyword m_LODFadeCrossFade;
         LocalKeyword m_LightCookies;
+        LocalKeyword m_LocalDetailMulx2;
+        LocalKeyword m_LocalDetailScaled;
+        LocalKeyword m_LocalClearCoat;
+        LocalKeyword m_LocalClearCoatMap;
         LocalKeyword m_LensDistortion;
         LocalKeyword m_ChromaticAberration;
         LocalKeyword m_BloomLQ;
@@ -166,8 +170,6 @@ namespace UnityEditor.Rendering.Universal
         LocalKeyword m_ToneMapNeutral;
         LocalKeyword m_FilmGrain;
         LocalKeyword m_ScreenCoordOverride;
-        LocalKeyword m_ProbeVolumesL1;
-        LocalKeyword m_ProbeVolumesL2;
         LocalKeyword m_EasuRcasAndHDRInput;
         LocalKeyword m_Gamma20AndHDRInput;
         LocalKeyword m_SHPerVertex;
@@ -190,9 +192,6 @@ namespace UnityEditor.Rendering.Universal
             m_ReflectionProbeBoxProjection = TryGetLocalKeyword(shader, ShaderKeywordStrings.ReflectionProbeBoxProjection);
             m_CastingPunctualLightShadow = TryGetLocalKeyword(shader, ShaderKeywordStrings.CastingPunctualLightShadow);
             m_SoftShadows = TryGetLocalKeyword(shader, ShaderKeywordStrings.SoftShadows);
-            m_SoftShadowsLow = TryGetLocalKeyword(shader, ShaderKeywordStrings.SoftShadowsLow);
-            m_SoftShadowsMedium = TryGetLocalKeyword(shader, ShaderKeywordStrings.SoftShadowsMedium);
-            m_SoftShadowsHigh = TryGetLocalKeyword(shader, ShaderKeywordStrings.SoftShadowsHigh);
             m_MixedLightingSubtractive = TryGetLocalKeyword(shader, ShaderKeywordStrings.MixedLightingSubtractive);
             m_LightmapShadowMixing = TryGetLocalKeyword(shader, ShaderKeywordStrings.LightmapShadowMixing);
             m_ShadowsShadowMask = TryGetLocalKeyword(shader, ShaderKeywordStrings.ShadowsShadowMask);
@@ -201,6 +200,7 @@ namespace UnityEditor.Rendering.Universal
             m_DirectionalLightmap = TryGetLocalKeyword(shader, ShaderKeywordStrings.DIRLIGHTMAP_COMBINED);
             m_AlphaTestOn = TryGetLocalKeyword(shader, ShaderKeywordStrings._ALPHATEST_ON);
             m_GbufferNormalsOct = TryGetLocalKeyword(shader, ShaderKeywordStrings._GBUFFER_NORMALS_OCT);
+            m_UseDrawProcedural = TryGetLocalKeyword(shader, ShaderKeywordStrings.UseDrawProcedural);
             m_ScreenSpaceOcclusion = TryGetLocalKeyword(shader, ShaderKeywordStrings.ScreenSpaceOcclusion);
             m_UseFastSRGBLinearConversion = TryGetLocalKeyword(shader, ShaderKeywordStrings.UseFastSRGBLinearConversion);
             m_LightLayers = TryGetLocalKeyword(shader, ShaderKeywordStrings.LightLayers);
@@ -221,8 +221,10 @@ namespace UnityEditor.Rendering.Universal
             m_LightCookies = TryGetLocalKeyword(shader, ShaderKeywordStrings.LightCookies);
 
             m_ScreenCoordOverride = TryGetLocalKeyword(shader, ShaderKeywordStrings.SCREEN_COORD_OVERRIDE);
-            m_ProbeVolumesL1 = TryGetLocalKeyword(shader, ShaderKeywordStrings.ProbeVolumeL1);
-            m_ProbeVolumesL2 = TryGetLocalKeyword(shader, ShaderKeywordStrings.ProbeVolumeL2);
+            m_LocalDetailMulx2 = TryGetLocalKeyword(shader, ShaderKeywordStrings._DETAIL_MULX2);
+            m_LocalDetailScaled = TryGetLocalKeyword(shader, ShaderKeywordStrings._DETAIL_SCALED);
+            m_LocalClearCoat = TryGetLocalKeyword(shader, ShaderKeywordStrings._CLEARCOAT);
+            m_LocalClearCoatMap = TryGetLocalKeyword(shader, ShaderKeywordStrings._CLEARCOATMAP);
             m_EasuRcasAndHDRInput = TryGetLocalKeyword(shader, ShaderKeywordStrings.EasuRcasAndHDRInput);
             m_Gamma20AndHDRInput = TryGetLocalKeyword(shader, ShaderKeywordStrings.Gamma20AndHDRInput);
 
@@ -382,10 +384,10 @@ namespace UnityEditor.Rendering.Universal
 
         internal bool StripUnusedFeatures_FoveatedRendering(ref IShaderScriptableStrippingData strippingData)
         {
-            // Strip Foveated Rendering variants on all platforms (except PS5 and Metal)
+            // Strip Foveated Rendering variants on all platforms (except PS5)
             // TODO: add a way to communicate this requirement from the xr plugin directly
             #if ENABLE_VR && ENABLE_XR_MODULE
-            if (strippingData.shaderCompilerPlatform != ShaderCompilerPlatform.PS5NGGC && strippingData.shaderCompilerPlatform != ShaderCompilerPlatform.Metal)
+            if (strippingData.shaderCompilerPlatform != ShaderCompilerPlatform.PS5NGGC)
             #endif
             {
                 if (strippingData.IsKeywordEnabled(m_FoveatedRenderingNonUniformRaster))
@@ -466,19 +468,6 @@ namespace UnityEditor.Rendering.Universal
             return stripTool.StripMultiCompileKeepOffVariant(m_SoftShadows, ShaderFeatures.SoftShadows);
         }
 
-        internal bool StripUnusedFeatures_SoftShadowsQualityLevels(ref IShaderScriptableStrippingData strippingData, ref ShaderStripTool<ShaderFeatures> stripTool)
-        {
-            var forcedStrip = strippingData.stripSoftShadowQualityLevels &&
-                              (strippingData.IsShaderFeatureEnabled(ShaderFeatures.SoftShadowsLow) ||
-                               strippingData.IsShaderFeatureEnabled(ShaderFeatures.SoftShadowsMedium) ||
-                               strippingData.IsShaderFeatureEnabled(ShaderFeatures.SoftShadowsHigh));
-
-            return forcedStrip || (stripTool.StripMultiCompileKeepOffVariant(
-                        m_SoftShadowsLow, ShaderFeatures.SoftShadowsLow,
-                        m_SoftShadowsMedium, ShaderFeatures.SoftShadowsMedium,
-                        m_SoftShadowsHigh, ShaderFeatures.SoftShadowsHigh));
-        }
-
         internal bool StripUnusedFeatures_HDRGrading(ref ShaderStripTool<ShaderFeatures> stripTool)
         {
             return stripTool.StripMultiCompileKeepOffVariant(m_HdrGrading, ShaderFeatures.HdrGrading);
@@ -489,9 +478,21 @@ namespace UnityEditor.Rendering.Universal
             return stripTool.StripMultiCompile(m_UseFastSRGBLinearConversion, ShaderFeatures.UseFastSRGBLinearConversion);
         }
 
-        internal bool StripUnusedFeatures_LightLayers(ref ShaderStripTool<ShaderFeatures> stripTool)
+        internal bool StripUnusedFeatures_LightLayers(ref IShaderScriptableStrippingData strippingData, ref ShaderStripTool<ShaderFeatures> stripTool)
         {
-            return stripTool.StripMultiCompile(m_LightLayers, ShaderFeatures.LightLayers);
+            if (strippingData.shaderCompilerPlatform == ShaderCompilerPlatform.GLES20)
+            {
+                // GLES2 does not support bitwise operations.
+                if (strippingData.IsKeywordEnabled(m_LightLayers))
+                    return true;
+            }
+            else
+            {
+                if (stripTool.StripMultiCompile(m_LightLayers, ShaderFeatures.LightLayers))
+                    return true;
+            }
+
+            return false;
         }
 
         internal bool StripUnusedFeatures_RenderPassEnabled(ref ShaderStripTool<ShaderFeatures> stripTool)
@@ -661,35 +662,18 @@ namespace UnityEditor.Rendering.Universal
 
         internal bool StripUnusedFeatures_AccurateGbufferNormals(ref IShaderScriptableStrippingData strippingData, ref ShaderStripTool<ShaderFeatures> stripTool)
         {
-            return stripTool.StripMultiCompile(m_GbufferNormalsOct, ShaderFeatures.AccurateGbufferNormals);
+            // Do not strip accurateGbufferNormals on Mobile Vulkan as some GPUs do not support R8G8B8A8_SNorm,
+            // which then force us to use accurateGbufferNormals
+            if (strippingData.shaderCompilerPlatform != ShaderCompilerPlatform.Vulkan)
+                if (stripTool.StripMultiCompile(m_GbufferNormalsOct, ShaderFeatures.AccurateGbufferNormals))
+                    return true;
+
+            return false;
         }
 
         internal bool StripUnusedFeatures_LightCookies(ref IShaderScriptableStrippingData strippingData, ref ShaderStripTool<ShaderFeatures> stripTool)
         {
             return stripTool.StripMultiCompileKeepOffVariant(m_LightCookies, ShaderFeatures.LightCookies);
-        }
-
-        internal bool StripUnusedFeatures_ProbesVolumes(ref ShaderStripTool<ShaderFeatures> stripTool)
-        {
-            return stripTool.StripMultiCompileKeepOffVariant(m_ProbeVolumesL1, ShaderFeatures.ProbeVolumeL1, m_ProbeVolumesL2, ShaderFeatures.ProbeVolumeL2);
-        }
-
-        internal bool StripUnusedFeatures_DataDrivenLensFlare(ref IShaderScriptableStrippingData strippingData)
-        {
-            // If this is not the right shader, then skip
-            if (strippingData.shader != m_DataDrivenLensFlareShader)
-                return false;
-
-            return !strippingData.IsShaderFeatureEnabled(ShaderFeatures.DataDrivenLensFlare);
-        }
-
-        internal bool StripUnusedFeatures_ScreenSpaceLensFlare(ref IShaderScriptableStrippingData strippingData)
-        {
-            // If this is not the right shader, then skip
-            if (strippingData.shader != m_ScreenSpaceLensFlareShader)
-                return false;
-
-            return !strippingData.IsShaderFeatureEnabled(ShaderFeatures.ScreenSpaceLensFlare);
         }
 
         internal bool StripUnusedFeatures(ref IShaderScriptableStrippingData strippingData)
@@ -712,13 +696,6 @@ namespace UnityEditor.Rendering.Universal
             if (StripUnusedFeatures_DeferredRendering(ref strippingData))
                 return true;
 
-            if (StripUnusedFeatures_DataDrivenLensFlare(ref strippingData))
-                return true;
-
-            // Eventhough, it's a post process and a volume override, we put that here since it depend on a URP asset property.
-            if (StripUnusedFeatures_ScreenSpaceLensFlare(ref strippingData))
-                return true;
-
             ShaderStripTool<ShaderFeatures> stripTool = new ShaderStripTool<ShaderFeatures>(strippingData.shaderFeatures, ref strippingData);
 
             if (StripUnusedFeatures_MainLightShadows(ref strippingData, ref stripTool))
@@ -730,16 +707,13 @@ namespace UnityEditor.Rendering.Universal
             if (StripUnusedFeatures_SoftShadows(ref stripTool))
                 return true;
 
-            if (StripUnusedFeatures_SoftShadowsQualityLevels(ref strippingData, ref stripTool))
-                return true;
-
             if (StripUnusedFeatures_HDRGrading(ref stripTool))
                 return true;
 
             if (StripUnusedFeatures_UseFastSRGBLinearConversion(ref stripTool))
                 return true;
 
-            if (StripUnusedFeatures_LightLayers(ref stripTool))
+            if (StripUnusedFeatures_LightLayers(ref strippingData, ref stripTool))
                 return true;
 
             if (StripUnusedFeatures_RenderPassEnabled(ref stripTool))
@@ -781,9 +755,6 @@ namespace UnityEditor.Rendering.Universal
             if (StripUnusedFeatures_LightCookies(ref strippingData, ref stripTool))
                 return true;
 
-            if (StripUnusedFeatures_ProbesVolumes(ref stripTool))
-                return true;
-
             return false;
         }
 
@@ -812,6 +783,35 @@ namespace UnityEditor.Rendering.Universal
             return false;
         }
 
+        internal bool StripUnsupportedVariants_GLES2(ref IShaderScriptableStrippingData strippingData)
+        {
+            // As GLES2 has low amount of registers, we strip:
+            if (strippingData.shaderCompilerPlatform == ShaderCompilerPlatform.GLES20)
+            {
+                // VertexID - as GLES2 does not support VertexID that is required for full screen draw procedural pass;
+                if (strippingData.IsKeywordEnabled(m_UseDrawProcedural))
+                    return true;
+
+                // Cascade shadows
+                if (strippingData.IsKeywordEnabled(m_MainLightShadowsCascades))
+                    return true;
+
+                // Screen space shadows
+                if (strippingData.IsKeywordEnabled(m_MainLightShadowsScreen))
+                    return true;
+
+                // Detail
+                if (strippingData.IsKeywordEnabled(m_LocalDetailMulx2) || strippingData.IsKeywordEnabled(m_LocalDetailScaled))
+                    return true;
+
+                // Clear Coat
+                if (strippingData.IsKeywordEnabled(m_LocalClearCoat) || strippingData.IsKeywordEnabled(m_LocalClearCoatMap))
+                    return true;
+            }
+
+            return false;
+        }
+
         internal bool StripUnsupportedVariants(ref IShaderScriptableStrippingData strippingData)
         {
             // We can strip variants that have directional lightmap enabled but not static nor dynamic lightmap.
@@ -819,6 +819,9 @@ namespace UnityEditor.Rendering.Universal
                 return true;
 
             if (StripUnsupportedVariants_EditorVisualization(ref strippingData))
+                return true;
+
+            if (StripUnsupportedVariants_GLES2(ref strippingData))
                 return true;
 
             return false;
@@ -831,7 +834,7 @@ namespace UnityEditor.Rendering.Universal
         internal bool StripInvalidVariants_HDR(ref IShaderScriptableStrippingData strippingData)
         {
             // We do not need to strip out HDR output variants if HDR display is enabled.
-            if (PlayerSettings.allowHDRDisplaySupport)
+            if (PlayerSettings.useHDRDisplay)
                 return false;
 
             // Shared keywords between URP and HDRP.
@@ -873,10 +876,7 @@ namespace UnityEditor.Rendering.Universal
             bool isMainShadowScreen = strippingData.IsKeywordEnabled(m_MainLightShadowsScreen);
             bool isMainShadow = isMainShadowNoCascades || isMainShadowCascades || isMainShadowScreen;
             bool isShadowVariant = isMainShadow || areAdditionalShadowsEnabled;
-            if (!isShadowVariant && (strippingData.IsKeywordEnabled(m_SoftShadows) ||
-                                     strippingData.IsKeywordEnabled(m_SoftShadowsLow) ||
-                                     strippingData.IsKeywordEnabled(m_SoftShadowsMedium)
-                                     || strippingData.IsKeywordEnabled(m_SoftShadowsHigh)))
+            if (!isShadowVariant && strippingData.IsKeywordEnabled(m_SoftShadows))
                 return true;
 
             return false;
@@ -999,7 +999,7 @@ namespace UnityEditor.Rendering.Universal
 
             // Remove BlitHDROverlay if HDR output is not used
             if (strippingData.shader == m_HDROutputBlitShader)
-                if (!PlayerSettings.allowHDRDisplaySupport)
+                if (!PlayerSettings.useHDRDisplay)
                     return true;
 
             return false;
@@ -1031,7 +1031,6 @@ namespace UnityEditor.Rendering.Universal
             IShaderScriptableStrippingData strippingData = new StrippingData()
             {
                 volumeFeatures = ShaderBuildPreprocessor.volumeFeatures,
-                stripSoftShadowQualityLevels = !ShaderBuildPreprocessor.s_UseSoftShadowQualityLevelKeywords,
                 strip2DPasses = ShaderBuildPreprocessor.s_Strip2DPasses,
                 stripDebugDisplayShaders = ShaderBuildPreprocessor.s_StripDebugDisplayShaders,
                 stripScreenCoordOverrideVariants = ShaderBuildPreprocessor.s_StripScreenCoordOverrideVariants,

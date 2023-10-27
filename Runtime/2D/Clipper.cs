@@ -49,7 +49,6 @@
 
 using System;
 using System.Collections.Generic;
-using Unity.Collections;
 //using System.Text;          //for Int128.AsString() & StringBuilder
 //using System.IO;            //debugging with streamReader & StreamWriter
 //using System.Windows.Forms; //debugging to clipboard
@@ -126,8 +125,8 @@ namespace UnityEngine.Rendering.Universal
         internal PolyNode m_Parent;
         internal Path m_polygon = new Path();
         internal int m_Index;
-        internal JoinTypes m_jointype;
-        internal EndTypes m_endtype;
+        internal JoinType m_jointype;
+        internal EndType m_endtype;
         internal List<PolyNode> m_Childs = new List<PolyNode>();
 
         private bool IsHoleNode()
@@ -234,14 +233,14 @@ namespace UnityEngine.Rendering.Universal
             return hi < 0;
         }
 
-        public static bool operator==(Int128 val1, Int128 val2)
+        public static bool operator ==(Int128 val1, Int128 val2)
         {
             if ((object)val1 == (object)val2) return true;
             else if ((object)val1 == null || (object)val2 == null) return false;
             return (val1.hi == val2.hi && val1.lo == val2.lo);
         }
 
-        public static bool operator!=(Int128 val1, Int128 val2)
+        public static bool operator !=(Int128 val1, Int128 val2)
         {
             return !(val1 == val2);
         }
@@ -259,7 +258,7 @@ namespace UnityEngine.Rendering.Universal
             return hi.GetHashCode() ^ lo.GetHashCode();
         }
 
-        public static bool operator>(Int128 val1, Int128 val2)
+        public static bool operator >(Int128 val1, Int128 val2)
         {
             if (val1.hi != val2.hi)
                 return val1.hi > val2.hi;
@@ -267,7 +266,7 @@ namespace UnityEngine.Rendering.Universal
                 return val1.lo > val2.lo;
         }
 
-        public static bool operator<(Int128 val1, Int128 val2)
+        public static bool operator <(Int128 val1, Int128 val2)
         {
             if (val1.hi != val2.hi)
                 return val1.hi < val2.hi;
@@ -275,7 +274,7 @@ namespace UnityEngine.Rendering.Universal
                 return val1.lo < val2.lo;
         }
 
-        public static Int128 operator+(Int128 lhs, Int128 rhs)
+        public static Int128 operator +(Int128 lhs, Int128 rhs)
         {
             lhs.hi += rhs.hi;
             lhs.lo += rhs.lo;
@@ -283,12 +282,12 @@ namespace UnityEngine.Rendering.Universal
             return lhs;
         }
 
-        public static Int128 operator-(Int128 lhs, Int128 rhs)
+        public static Int128 operator -(Int128 lhs, Int128 rhs)
         {
             return lhs + -rhs;
         }
 
-        public static Int128 operator-(Int128 val)
+        public static Int128 operator -(Int128 val)
         {
             if (val.lo == 0)
                 return new Int128(-val.hi, 0);
@@ -373,12 +372,12 @@ namespace UnityEngine.Rendering.Universal
             this.N = pt.N; this.D = pt.D;
         }
 
-        public static bool operator==(IntPoint a, IntPoint b)
+        public static bool operator ==(IntPoint a, IntPoint b)
         {
             return a.X == b.X && a.Y == b.Y;
         }
 
-        public static bool operator!=(IntPoint a, IntPoint b)
+        public static bool operator !=(IntPoint a, IntPoint b)
         {
             return a.X != b.X || a.Y != b.Y;
         }
@@ -421,11 +420,9 @@ namespace UnityEngine.Rendering.Universal
         }
     }
 
-
     /// <summary>
     /// Options for clip types.
     /// </summary>
-    [Obsolete("Will be removed in 2025.1", true)]
     public enum ClipType
     {
         /// <summary>
@@ -452,7 +449,6 @@ namespace UnityEngine.Rendering.Universal
     /// <summary>
     /// Options for polygon types.
     /// </summary>
-    [Obsolete("Will be removed in 2025.1", true)]
     public enum PolyType
     {
         /// <summary>
@@ -474,7 +470,6 @@ namespace UnityEngine.Rendering.Universal
     /// <summary>
     /// Options for polygon filling types.
     /// </summary>
-    [Obsolete("Will be removed in 2025.1", true)]
     public enum PolyFillType
     {
         /// <summary>
@@ -501,7 +496,6 @@ namespace UnityEngine.Rendering.Universal
     /// <summary>
     /// Options for join types.
     /// </summary>
-    [Obsolete("Will be removed in 2025.1", true)]
     public enum JoinType
     {
         /// <summary>
@@ -513,7 +507,6 @@ namespace UnityEngine.Rendering.Universal
     /// <summary>
     /// Options for end types.
     /// </summary>
-    [Obsolete("Will be removed in 2025.1", true)]
     public enum EndType
     {
         /// <summary>
@@ -527,14 +520,8 @@ namespace UnityEngine.Rendering.Universal
         etClosedLine
     };
 
-    internal enum ClipTypes { ctIntersection, ctUnion, ctDifference, ctXor };
-    internal enum PolyTypes { ptSubject, ptClip };
-    internal enum PolyFillTypes { pftEvenOdd, pftNonZero, pftPositive, pftNegative };
-    internal enum JoinTypes { jtRound };
-    internal enum EndTypes { etClosedPolygon, etClosedLine };
-
-    internal enum EdgeSides { esLeft, esRight };
-    internal enum Directions { dRightToLeft, dLeftToRight };
+    internal enum EdgeSide { esLeft, esRight };
+    internal enum Direction { dRightToLeft, dLeftToRight };
 
     internal class TEdge
     {
@@ -543,8 +530,8 @@ namespace UnityEngine.Rendering.Universal
         internal IntPoint Top;
         internal IntPoint Delta;
         internal double Dx;
-        internal PolyTypes PolyTyp;
-        internal EdgeSides Side; //side only refers to current side of solution poly
+        internal PolyType PolyTyp;
+        internal EdgeSide Side; //side only refers to current side of solution poly
         internal int WindDelta; //1 or -1 depending on winding direction
         internal int WindCnt;
         internal int WindCnt2; //winding count of the opposite polytype
@@ -823,7 +810,7 @@ namespace UnityEngine.Rendering.Universal
 
         //------------------------------------------------------------------------------
 
-        private void InitEdge2(TEdge e, PolyTypes polyType)
+        private void InitEdge2(TEdge e, PolyType polyType)
         {
             if (e.Curr.Y >= e.Next.Curr.Y)
             {
@@ -844,7 +831,7 @@ namespace UnityEngine.Rendering.Universal
         private TEdge FindNextLocMin(TEdge E)
         {
             TEdge E2;
-            for (;;)
+            for (; ; )
             {
                 while (E.Bot != E.Prev.Bot || E.Curr == E.Top) E = E.Next;
                 if (E.Dx != horizontal && E.Prev.Dx != horizontal) break;
@@ -974,10 +961,10 @@ namespace UnityEngine.Rendering.Universal
         //------------------------------------------------------------------------------
 
 
-        public bool AddPath(Path pg, PolyTypes polyType, bool Closed)
+        public bool AddPath(Path pg, PolyType polyType, bool Closed)
         {
 #if use_lines
-            if (!Closed && polyType == PolyTypes.ptClip)
+            if (!Closed && polyType == PolyType.ptClip)
                 throw new ClipperException("AddPath: Open paths must be subject.");
 #else
             if (!Closed)
@@ -1010,7 +997,7 @@ namespace UnityEngine.Rendering.Universal
 
             //2. Remove duplicate vertices, and (when closed) collinear edges ...
             TEdge E = eStart, eLoopStop = eStart;
-            for (;;)
+            for (; ; )
             {
                 //nb: allows matching start and end points when not Closed ...
                 if (E.Curr == E.Next.Curr && (Closed || E.Next != eStart))
@@ -1074,9 +1061,9 @@ namespace UnityEngine.Rendering.Universal
                 locMin.Y = E.Bot.Y;
                 locMin.LeftBound = null;
                 locMin.RightBound = E;
-                locMin.RightBound.Side = EdgeSides.esRight;
+                locMin.RightBound.Side = EdgeSide.esRight;
                 locMin.RightBound.WindDelta = 0;
-                for (;;)
+                for (; ; )
                 {
                     if (E.Bot.X != E.Prev.Top.X) ReverseHorizontal(E);
                     if (E.Next.OutIdx == Skip) break;
@@ -1096,7 +1083,7 @@ namespace UnityEngine.Rendering.Universal
             //open paths have matching start and end points ...
             if (E.Prev.Bot == E.Prev.Top) E = E.Next;
 
-            for (;;)
+            for (; ; )
             {
                 E = FindNextLocMin(E);
                 if (E == EMin) break;
@@ -1119,8 +1106,8 @@ namespace UnityEngine.Rendering.Universal
                     locMin.RightBound = E.Prev;
                     leftBoundIsForward = true; //Q.nextInLML = Q.next
                 }
-                locMin.LeftBound.Side = EdgeSides.esLeft;
-                locMin.RightBound.Side = EdgeSides.esRight;
+                locMin.LeftBound.Side = EdgeSide.esLeft;
+                locMin.RightBound.Side = EdgeSide.esRight;
 
                 if (!Closed) locMin.LeftBound.WindDelta = 0;
                 else if (locMin.LeftBound.Next == locMin.RightBound)
@@ -1146,7 +1133,7 @@ namespace UnityEngine.Rendering.Universal
 
         //------------------------------------------------------------------------------
 
-        public bool AddPaths(Paths ppg, PolyTypes polyType, bool closed)
+        public bool AddPaths(Paths ppg, PolyType polyType, bool closed)
         {
             bool result = false;
             for (int i = 0; i < ppg.Count; ++i)
@@ -1472,14 +1459,14 @@ namespace UnityEngine.Rendering.Universal
         public const int ioStrictlySimple = 2;
         public const int ioPreserveCollinear = 4;
 
-        private ClipTypes m_ClipType;
+        private ClipType m_ClipType;
         private Maxima m_Maxima;
         private TEdge m_SortedEdges;
         private List<IntersectNode> m_IntersectList;
         IComparer<IntersectNode> m_IntersectNodeComparer;
         private bool m_ExecuteLocked;
-        private PolyFillTypes m_ClipFillType;
-        private PolyFillTypes m_SubjFillType;
+        private PolyFillType m_ClipFillType;
+        private PolyFillType m_SubjFillType;
         private List<Join> m_Joins;
         private List<Join> m_GhostJoins;
         private bool m_UsingPolyTree;
@@ -1557,24 +1544,24 @@ namespace UnityEngine.Rendering.Universal
         }
         //------------------------------------------------------------------------------
 
-        public bool Execute(ClipTypes clipType, Paths solution,
-            PolyFillTypes FillType = PolyFillTypes.pftEvenOdd)
+        public bool Execute(ClipType clipType, Paths solution,
+            PolyFillType FillType = PolyFillType.pftEvenOdd)
         {
             return Execute(clipType, solution, FillType, FillType);
         }
 
         //------------------------------------------------------------------------------
 
-        public bool Execute(ClipTypes clipType, PolyTree polytree,
-            PolyFillTypes FillType = PolyFillTypes.pftEvenOdd)
+        public bool Execute(ClipType clipType, PolyTree polytree,
+            PolyFillType FillType = PolyFillType.pftEvenOdd)
         {
             return Execute(clipType, polytree, FillType, FillType);
         }
 
         //------------------------------------------------------------------------------
 
-        public bool Execute(ClipTypes clipType, Paths solution,
-            PolyFillTypes subjFillType, PolyFillTypes clipFillType)
+        public bool Execute(ClipType clipType, Paths solution,
+            PolyFillType subjFillType, PolyFillType clipFillType)
         {
             if (m_ExecuteLocked) return false;
             if (m_HasOpenPaths)
@@ -1604,8 +1591,8 @@ namespace UnityEngine.Rendering.Universal
 
         //------------------------------------------------------------------------------
 
-        public bool Execute(ClipTypes clipType, PolyTree polytree,
-            PolyFillTypes subjFillType, PolyFillTypes clipFillType)
+        public bool Execute(ClipType clipType, PolyTree polytree,
+            PolyFillType subjFillType, PolyFillType clipFillType)
         {
             if (m_ExecuteLocked) return false;
             m_ExecuteLocked = true;
@@ -1871,28 +1858,28 @@ namespace UnityEngine.Rendering.Universal
 
         private bool IsEvenOddFillType(TEdge edge)
         {
-            if (edge.PolyTyp == PolyTypes.ptSubject)
-                return m_SubjFillType == PolyFillTypes.pftEvenOdd;
+            if (edge.PolyTyp == PolyType.ptSubject)
+                return m_SubjFillType == PolyFillType.pftEvenOdd;
             else
-                return m_ClipFillType == PolyFillTypes.pftEvenOdd;
+                return m_ClipFillType == PolyFillType.pftEvenOdd;
         }
 
         //------------------------------------------------------------------------------
 
         private bool IsEvenOddAltFillType(TEdge edge)
         {
-            if (edge.PolyTyp == PolyTypes.ptSubject)
-                return m_ClipFillType == PolyFillTypes.pftEvenOdd;
+            if (edge.PolyTyp == PolyType.ptSubject)
+                return m_ClipFillType == PolyFillType.pftEvenOdd;
             else
-                return m_SubjFillType == PolyFillTypes.pftEvenOdd;
+                return m_SubjFillType == PolyFillType.pftEvenOdd;
         }
 
         //------------------------------------------------------------------------------
 
         private bool IsContributing(TEdge edge)
         {
-            PolyFillTypes pft, pft2;
-            if (edge.PolyTyp == PolyTypes.ptSubject)
+            PolyFillType pft, pft2;
+            if (edge.PolyTyp == PolyType.ptSubject)
             {
                 pft = m_SubjFillType;
                 pft2 = m_ClipFillType;
@@ -1905,53 +1892,53 @@ namespace UnityEngine.Rendering.Universal
 
             switch (pft)
             {
-                case PolyFillTypes.pftEvenOdd:
+                case PolyFillType.pftEvenOdd:
                     //return false if a subj line has been flagged as inside a subj polygon
                     if (edge.WindDelta == 0 && edge.WindCnt != 1) return false;
                     break;
-                case PolyFillTypes.pftNonZero:
+                case PolyFillType.pftNonZero:
                     if (Math.Abs(edge.WindCnt) != 1) return false;
                     break;
-                case PolyFillTypes.pftPositive:
+                case PolyFillType.pftPositive:
                     if (edge.WindCnt != 1) return false;
                     break;
-                default: //PolyFillTypes.pftNegative
+                default: //PolyFillType.pftNegative
                     if (edge.WindCnt != -1) return false;
                     break;
             }
 
             switch (m_ClipType)
             {
-                case ClipTypes.ctIntersection:
+                case ClipType.ctIntersection:
                     switch (pft2)
                     {
-                        case PolyFillTypes.pftEvenOdd:
-                        case PolyFillTypes.pftNonZero:
+                        case PolyFillType.pftEvenOdd:
+                        case PolyFillType.pftNonZero:
                             return (edge.WindCnt2 != 0);
-                        case PolyFillTypes.pftPositive:
+                        case PolyFillType.pftPositive:
                             return (edge.WindCnt2 > 0);
                         default:
                             return (edge.WindCnt2 < 0);
                     }
-                case ClipTypes.ctUnion:
+                case ClipType.ctUnion:
                     switch (pft2)
                     {
-                        case PolyFillTypes.pftEvenOdd:
-                        case PolyFillTypes.pftNonZero:
+                        case PolyFillType.pftEvenOdd:
+                        case PolyFillType.pftNonZero:
                             return (edge.WindCnt2 == 0);
-                        case PolyFillTypes.pftPositive:
+                        case PolyFillType.pftPositive:
                             return (edge.WindCnt2 <= 0);
                         default:
                             return (edge.WindCnt2 >= 0);
                     }
-                case ClipTypes.ctDifference:
-                    if (edge.PolyTyp == PolyTypes.ptSubject)
+                case ClipType.ctDifference:
+                    if (edge.PolyTyp == PolyType.ptSubject)
                         switch (pft2)
                         {
-                            case PolyFillTypes.pftEvenOdd:
-                            case PolyFillTypes.pftNonZero:
+                            case PolyFillType.pftEvenOdd:
+                            case PolyFillType.pftNonZero:
                                 return (edge.WindCnt2 == 0);
-                            case PolyFillTypes.pftPositive:
+                            case PolyFillType.pftPositive:
                                 return (edge.WindCnt2 <= 0);
                             default:
                                 return (edge.WindCnt2 >= 0);
@@ -1959,22 +1946,22 @@ namespace UnityEngine.Rendering.Universal
                     else
                         switch (pft2)
                         {
-                            case PolyFillTypes.pftEvenOdd:
-                            case PolyFillTypes.pftNonZero:
+                            case PolyFillType.pftEvenOdd:
+                            case PolyFillType.pftNonZero:
                                 return (edge.WindCnt2 != 0);
-                            case PolyFillTypes.pftPositive:
+                            case PolyFillType.pftPositive:
                                 return (edge.WindCnt2 > 0);
                             default:
                                 return (edge.WindCnt2 < 0);
                         }
-                case ClipTypes.ctXor:
+                case ClipType.ctXor:
                     if (edge.WindDelta == 0) //XOr always contributing unless open
                         switch (pft2)
                         {
-                            case PolyFillTypes.pftEvenOdd:
-                            case PolyFillTypes.pftNonZero:
+                            case PolyFillType.pftEvenOdd:
+                            case PolyFillType.pftNonZero:
                                 return (edge.WindCnt2 == 0);
-                            case PolyFillTypes.pftPositive:
+                            case PolyFillType.pftPositive:
                                 return (edge.WindCnt2 <= 0);
                             default:
                                 return (edge.WindCnt2 >= 0);
@@ -1994,14 +1981,14 @@ namespace UnityEngine.Rendering.Universal
             while (e != null && ((e.PolyTyp != edge.PolyTyp) || (e.WindDelta == 0))) e = e.PrevInAEL;
             if (e == null)
             {
-                PolyFillTypes pft;
-                pft = (edge.PolyTyp == PolyTypes.ptSubject ? m_SubjFillType : m_ClipFillType);
-                if (edge.WindDelta == 0) edge.WindCnt = (pft == PolyFillTypes.pftNegative ? -1 : 1);
+                PolyFillType pft;
+                pft = (edge.PolyTyp == PolyType.ptSubject ? m_SubjFillType : m_ClipFillType);
+                if (edge.WindDelta == 0) edge.WindCnt = (pft == PolyFillType.pftNegative ? -1 : 1);
                 else edge.WindCnt = edge.WindDelta;
                 edge.WindCnt2 = 0;
                 e = m_ActiveEdges; //ie get ready to calc WindCnt2
             }
-            else if (edge.WindDelta == 0 && m_ClipType != ClipTypes.ctUnion)
+            else if (edge.WindDelta == 0 && m_ClipType != ClipType.ctUnion)
             {
                 edge.WindCnt = 1;
                 edge.WindCnt2 = e.WindCnt2;
@@ -2225,8 +2212,8 @@ namespace UnityEngine.Rendering.Universal
             {
                 result = AddOutPt(e1, pt);
                 e2.OutIdx = e1.OutIdx;
-                e1.Side = EdgeSides.esLeft;
-                e2.Side = EdgeSides.esRight;
+                e1.Side = EdgeSide.esLeft;
+                e2.Side = EdgeSide.esRight;
                 e = e1;
                 if (e.PrevInAEL == e2)
                     prevE = e2.PrevInAEL;
@@ -2237,8 +2224,8 @@ namespace UnityEngine.Rendering.Universal
             {
                 result = AddOutPt(e2, pt);
                 e1.OutIdx = e2.OutIdx;
-                e1.Side = EdgeSides.esRight;
-                e2.Side = EdgeSides.esLeft;
+                e1.Side = EdgeSide.esRight;
+                e2.Side = EdgeSide.esLeft;
                 e = e2;
                 if (e.PrevInAEL == e1)
                     prevE = e1.PrevInAEL;
@@ -2284,7 +2271,7 @@ namespace UnityEngine.Rendering.Universal
                 OutRec outRec = m_PolyOuts[e.OutIdx];
                 //OutRec.Pts is the 'Left-most' point & OutRec.Pts.Prev is the 'Right-most'
                 OutPt op = outRec.Pts;
-                bool ToFront = (e.Side == EdgeSides.esLeft);
+                bool ToFront = (e.Side == EdgeSide.esLeft);
                 if (ToFront && pt == op.Pt) return op;
                 else if (!ToFront && pt == op.Prev.Pt) return op.Prev;
 
@@ -2305,7 +2292,7 @@ namespace UnityEngine.Rendering.Universal
         private OutPt GetLastOutPt(TEdge e)
         {
             OutRec outRec = m_PolyOuts[e.OutIdx];
-            if (e.Side == EdgeSides.esLeft)
+            if (e.Side == EdgeSide.esLeft)
                 return outRec.Pts;
             else
                 return outRec.Pts.Prev;
@@ -2499,9 +2486,9 @@ namespace UnityEngine.Rendering.Universal
             OutPt p2_rt = p2_lft.Prev;
 
             //join e2 poly onto e1 poly and delete pointers to e2 ...
-            if (e1.Side == EdgeSides.esLeft)
+            if (e1.Side == EdgeSide.esLeft)
             {
-                if (e2.Side == EdgeSides.esLeft)
+                if (e2.Side == EdgeSide.esLeft)
                 {
                     //z y x a b c
                     ReversePolyPtLinks(p2_lft);
@@ -2523,7 +2510,7 @@ namespace UnityEngine.Rendering.Universal
             }
             else
             {
-                if (e2.Side == EdgeSides.esRight)
+                if (e2.Side == EdgeSide.esRight)
                 {
                     //a b c z y x
                     ReversePolyPtLinks(p2_lft);
@@ -2596,7 +2583,7 @@ namespace UnityEngine.Rendering.Universal
 
         private static void SwapSides(TEdge edge1, TEdge edge2)
         {
-            EdgeSides side = edge1.Side;
+            EdgeSide side = edge1.Side;
             edge1.Side = edge2.Side;
             edge2.Side = side;
         }
@@ -2629,7 +2616,7 @@ namespace UnityEngine.Rendering.Universal
                 if (e1.WindDelta == 0 && e2.WindDelta == 0) return;
                 //if intersecting a subj line with a subj poly ...
                 else if (e1.PolyTyp == e2.PolyTyp &&
-                         e1.WindDelta != e2.WindDelta && m_ClipType == ClipTypes.ctUnion)
+                         e1.WindDelta != e2.WindDelta && m_ClipType == ClipType.ctUnion)
                 {
                     if (e1.WindDelta == 0)
                     {
@@ -2651,13 +2638,13 @@ namespace UnityEngine.Rendering.Universal
                 else if (e1.PolyTyp != e2.PolyTyp)
                 {
                     if ((e1.WindDelta == 0) && Math.Abs(e2.WindCnt) == 1 &&
-                        (m_ClipType != ClipTypes.ctUnion || e2.WindCnt2 == 0))
+                        (m_ClipType != ClipType.ctUnion || e2.WindCnt2 == 0))
                     {
                         AddOutPt(e1, pt);
                         if (e1Contributing) e1.OutIdx = Unassigned;
                     }
                     else if ((e2.WindDelta == 0) && (Math.Abs(e1.WindCnt) == 1) &&
-                             (m_ClipType != ClipTypes.ctUnion || e1.WindCnt2 == 0))
+                             (m_ClipType != ClipType.ctUnion || e1.WindCnt2 == 0))
                     {
                         AddOutPt(e2, pt);
                         if (e2Contributing) e2.OutIdx = Unassigned;
@@ -2693,8 +2680,8 @@ namespace UnityEngine.Rendering.Universal
                 else e2.WindCnt2 = (e2.WindCnt2 == 0) ? 1 : 0;
             }
 
-            PolyFillTypes e1FillType, e2FillType, e1FillType2, e2FillType2;
-            if (e1.PolyTyp == PolyTypes.ptSubject)
+            PolyFillType e1FillType, e2FillType, e1FillType2, e2FillType2;
+            if (e1.PolyTyp == PolyType.ptSubject)
             {
                 e1FillType = m_SubjFillType;
                 e1FillType2 = m_ClipFillType;
@@ -2704,7 +2691,7 @@ namespace UnityEngine.Rendering.Universal
                 e1FillType = m_ClipFillType;
                 e1FillType2 = m_SubjFillType;
             }
-            if (e2.PolyTyp == PolyTypes.ptSubject)
+            if (e2.PolyTyp == PolyType.ptSubject)
             {
                 e2FillType = m_SubjFillType;
                 e2FillType2 = m_ClipFillType;
@@ -2718,21 +2705,21 @@ namespace UnityEngine.Rendering.Universal
             int e1Wc, e2Wc;
             switch (e1FillType)
             {
-                case PolyFillTypes.pftPositive: e1Wc = e1.WindCnt; break;
-                case PolyFillTypes.pftNegative: e1Wc = -e1.WindCnt; break;
+                case PolyFillType.pftPositive: e1Wc = e1.WindCnt; break;
+                case PolyFillType.pftNegative: e1Wc = -e1.WindCnt; break;
                 default: e1Wc = Math.Abs(e1.WindCnt); break;
             }
             switch (e2FillType)
             {
-                case PolyFillTypes.pftPositive: e2Wc = e2.WindCnt; break;
-                case PolyFillTypes.pftNegative: e2Wc = -e2.WindCnt; break;
+                case PolyFillType.pftPositive: e2Wc = e2.WindCnt; break;
+                case PolyFillType.pftNegative: e2Wc = -e2.WindCnt; break;
                 default: e2Wc = Math.Abs(e2.WindCnt); break;
             }
 
             if (e1Contributing && e2Contributing)
             {
                 if ((e1Wc != 0 && e1Wc != 1) || (e2Wc != 0 && e2Wc != 1) ||
-                    (e1.PolyTyp != e2.PolyTyp && m_ClipType != ClipTypes.ctXor))
+                    (e1.PolyTyp != e2.PolyTyp && m_ClipType != ClipType.ctXor))
                 {
                     AddLocalMaxPoly(e1, e2, pt);
                 }
@@ -2768,14 +2755,14 @@ namespace UnityEngine.Rendering.Universal
                 ClipInt e1Wc2, e2Wc2;
                 switch (e1FillType2)
                 {
-                    case PolyFillTypes.pftPositive: e1Wc2 = e1.WindCnt2; break;
-                    case PolyFillTypes.pftNegative: e1Wc2 = -e1.WindCnt2; break;
+                    case PolyFillType.pftPositive: e1Wc2 = e1.WindCnt2; break;
+                    case PolyFillType.pftNegative: e1Wc2 = -e1.WindCnt2; break;
                     default: e1Wc2 = Math.Abs(e1.WindCnt2); break;
                 }
                 switch (e2FillType2)
                 {
-                    case PolyFillTypes.pftPositive: e2Wc2 = e2.WindCnt2; break;
-                    case PolyFillTypes.pftNegative: e2Wc2 = -e2.WindCnt2; break;
+                    case PolyFillType.pftPositive: e2Wc2 = e2.WindCnt2; break;
+                    case PolyFillType.pftNegative: e2Wc2 = -e2.WindCnt2; break;
                     default: e2Wc2 = Math.Abs(e2.WindCnt2); break;
                 }
 
@@ -2786,20 +2773,20 @@ namespace UnityEngine.Rendering.Universal
                 else if (e1Wc == 1 && e2Wc == 1)
                     switch (m_ClipType)
                     {
-                        case ClipTypes.ctIntersection:
+                        case ClipType.ctIntersection:
                             if (e1Wc2 > 0 && e2Wc2 > 0)
                                 AddLocalMinPoly(e1, e2, pt);
                             break;
-                        case ClipTypes.ctUnion:
+                        case ClipType.ctUnion:
                             if (e1Wc2 <= 0 && e2Wc2 <= 0)
                                 AddLocalMinPoly(e1, e2, pt);
                             break;
-                        case ClipTypes.ctDifference:
-                            if (((e1.PolyTyp == PolyTypes.ptClip) && (e1Wc2 > 0) && (e2Wc2 > 0)) ||
-                                ((e1.PolyTyp == PolyTypes.ptSubject) && (e1Wc2 <= 0) && (e2Wc2 <= 0)))
+                        case ClipType.ctDifference:
+                            if (((e1.PolyTyp == PolyType.ptClip) && (e1Wc2 > 0) && (e2Wc2 > 0)) ||
+                                ((e1.PolyTyp == PolyType.ptSubject) && (e1Wc2 <= 0) && (e2Wc2 <= 0)))
                                 AddLocalMinPoly(e1, e2, pt);
                             break;
-                        case ClipTypes.ctXor:
+                        case ClipType.ctXor:
                             AddLocalMinPoly(e1, e2, pt);
                             break;
                     }
@@ -2836,19 +2823,19 @@ namespace UnityEngine.Rendering.Universal
 
         //------------------------------------------------------------------------------
 
-        void GetHorzDirection(TEdge HorzEdge, out Directions Dir, out ClipInt Left, out ClipInt Right)
+        void GetHorzDirection(TEdge HorzEdge, out Direction Dir, out ClipInt Left, out ClipInt Right)
         {
             if (HorzEdge.Bot.X < HorzEdge.Top.X)
             {
                 Left = HorzEdge.Bot.X;
                 Right = HorzEdge.Top.X;
-                Dir = Directions.dLeftToRight;
+                Dir = Direction.dLeftToRight;
             }
             else
             {
                 Left = HorzEdge.Top.X;
                 Right = HorzEdge.Bot.X;
-                Dir = Directions.dRightToLeft;
+                Dir = Direction.dRightToLeft;
             }
         }
 
@@ -2856,7 +2843,7 @@ namespace UnityEngine.Rendering.Universal
 
         private void ProcessHorizontal(TEdge horzEdge)
         {
-            Directions dir;
+            Direction dir;
             ClipInt horzLeft, horzRight;
             bool IsOpen = horzEdge.WindDelta == 0;
 
@@ -2872,7 +2859,7 @@ namespace UnityEngine.Rendering.Universal
             if (currMax != null)
             {
                 //get the first maxima in range (X) ...
-                if (dir == Directions.dLeftToRight)
+                if (dir == Direction.dLeftToRight)
                 {
                     while (currMax != null && currMax.X <= horzEdge.Bot.X)
                         currMax = currMax.Next;
@@ -2888,7 +2875,7 @@ namespace UnityEngine.Rendering.Universal
             }
 
             OutPt op1 = null;
-            for (;;)   //loop through consec. horizontal edges
+            for (; ; ) //loop through consec. horizontal edges
             {
                 bool IsLastHorz = (horzEdge == eLastHorz);
                 TEdge e = GetNextInAEL(horzEdge, dir);
@@ -2899,7 +2886,7 @@ namespace UnityEngine.Rendering.Universal
                     //'simplifying' polygons (ie if the Simplify property is set).
                     if (currMax != null)
                     {
-                        if (dir == Directions.dLeftToRight)
+                        if (dir == Direction.dLeftToRight)
                         {
                             while (currMax != null && currMax.X < e.Curr.X)
                             {
@@ -2919,8 +2906,8 @@ namespace UnityEngine.Rendering.Universal
                         }
                     }
 
-                    if ((dir == Directions.dLeftToRight && e.Curr.X > horzRight) ||
-                        (dir == Directions.dRightToLeft && e.Curr.X < horzLeft)) break;
+                    if ((dir == Direction.dLeftToRight && e.Curr.X > horzRight) ||
+                        (dir == Direction.dRightToLeft && e.Curr.X < horzLeft)) break;
 
                     //Also break if we've got to the end of an intermediate horizontal edge ...
                     //nb: Smaller Dx's are to the right of larger Dx's ABOVE the horizontal.
@@ -2956,7 +2943,7 @@ namespace UnityEngine.Rendering.Universal
                         return;
                     }
 
-                    if (dir == Directions.dLeftToRight)
+                    if (dir == Direction.dLeftToRight)
                     {
                         IntPoint Pt = new IntPoint(e.Curr.X, horzEdge.Curr.Y);
                         IntersectEdges(horzEdge, e, Pt);
@@ -3037,9 +3024,9 @@ namespace UnityEngine.Rendering.Universal
 
         //------------------------------------------------------------------------------
 
-        private TEdge GetNextInAEL(TEdge e, Directions Directions)
+        private TEdge GetNextInAEL(TEdge e, Direction Direction)
         {
-            return Directions == Directions.dLeftToRight ? e.NextInAEL : e.PrevInAEL;
+            return Direction == Direction.dLeftToRight ? e.NextInAEL : e.PrevInAEL;
         }
 
         //------------------------------------------------------------------------------
@@ -3502,11 +3489,7 @@ namespace UnityEngine.Rendering.Universal
 
         public static void ReversePaths(Paths polys)
         {
-            for (int i = 0; i < polys.Count; i++)
-            {
-                var poly = polys[i];
-                poly.Reverse();
-            }
+            foreach (var poly in polys) { poly.Reverse(); }
         }
 
         //------------------------------------------------------------------------------
@@ -3632,7 +3615,7 @@ namespace UnityEngine.Rendering.Universal
             outRec.BottomPt = null;
             OutPt pp = outRec.Pts;
             bool preserveCol = PreserveCollinear || StrictlySimple;
-            for (;;)
+            for (; ; )
             {
                 if (pp.Prev == pp || pp.Prev == pp.Next)
                 {
@@ -3705,10 +3688,10 @@ namespace UnityEngine.Rendering.Universal
         bool JoinHorz(OutPt op1, OutPt op1b, OutPt op2, OutPt op2b,
             IntPoint Pt, bool DiscardLeft)
         {
-            Directions Dir1 = (op1.Pt.X > op1b.Pt.X ?
-                Directions.dRightToLeft : Directions.dLeftToRight);
-            Directions Dir2 = (op2.Pt.X > op2b.Pt.X ?
-                Directions.dRightToLeft : Directions.dLeftToRight);
+            Direction Dir1 = (op1.Pt.X > op1b.Pt.X ?
+                Direction.dRightToLeft : Direction.dLeftToRight);
+            Direction Dir2 = (op2.Pt.X > op2b.Pt.X ?
+                Direction.dRightToLeft : Direction.dLeftToRight);
             if (Dir1 == Dir2) return false;
 
             //When DiscardLeft, we want Op1b to be on the Left of Op1, otherwise we
@@ -3716,7 +3699,7 @@ namespace UnityEngine.Rendering.Universal
             //So, to facilitate this while inserting Op1b and Op2b ...
             //when DiscardLeft, make sure we're AT or RIGHT of Pt before adding Op1b,
             //otherwise make sure we're AT or LEFT of Pt. (Likewise with Op2b.)
-            if (Dir1 == Directions.dLeftToRight)
+            if (Dir1 == Direction.dLeftToRight)
             {
                 while (op1.Next.Pt.X <= Pt.X &&
                        op1.Next.Pt.X >= op1.Pt.X && op1.Next.Pt.Y == Pt.Y)
@@ -3745,7 +3728,7 @@ namespace UnityEngine.Rendering.Universal
                 }
             }
 
-            if (Dir2 == Directions.dLeftToRight)
+            if (Dir2 == Direction.dLeftToRight)
             {
                 while (op2.Next.Pt.X <= Pt.X &&
                        op2.Next.Pt.X >= op2.Pt.X && op2.Next.Pt.Y == Pt.Y)
@@ -3774,7 +3757,7 @@ namespace UnityEngine.Rendering.Universal
                 }
             }
 
-            if ((Dir1 == Directions.dLeftToRight) == DiscardLeft)
+            if ((Dir1 == Direction.dLeftToRight) == DiscardLeft)
             {
                 op1.Prev = op2;
                 op2.Next = op1;
@@ -4338,26 +4321,26 @@ namespace UnityEngine.Rendering.Universal
         //------------------------------------------------------------------------------
 
         public static Paths SimplifyPolygon(Path poly,
-            PolyFillTypes fillType = PolyFillTypes.pftEvenOdd)
+            PolyFillType fillType = PolyFillType.pftEvenOdd)
         {
             Paths result = new Paths();
             Clipper c = new Clipper();
             c.StrictlySimple = true;
-            c.AddPath(poly, PolyTypes.ptSubject, true);
-            c.Execute(ClipTypes.ctUnion, result, fillType, fillType);
+            c.AddPath(poly, PolyType.ptSubject, true);
+            c.Execute(ClipType.ctUnion, result, fillType, fillType);
             return result;
         }
 
         //------------------------------------------------------------------------------
 
         public static Paths SimplifyPolygons(Paths polys,
-            PolyFillTypes fillType = PolyFillTypes.pftEvenOdd)
+            PolyFillType fillType = PolyFillType.pftEvenOdd)
         {
             Paths result = new Paths();
             Clipper c = new Clipper();
             c.StrictlySimple = true;
-            c.AddPaths(polys, PolyTypes.ptSubject, true);
-            c.Execute(ClipTypes.ctUnion, result, fillType, fillType);
+            c.AddPaths(polys, PolyType.ptSubject, true);
+            c.Execute(ClipType.ctUnion, result, fillType, fillType);
             return result;
         }
 
@@ -4519,22 +4502,16 @@ namespace UnityEngine.Rendering.Universal
                 for (int i = 0; i < pathCnt; i++)
                 {
                     Path p = new Path(polyCnt);
-                    for (int patternIndex = 0; patternIndex < pattern.Count; patternIndex++)
-                    {
-                        IntPoint ip = pattern[patternIndex];
+                    foreach (IntPoint ip in pattern)
                         p.Add(new IntPoint(path[i].X + ip.X, path[i].Y + ip.Y));
-                    }
                     result.Add(p);
                 }
             else
                 for (int i = 0; i < pathCnt; i++)
                 {
                     Path p = new Path(polyCnt);
-                    for (int patternIndex = 0; patternIndex < pattern.Count; patternIndex++)
-                    {
-                        IntPoint ip = pattern[patternIndex];
+                    foreach (IntPoint ip in pattern)
                         p.Add(new IntPoint(path[i].X - ip.X, path[i].Y - ip.Y));
-                    }
                     result.Add(p);
                 }
 
@@ -4559,8 +4536,8 @@ namespace UnityEngine.Rendering.Universal
         {
             Paths paths = Minkowski(pattern, path, true, pathIsClosed);
             Clipper c = new Clipper();
-            c.AddPaths(paths, PolyTypes.ptSubject, true);
-            c.Execute(ClipTypes.ctUnion, paths, PolyFillTypes.pftNonZero, PolyFillTypes.pftNonZero);
+            c.AddPaths(paths, PolyType.ptSubject, true);
+            c.Execute(ClipType.ctUnion, paths, PolyFillType.pftNonZero, PolyFillType.pftNonZero);
             return paths;
         }
 
@@ -4583,15 +4560,15 @@ namespace UnityEngine.Rendering.Universal
             for (int i = 0; i < paths.Count; ++i)
             {
                 Paths tmp = Minkowski(pattern, paths[i], true, pathIsClosed);
-                c.AddPaths(tmp, PolyTypes.ptSubject, true);
+                c.AddPaths(tmp, PolyType.ptSubject, true);
                 if (pathIsClosed)
                 {
                     Path path = TranslatePath(paths[i], pattern[0]);
-                    c.AddPath(path, PolyTypes.ptClip, true);
+                    c.AddPath(path, PolyType.ptClip, true);
                 }
             }
-            c.Execute(ClipTypes.ctUnion, solution,
-                PolyFillTypes.pftNonZero, PolyFillTypes.pftNonZero);
+            c.Execute(ClipType.ctUnion, solution,
+                PolyFillType.pftNonZero, PolyFillType.pftNonZero);
             return solution;
         }
 
@@ -4601,8 +4578,8 @@ namespace UnityEngine.Rendering.Universal
         {
             Paths paths = Minkowski(poly1, poly2, false, true);
             Clipper c = new Clipper();
-            c.AddPaths(paths, PolyTypes.ptSubject, true);
-            c.Execute(ClipTypes.ctUnion, paths, PolyFillTypes.pftNonZero, PolyFillTypes.pftNonZero);
+            c.AddPaths(paths, PolyType.ptSubject, true);
+            c.Execute(ClipType.ctUnion, paths, PolyFillType.pftNonZero, PolyFillType.pftNonZero);
             return paths;
         }
 
@@ -4701,7 +4678,7 @@ namespace UnityEngine.Rendering.Universal
 
         //------------------------------------------------------------------------------
 
-        public void AddPath(Path path, JoinTypes joinType, EndTypes endType)
+        public void AddPath(Path path, JoinType joinType, EndType endType)
         {
             int highI = path.Count - 1;
             if (highI < 0) return;
@@ -4710,7 +4687,7 @@ namespace UnityEngine.Rendering.Universal
             newNode.m_endtype = endType;
 
             //strip duplicate points from path and also get index to the lowest point ...
-            if (endType == EndTypes.etClosedLine || endType == EndTypes.etClosedPolygon)
+            if (endType == EndType.etClosedLine || endType == EndType.etClosedPolygon)
                 while (highI > 0 && path[0] == path[highI]) highI--;
             newNode.m_polygon.Capacity = highI + 1;
             newNode.m_polygon.Add(path[0]);
@@ -4724,12 +4701,12 @@ namespace UnityEngine.Rendering.Universal
                         (path[i].Y == newNode.m_polygon[k].Y &&
                          path[i].X < newNode.m_polygon[k].X)) k = j;
                 }
-            if (endType == EndTypes.etClosedPolygon && j < 2) return;
+            if (endType == EndType.etClosedPolygon && j < 2) return;
 
             m_polyNodes.AddChild(newNode);
 
             //if this path's lowest pt is lower than all the others then update m_lowest
-            if (endType != EndTypes.etClosedPolygon) return;
+            if (endType != EndType.etClosedPolygon) return;
             if (m_lowest.X < 0)
                 m_lowest = new IntPoint(m_polyNodes.ChildCount - 1, k);
             else
@@ -4744,13 +4721,10 @@ namespace UnityEngine.Rendering.Universal
 
         //------------------------------------------------------------------------------
 
-        public void AddPaths(Paths paths, JoinTypes joinType, EndTypes endType)
+        public void AddPaths(Paths paths, JoinType joinType, EndType endType)
         {
-            for (int i = 0; i < paths.Count; i++)
-            {
-                Path p = paths[i];
+            foreach (Path p in paths)
                 AddPath(p, joinType, endType);
-            }
         }
 
         //------------------------------------------------------------------------------
@@ -4765,8 +4739,8 @@ namespace UnityEngine.Rendering.Universal
                 for (int i = 0; i < m_polyNodes.ChildCount; i++)
                 {
                     PolyNode node = m_polyNodes.Childs[i];
-                    if (node.m_endtype == EndTypes.etClosedPolygon ||
-                        (node.m_endtype == EndTypes.etClosedLine &&
+                    if (node.m_endtype == EndType.etClosedPolygon ||
+                        (node.m_endtype == EndType.etClosedLine &&
                          Clipper.Orientation(node.m_polygon)))
                         node.m_polygon.Reverse();
                 }
@@ -4776,7 +4750,7 @@ namespace UnityEngine.Rendering.Universal
                 for (int i = 0; i < m_polyNodes.ChildCount; i++)
                 {
                     PolyNode node = m_polyNodes.Childs[i];
-                    if (node.m_endtype == EndTypes.etClosedLine &&
+                    if (node.m_endtype == EndType.etClosedLine &&
                         !Clipper.Orientation(node.m_polygon))
                         node.m_polygon.Reverse();
                 }
@@ -4812,7 +4786,7 @@ namespace UnityEngine.Rendering.Universal
                 for (int i = 0; i < m_polyNodes.ChildCount; i++)
                 {
                     PolyNode node = m_polyNodes.Childs[i];
-                    if (node.m_endtype == EndTypes.etClosedPolygon)
+                    if (node.m_endtype == EndType.etClosedPolygon)
                         m_destPolys.Add(node.m_polygon);
                 }
                 return;
@@ -4841,14 +4815,14 @@ namespace UnityEngine.Rendering.Universal
                 int len = m_srcPoly.Count;
 
                 if (len == 0 || (delta <= 0 && (len < 3 ||
-                                                node.m_endtype != EndTypes.etClosedPolygon)))
+                                                node.m_endtype != EndType.etClosedPolygon)))
                     continue;
 
                 m_destPoly = new Path();
 
                 if (len == 1)
                 {
-                    if (node.m_jointype == JoinTypes.jtRound)
+                    if (node.m_jointype == JoinType.jtRound)
                     {
                         double X = 1.0, Y = 0.0;
                         for (int j = 1; j <= steps; j++)
@@ -4883,20 +4857,20 @@ namespace UnityEngine.Rendering.Universal
                 m_normals.Capacity = len;
                 for (int j = 0; j < len - 1; j++)
                     m_normals.Add(GetUnitNormal(m_srcPoly[j], m_srcPoly[j + 1]));
-                if (node.m_endtype == EndTypes.etClosedLine ||
-                    node.m_endtype == EndTypes.etClosedPolygon)
+                if (node.m_endtype == EndType.etClosedLine ||
+                    node.m_endtype == EndType.etClosedPolygon)
                     m_normals.Add(GetUnitNormal(m_srcPoly[len - 1], m_srcPoly[0]));
                 else
                     m_normals.Add(new DoublePoint(m_normals[len - 2]));
 
-                if (node.m_endtype == EndTypes.etClosedPolygon)
+                if (node.m_endtype == EndType.etClosedPolygon)
                 {
                     int k = len - 1;
                     for (int j = 0; j < len; j++)
                         OffsetPoint(j, ref k, node.m_jointype);
                     m_destPolys.Add(m_destPoly);
                 }
-                else if (node.m_endtype == EndTypes.etClosedLine)
+                else if (node.m_endtype == EndType.etClosedLine)
                 {
                     int k = len - 1;
                     for (int j = 0; j < len; j++)
@@ -4956,12 +4930,12 @@ namespace UnityEngine.Rendering.Universal
             DoOffset(delta);
             //now clean up 'corners' ...
             Clipper clpr = new Clipper();
-            clpr.AddPaths(m_destPolys, PolyTypes.ptSubject, true);
+            clpr.AddPaths(m_destPolys, PolyType.ptSubject, true);
             clpr.LastIndex = inputSize - 1;
             if (delta > 0)
             {
-                clpr.Execute(ClipTypes.ctUnion, solution,
-                    PolyFillTypes.pftPositive, PolyFillTypes.pftPositive);
+                clpr.Execute(ClipType.ctUnion, solution,
+                    PolyFillType.pftPositive, PolyFillType.pftPositive);
             }
             else
             {
@@ -4973,9 +4947,9 @@ namespace UnityEngine.Rendering.Universal
                 outer.Add(new IntPoint(r.right + 10, r.top - 10));
                 outer.Add(new IntPoint(r.left - 10, r.top - 10));
 
-                clpr.AddPath(outer, PolyTypes.ptSubject, true);
+                clpr.AddPath(outer, PolyType.ptSubject, true);
                 clpr.ReverseSolution = true;
-                clpr.Execute(ClipTypes.ctUnion, solution, PolyFillTypes.pftNegative, PolyFillTypes.pftNegative);
+                clpr.Execute(ClipType.ctUnion, solution, PolyFillType.pftNegative, PolyFillType.pftNegative);
                 if (solution.Count > 0) solution.RemoveAt(0);
             }
         }
@@ -4990,11 +4964,11 @@ namespace UnityEngine.Rendering.Universal
 
             //now clean up 'corners' ...
             Clipper clpr = new Clipper();
-            clpr.AddPaths(m_destPolys, PolyTypes.ptSubject, true);
+            clpr.AddPaths(m_destPolys, PolyType.ptSubject, true);
             if (delta > 0)
             {
-                clpr.Execute(ClipTypes.ctUnion, solution,
-                    PolyFillTypes.pftPositive, PolyFillTypes.pftPositive);
+                clpr.Execute(ClipType.ctUnion, solution,
+                    PolyFillType.pftPositive, PolyFillType.pftPositive);
             }
             else
             {
@@ -5006,9 +4980,9 @@ namespace UnityEngine.Rendering.Universal
                 outer.Add(new IntPoint(r.right + 10, r.top - 10));
                 outer.Add(new IntPoint(r.left - 10, r.top - 10));
 
-                clpr.AddPath(outer, PolyTypes.ptSubject, true);
+                clpr.AddPath(outer, PolyType.ptSubject, true);
                 clpr.ReverseSolution = true;
-                clpr.Execute(ClipTypes.ctUnion, solution, PolyFillTypes.pftNegative, PolyFillTypes.pftNegative);
+                clpr.Execute(ClipType.ctUnion, solution, PolyFillType.pftNegative, PolyFillType.pftNegative);
                 //remove the outer PolyNode rectangle ...
                 if (solution.ChildCount == 1 && solution.Childs[0].ChildCount > 0)
                 {
@@ -5026,7 +5000,7 @@ namespace UnityEngine.Rendering.Universal
 
         //------------------------------------------------------------------------------
 
-        void OffsetPoint(int j, ref int k, JoinTypes jointype)
+        void OffsetPoint(int j, ref int k, JoinType jointype)
         {
             //cross product ...
             m_sinA = (m_normals[k].X * m_normals[j].Y - m_normals[j].X * m_normals[k].Y);
@@ -5065,7 +5039,7 @@ namespace UnityEngine.Rendering.Universal
             else
                 switch (jointype)
                 {
-                    case JoinTypes.jtRound: DoRound(j, k); break;
+                    case JoinType.jtRound: DoRound(j, k); break;
                 }
             k = j;
         }
@@ -5132,7 +5106,7 @@ namespace UnityEngine.Rendering.Universal
 
     class ClipperException : Exception
     {
-        public ClipperException(string description) : base(description) {}
+        public ClipperException(string description) : base(description) { }
     }
     //------------------------------------------------------------------------------
 } //end ClipperLib namespace

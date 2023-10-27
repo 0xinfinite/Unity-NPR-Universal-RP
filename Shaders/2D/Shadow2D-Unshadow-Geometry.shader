@@ -2,31 +2,31 @@ Shader "Hidden/Shadow2DUnshadowGeometry"
 {
     Properties
     {
-        [HideInInspector] _ShadowColorMask("__ShadowColorMask", Int) = 0
     }
+
     SubShader
     {
-        Tags { "RenderType" = "Transparent" }
+        Tags { "RenderType"="Transparent" }
+
+        Cull Off
+        ZWrite Off
+        ZTest Always
 
         Pass
         {
+            //Bit 0: Composite Shadow Bit, Bit 1: Global Shadow Bit, Bit2: Caster Mask Bit
             Stencil
             {
-                Ref       1
-                Comp      Always
-                Pass      Replace
+                Ref  4
+                ReadMask  4
+                WriteMask 4
+                Comp NotEqual
+                Pass Replace
+                Fail Keep
             }
-
-            Cull Off
-            Blend   SrcColor Zero
-            BlendOp Add
-            ZWrite Off
-            ZTest Always
 
             ColorMask 0
 
-            Name "Geometry Unshadow (0) - Stencil: Ref 1, Comp Always, Pass Replace"
-
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
@@ -36,50 +36,41 @@ Shader "Hidden/Shadow2DUnshadowGeometry"
             struct Attributes
             {
                 float4 vertex : POSITION;
-                float2 uv : TEXCOORD0;
             };
 
             struct Varyings
             {
-                float2 uv : TEXCOORD0;
                 float4 vertex : SV_POSITION;
             };
 
-            sampler2D _MainTex;
-            float4    _MainTex_ST;
-
-            Varyings vert(Attributes v)
+            Varyings vert (Attributes v)
             {
                 Varyings o;
                 o.vertex = TransformObjectToHClip(v.vertex.xyz);
-                o.uv = TRANSFORM_TEX(v.uv, _MainTex);
                 return o;
             }
 
             half4 frag(Varyings i) : SV_Target
             {
-                return half4(1, 1, 1, 1);
+                return half4(0,0,0,0);
             }
             ENDHLSL
         }
+
         Pass
         {
+            //Bit 0: Composite Shadow Bit, Bit 1: Global Shadow Bit, Bit2: Caster Mask Bit
             Stencil
             {
-                Ref       0
-                Comp      Always
-                Pass      Replace
+                Ref  4
+                ReadMask  4
+                WriteMask 4
+                Comp Equal
+                Pass Zero
+                Fail Keep
             }
 
-            Cull Off
-            Blend   One One
-            BlendOp Add
-            ZWrite Off
-            ZTest Always
-
-            ColorMask B
-
-            Name "Geometry Unshadow (B) - Stencil: Ref 0, Comp Always, Pass Replace"
+            ColorMask 0
 
             HLSLPROGRAM
             #pragma vertex vert
@@ -97,6 +88,7 @@ Shader "Hidden/Shadow2DUnshadowGeometry"
                 float4 vertex : SV_POSITION;
             };
 
+
             Varyings vert(Attributes v)
             {
                 Varyings o;
@@ -106,7 +98,7 @@ Shader "Hidden/Shadow2DUnshadowGeometry"
 
             half4 frag(Varyings i) : SV_Target
             {
-                return half4(1, 1, 1, 1);
+                return half4(0,0,0,0);
             }
             ENDHLSL
         }

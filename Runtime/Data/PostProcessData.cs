@@ -114,12 +114,6 @@ namespace UnityEngine.Rendering.Universal
             public Shader LensFlareDataDrivenPS;
 
             /// <summary>
-            /// The Lens Flare Screen Space shader.
-            /// </summary>
-            [Reload("Shaders/PostProcessing/LensFlareScreenSpace.shader")]
-            public Shader LensFlareScreenSpacePS;
-
-            /// <summary>
             /// The Scaling Setup Post Processing shader.
             /// </summary>
             [Reload("Shaders/PostProcessing/ScalingSetup.shader")]
@@ -151,7 +145,7 @@ namespace UnityEngine.Rendering.Universal
         public sealed class TextureResources
         {
             /// <summary>
-            /// Pre-baked Blue noise textures.
+            /// Pre-baked Blue noise texture
             /// </summary>
             [Reload("Textures/BlueNoise16/L/LDR_LLL1_{0}.png", 0, 32)]
             public Texture2D[] blueNoise16LTex;

@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Experimental.Rendering;
 
 namespace UnityEngine.Rendering.Universal
 {
@@ -65,19 +64,19 @@ namespace UnityEngine.Rendering.Universal
             }
         }
 
-        internal int GetXRMultiPassId(XRPass xr)
+        internal int GetXRMultiPassId(ref CameraData cameraData)
         {
 #if ENABLE_VR && ENABLE_XR_MODULE
-            return xr.enabled ? xr.multipassId : 0;
+            return cameraData.xr.enabled ? cameraData.xr.multipassId : 0;
 #else
             return 0;
 #endif
         }
 
-        public void Update(UniversalCameraData cameraData)
+        public void Update(ref CameraData cameraData)
         {
             var camera = cameraData.camera;
-            int idx = GetXRMultiPassId(cameraData.xr);
+            int idx = GetXRMultiPassId(ref cameraData);
 
             // A camera could be rendered multiple times per frame, only update the view projections if needed
             bool aspectChanged = m_PrevAspectRatio[idx] != cameraData.aspectRatio;

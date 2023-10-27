@@ -1,5 +1,4 @@
 using System;
-using JetBrains.Annotations;
 using UnityEngine;
 
 namespace UnityEditor.Rendering.Universal
@@ -17,7 +16,7 @@ namespace UnityEditor.Rendering.Universal
         Vector2 m_CursorPos;
         const string k_ShaderName = "Hidden/Universal Render Pipeline/Editor/Trackball";
 
-        public void OnGUI(SerializedProperty property, [CanBeNull] SerializedProperty overrideState, GUIContent title, Func<Vector4, Vector3> computeFunc)
+        public void OnGUI(SerializedProperty property, SerializedProperty overrideState, GUIContent title, Func<Vector4, Vector3> computeFunc)
         {
             if (!CheckMaterialAndShader())
             {
@@ -35,9 +34,8 @@ namespace UnityEditor.Rendering.Universal
 
             using (new EditorGUILayout.VerticalScope())
             {
-                bool isOverridden = overrideState?.boolValue ?? true;
-                using (new EditorGUI.DisabledScope(!isOverridden))
-                    DrawWheel(ref value, isOverridden);
+                using (new EditorGUI.DisabledScope(!overrideState.boolValue))
+                    DrawWheel(ref value, overrideState.boolValue);
 
                 DrawLabelAndOverride(title, overrideState);
             }
@@ -146,13 +144,8 @@ namespace UnityEditor.Rendering.Universal
             GUI.Label(labelRect, title, EditorStyles.miniLabel);
 
             // Override checkbox
-            if (overrideState != null)
-            {
-                var overrideRect = new Rect(labelRect.x - 17, labelRect.y + 3, 17f, 17f);
-                overrideState.boolValue = GUI.Toggle(overrideRect, overrideState.boolValue,
-                    EditorGUIUtility.TrTextContent("", "Override this setting for this volume."),
-                    CoreEditorStyles.smallTickbox);
-            }
+            var overrideRect = new Rect(labelRect.x - 17, labelRect.y + 3, 17f, 17f);
+            overrideState.boolValue = GUI.Toggle(overrideRect, overrideState.boolValue, EditorGUIUtility.TrTextContent("", "Override this setting for this volume."), CoreEditorStyles.smallTickbox);
         }
 
         Vector3 GetInput(Rect bounds, Vector3 hsv, Vector2 thumbPos, float radius)

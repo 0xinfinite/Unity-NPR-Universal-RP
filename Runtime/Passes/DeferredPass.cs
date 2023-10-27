@@ -2,7 +2,6 @@ using UnityEngine.Experimental.GlobalIllumination;
 using UnityEngine.Profiling;
 using Unity.Collections;
 using UnityEngine.Experimental.Rendering.RenderGraphModule;
-using UnityEngine.Experimental.Rendering;
 
 // cleanup code
 // listMinDepth and maxDepth should be stored in a different uniform block?
@@ -30,7 +29,7 @@ namespace UnityEngine.Rendering.Universal.Internal
         {
             var lightingAttachment = m_DeferredLights.GbufferAttachments[m_DeferredLights.GBufferLightingIndex];
             var depthAttachment = m_DeferredLights.DepthAttachmentHandle;
-            if (m_DeferredLights.UseFramebufferFetch)
+            if (m_DeferredLights.UseRenderPass)
                 ConfigureInputAttachments(m_DeferredLights.DeferredInputAttachments, m_DeferredLights.DeferredInputIsTransient);
 
             // TODO: Cannot currently bind depth texture as read-only!
@@ -40,78 +39,42 @@ namespace UnityEngine.Rendering.Universal.Internal
         // ScriptableRenderPass
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
-            ContextContainer frameData = renderingData.frameData;
-            UniversalCameraData cameraData = frameData.Get<UniversalCameraData>();
-            UniversalLightData lightData = frameData.Get<UniversalLightData>();
-            UniversalShadowData shadowData = frameData.Get<UniversalShadowData>();
-
-            m_DeferredLights.ExecuteDeferredPass(CommandBufferHelpers.GetRasterCommandBuffer(renderingData.commandBuffer), cameraData, lightData, shadowData);
+            m_DeferredLights.ExecuteDeferredPass(context, ref renderingData);
         }
 
         private class PassData
         {
-            internal UniversalCameraData cameraData;
-            internal UniversalLightData lightData;
-            internal UniversalShadowData shadowData;
-
             internal TextureHandle color;
             internal TextureHandle depth;
-            internal TextureHandle[] gbuffer;
+
+            internal RenderingData renderingData;
             internal DeferredLights deferredLights;
         }
 
-        internal void Render(RenderGraph renderGraph, ContextContainer frameData, TextureHandle color, TextureHandle depth, TextureHandle[] gbuffer)
+        internal void Render(RenderGraph renderGraph, TextureHandle color, TextureHandle depth, TextureHandle[] gbuffer, ref RenderingData renderingData)
         {
-            UniversalResourceData resourceData = frameData.Get<UniversalResourceData>();
-            UniversalCameraData cameraData = frameData.Get<UniversalCameraData>();
-            UniversalLightData lightData = frameData.Get<UniversalLightData>();
-            UniversalShadowData shadowData = frameData.Get<UniversalShadowData>();
-
-            using (var builder = renderGraph.AddRasterRenderPass<PassData>("Deferred Lighting Pass", out var passData, base.profilingSampler))
+            using (var builder = renderGraph.AddRenderPass<PassData>("Deferred Lighting Pass", out var passData,
+                base.profilingSampler))
             {
-                passData.cameraData = cameraData;
-                passData.lightData = lightData;
-                passData.shadowData = shadowData;
-
-                passData.color = builder.UseTextureFragment(color, 0, IBaseRenderGraphBuilder.AccessFlags.Write);
-                passData.depth = builder.UseTextureFragmentDepth(depth, IBaseRenderGraphBuilder.AccessFlags.Write);
+                passData.color = builder.UseColorBuffer(color, 0);
+                passData.depth = builder.UseDepthBuffer(depth, DepthAccess.ReadWrite);
                 passData.deferredLights = m_DeferredLights;
+                passData.renderingData = renderingData;
 
-                if (!m_DeferredLights.UseFramebufferFetch)
+                for (int i = 0; i < gbuffer.Length; ++i)
                 {
-                    for (int i = 0; i < gbuffer.Length; ++i)
-                    {
-                        if (i != m_DeferredLights.GBufferLightingIndex)
-                            builder.UseTexture(gbuffer[i], IBaseRenderGraphBuilder.AccessFlags.Read);
-                    }
+                    if (i != m_DeferredLights.GBufferLightingIndex)
+                        builder.ReadTexture(gbuffer[i]);
                 }
-                else
-                {
-                    var idx = 0;
-                    for (int i = 0; i < gbuffer.Length; ++i)
-                    {
-                        if (i != m_DeferredLights.GBufferLightingIndex)
-                        {
-                            builder.UseTextureFragmentInput(gbuffer[i], idx, IBaseRenderGraphBuilder.AccessFlags.Read);
-                            idx++;
-                        }
-                    }
-                }
-
-                // Without NRP GBuffer textures are set after GBuffer, we only do this here to avoid breaking the pass
-                if (renderGraph.NativeRenderPassesEnabled)
-                    GBufferPass.SetGlobalGBufferTextures(builder, gbuffer, ref m_DeferredLights);
 
                 builder.AllowPassCulling(false);
-                builder.AllowGlobalStateModification(true);
 
-                builder.SetRenderFunc((PassData data, RasterGraphContext context) =>
+                builder.SetRenderFunc((PassData data, RenderGraphContext context) =>
                 {
-                    data.deferredLights.ExecuteDeferredPass(context.cmd, data.cameraData, data.lightData, data.shadowData);
+                    data.deferredLights.ExecuteDeferredPass(context.renderContext, ref data.renderingData);
                 });
             }
         }
-
         // ScriptableRenderPass
         public override void OnCameraCleanup(CommandBuffer cmd)
         {

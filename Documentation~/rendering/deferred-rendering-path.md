@@ -10,7 +10,7 @@ For information on differences between the rendering paths, see section [Renderi
 
 This section describes the Deferred Rendering Path.
 
-![Scene rendered with the Deferred Rendering Path](../Images/rendering-deferred/deferred-intro-image.png)<br/>*Sample scene rendered with the Deferred Rendering Path.*
+![Scene rendered with the Deferred Rendering Path](../Images/rendering-deferred/deferred-intro-image.png)<br/>*Sample Scene rendered with the Deferred Rendering Path.*
 
 This section contains the following topics:
 
@@ -38,7 +38,7 @@ The **Accurate G-buffer normals** property lets you configure how Unity encodes 
 
 * **Accurate G-buffer normals** off: This option increases performance, especially on mobile GPUs, but might lead to color banding artifacts on smooth surfaces.
 
-* **Accurate G-buffer normals** on: Unity uses the octahedron encoding to store values of normal vectors in the RGB channel of a normal texture. With this encoding, values of normal vectors are more accurate, but the encoding and decoding operations put extra load on the GPU. This option does not support decal normal blending when used with the [Screen Space decal technique](../renderer-feature-decal.md#screen-space-technique).
+* **Accurate G-buffer normals** on: Unity uses the octahedron encoding to store values of normal vectors in the RGB channel of a normal texture. With this encoding, values of normal vectors are more accurate, but the encoding and decoding operations put extra load on the GPU.
 
 For more information about this setting, see the section [Encoding of normals in G-buffer](#accurate-g-buffer-normals).
 
@@ -130,7 +130,7 @@ The Subtractive and the Shadow mask modes are optimized for the Forward Renderin
 
 **Rendering Layer Mask**
 
-Unity adds this render target to the G-buffer layout when the Use Rendering Layers option is enabled (URP Asset, **Lighting** > **Use Rendering Layers**).
+Unity adds this render target to the G-buffer layout when the Use Rendering Layers option is enabled (URP Asset, **Lighting** > **Use Rendering Layers**). 
 
 Using Rendering Layers might have an impact on the GPU performance. For more information, see the page [Rendering Layers](../features/rendering-layers.md#performance).
 
@@ -162,7 +162,7 @@ The **Accurate G-buffer normals** property lets you configure how Unity encodes 
 
 * **Accurate G-buffer normals** off: Unity stores values of normal vectors in the G-buffer in the RGB channel of a normal texture, 8 bit per value (x, y, z). The values are quantized with the loss of accuracy. This option increases performance, especially on mobile GPUs, but might lead to color banding artifacts on smooth surfaces.
 
-* **Accurate G-buffer normals** on: Unity uses the octahedron encoding to store values of normal vectors in the RGB channel of a normal texture. With this encoding, values of normal vectors are more accurate, but the encoding and decoding operations put extra load on the GPU. This option does not support decal normal blending when used with the [Screen Space decal technique](../renderer-feature-decal.md#screen-space-technique).<br/>The precision of the encoded normal vectors is similar to the precision of the sampled values in the Forward Rendering Path.
+* **Accurate G-buffer normals** on: Unity uses the octahedron encoding to store values of normal vectors in the RGB channel of a normal texture. With this encoding, values of normal vectors are more accurate, but the encoding and decoding operations put extra load on the GPU.<br/>The precision of the encoded normal vectors is similar to the precision of the sampled values in the Forward Rendering Path.
 
 The following illustration shows the visual difference between the two options when the Camera is very close to the GameObject:
 
@@ -401,7 +401,7 @@ In the Deferred Rendering Path, Unity combines Terrain layers in the G-buffer pa
 
 Unity combines the Material properties in the G-buffer using hardware blending (four layers at a time), which limits how correct the combination of property values is. For example, pixel normals cannot be correctly combined using the alpha blend equation alone, because one Terrain layer might contain coarse Terrain detail while another layer might contain fine detail. Averaging or summing normals results in loss of accuracy.
 
-> **Note**: Turning the setting [Accurate G-buffer normals](#accurate-g-buffer-normals) on breaks Terrain blending. With this setting turned on, Unity encodes normals using octahedron encoding. Normals in different layers encoded this way cannot be blended together because of the bitwise nature of the encoding (2 x 12 bits). If your application requires more than four Terrain layers, turn the **Accurate G-buffer normals** setting off.
+> **NOTE:** Turning the setting [Accurate G-buffer normals](#accurate-g-buffer-normals) on breaks Terrain blending. With this setting turned on, Unity encodes normals using octahedron encoding. Normals in different layers encoded this way cannot be blended together because of the bitwise nature of the encoding (2 x 12 bits). If your application requires more than four Terrain layers, turn the **Accurate G-buffer normals** setting off.
 
 <a name="terrain-visual-diff"></a>The following illustration shows the visual difference when rendering Terrain layers with different Rendering Paths.
 
@@ -419,7 +419,7 @@ In the Deferred Rendering Path, the Baked Indirect Lighting mode provides better
 
 ### Rendering layers
 
-URP implements the Rendering Layers feature that lets you configure which Lights in a scene affect specific meshes. Lights assigned to a specific Rendering Layer only affect the meshes assigned to the same Rendering Layer.
+URP implements the Rendering Layers feature that lets you configure which Lights in a Scene affect specific meshes. Lights assigned to a specific Rendering Layer only affect the meshes assigned to the same Rendering Layer.
 
 For more information on Rendering Layers, see the page [Rendering Layers](../features/rendering-layers.md).
 

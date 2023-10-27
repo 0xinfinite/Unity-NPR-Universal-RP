@@ -4,14 +4,17 @@ using Unity.Collections.LowLevel.Unsafe;
 
 namespace UnityEngine.Rendering.Universal.UTess
 {
+
     // Ensures that there are no duplicate Points, Overlapping Edges.
     struct PlanarGraph
     {
+
         private static readonly double kEpsilon = 0.00001;
         private static readonly int kMaxIntersectionTolerance = 4;  // Maximum Intersection Tolerance per Intersection Loop Check.
 
         internal static void RemoveDuplicateEdges(ref NativeArray<int2> edges, ref int edgeCount, NativeArray<int> duplicates, int duplicateCount)
         {
+
             if (duplicateCount == 0)
             {
                 for (var i = 0; i < edgeCount; ++i)
@@ -303,6 +306,7 @@ namespace UnityEngine.Rendering.Universal.UTess
             // Find Duplicates.
             if (duplicateCount != 0)
             {
+
                 var prevPointCount = pointCount;
                 pointCount = 0;
                 for (var i = 0; i < prevPointCount; ++i)
@@ -327,6 +331,7 @@ namespace UnityEngine.Rendering.Universal.UTess
                         duplicates[i] = duplicates[link.Find(i)];
                     }
                 }
+
             }
 
             TessLink.DestroyLink(link);
@@ -335,8 +340,9 @@ namespace UnityEngine.Rendering.Universal.UTess
         // Validate the Input Points ane Edges.
         internal static bool Validate(Allocator allocator, NativeArray<float2> inputPoints, int pointCount, NativeArray<int2> inputEdges, int edgeCount, ref NativeArray<float2> outputPoints, ref int outputPointCount, ref NativeArray<int2> outputEdges, ref int outputEdgeCount)
         {
+
             // Outline generated inputs can have differences in the range of 0.00001f.. See TwoLayers.psb sample.
-            // Since PlanarGraph operates on double, scaling up and down does not result in loss of data.
+            // Since PlanarGraph operates on double, scaling up and down does not result in loss of data. 
             var precisionFudge = 10000.0f;
             var protectLoop = edgeCount;
             var requiresFix = true;
@@ -388,7 +394,7 @@ namespace UnityEngine.Rendering.Universal.UTess
 
             if (validGraph)
             {
-                // Finalize Output.
+                // Finalize Output. 
                 outputEdgeCount = edgeCount;
                 outputPointCount = pointCount;
                 ModuleHandle.Copy(edges, outputEdges, edgeCount);
@@ -405,5 +411,7 @@ namespace UnityEngine.Rendering.Universal.UTess
 
             return (validGraph && protectLoop > 0);
         }
+
     }
+
 }

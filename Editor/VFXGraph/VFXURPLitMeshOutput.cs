@@ -13,7 +13,9 @@ namespace UnityEditor.VFX.URP
         {
             get
             {
-                return "Output Particle URP Lit Mesh";
+                return !string.IsNullOrEmpty(shaderName)
+                    ? $"Output Particle {shaderName} Mesh"
+                    : "Output Particle URP Lit Mesh";
             }
         }
         public override string codeGeneratorTemplate { get { return RenderPipeTemplate("VFXParticleLitMesh"); } }
@@ -40,9 +42,9 @@ namespace UnityEditor.VFX.URP
                         features |= VFXOutputUpdate.Features.MultiMesh;
                     if (lod)
                         features |= VFXOutputUpdate.Features.LOD;
+                    if (HasSorting() && VFXOutputUpdate.HasFeature(features, VFXOutputUpdate.Features.IndirectDraw))
+                        features |= VFXOutputUpdate.Features.Sort;
                 }
-                if (HasSorting() && VFXOutputUpdate.HasFeature(features, VFXOutputUpdate.Features.IndirectDraw))
-                    features |= VFXOutputUpdate.Features.Sort;
                 return features;
             }
         }

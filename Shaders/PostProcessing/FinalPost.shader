@@ -10,7 +10,6 @@ Shader "Hidden/Universal Render Pipeline/FinalPost"
         #pragma multi_compile_fragment _ SCREEN_COORD_OVERRIDE
         #pragma multi_compile_local_fragment _ HDR_INPUT HDR_COLORSPACE_CONVERSION HDR_ENCODING HDR_COLORSPACE_CONVERSION_AND_ENCODING
 
-
         #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
         #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
         #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/ScreenCoordOverride.hlsl"
@@ -114,7 +113,7 @@ Shader "Hidden/Universal Render Pipeline/FinalPost"
             {
                 float4 uiSample = SAMPLE_TEXTURE2D_X(_OverlayUITexture, sampler_PointClamp, input.texcoord);
                 color.rgb = SceneUIComposition(uiSample, color.rgb, PaperWhite, MaxNits);
-                color.rgb = OETF(color.rgb, MaxNits);
+                color.rgb = OETF(color.rgb);
             }
             #endif
 

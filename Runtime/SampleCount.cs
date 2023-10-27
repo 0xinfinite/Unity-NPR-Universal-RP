@@ -1,6 +1,5 @@
 namespace UnityEngine.Rendering.Universal
 {
-    // Should be made obsolete
     /// <summary>
     /// Options for Sample Count.
     /// </summary>

@@ -65,7 +65,7 @@ namespace UnityEngine.Rendering.Universal
             // m_Resolution = math.min((int)reflectionProbeResolution, SystemInfo.maxTextureSize);
             m_Resolution = 1;
             var format = GraphicsFormat.B10G11R11_UFloatPack32;
-            if (!SystemInfo.IsFormatSupported(format, GraphicsFormatUsage.Render)) { format = GraphicsFormat.R16G16B16A16_SFloat; }
+            if (!SystemInfo.IsFormatSupported(format, FormatUsage.Render)) { format = GraphicsFormat.R16G16B16A16_SFloat; }
             m_AtlasTexture0 = new RenderTexture(new RenderTextureDescriptor
             {
                 width = m_Resolution.x,
@@ -100,9 +100,9 @@ namespace UnityEngine.Rendering.Universal
             m_MipScaleOffset = new Vector4[maxProbes * 7];
         }
 
-        public unsafe void UpdateGpuData(CommandBuffer cmd, ref CullingResults cullResults)
+        public unsafe void UpdateGpuData(CommandBuffer cmd, ref RenderingData renderingData)
         {
-            var probes = cullResults.visibleReflectionProbes;
+            var probes = renderingData.cullResults.visibleReflectionProbes;
             var probeCount = math.min(probes.Length, UniversalRenderPipeline.maxVisibleReflectionProbes);
             var frameIndex = Time.renderedFrameCount;
 
@@ -213,13 +213,9 @@ namespace UnityEngine.Rendering.Universal
                     m_NeedsUpdate.Add(id);
                 }
 
-                // If the probe is set to be updated every frame, we assign the last used frame to -1 so it's evicted in next frame.
-                if (probe.reflectionProbe.refreshMode == ReflectionProbeRefreshMode.EveryFrame)
-                    cachedProbe.lastUsed = -1;
-                else
-                    cachedProbe.lastUsed = frameIndex;
-                
+                cachedProbe.lastUsed = frameIndex;
                 cachedProbe.hdrData = probe.hdrData;
+
                 m_Cache[id] = cachedProbe;
             }
 

@@ -9,296 +9,79 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 Version Updated
 The version number for this package has increased due to a version update of a related graphics package.
 
-## [17.0.0] - 2023-09-26
+## [14.0.7] - 2023-05-23
 
-This version is compatible with Unity 2023.3.0a8.
-
-### Added
-- Made Main Light Shadow Resolution and Additional Light Shadow Resolution settings public in the URP Asset.
-- Made the cascade split settings public in the URP Asset.
-- ContextContainer items used as frame data for UniversalRenderer and Renderer2D e.g. UniversalLightData & UniversalCameraData.
+This version is compatible with Unity 2022.2.22f1.
 
 ### Changed
-- Enabled APV Lighting Scenario Baking in URP.
+- The two subshaders in main URP shaders (Lit, SimpleLit, BakedLit, ComplexLit, Particles) have now been combined in to one.
+- The Forward+ rendering path now supports XR rendering, and cameras using orthographic projection.
 
 ### Fixed
-- Disabled Soft Shadow Quality per-light levels on Quest and HoloLens platforms to improve XR performance.
-- Global Settings always exist when URP is the current active pipeline.
-- Added depth and stencil operations to FullScreenPassRendererFeature and allowed users to opt-out of depth-stencil being bound per feature in the "Additional Properties" section.
-- Fixed FullScreenPassRendererFeature only using the material of the last full screen feature in a frame, this allows multiple passes to work correctly within one frame.
-- Fixed ArgumentNullException when trying to use a FullScreenPassRenderer feature with "None" in the requirements mask with Render Graph.
-- Fixed missing "_BlitScaleBias" upload for text shaders using the CoreRP Blit.hlsl header.
-- Fixed an issue where additional lights were not rendering correctly when using a mix of shadow settings in deferred.
-- Fixed an issue where Shader ID's weren't reset properly in the DepthNormals pass.
-- Fixed an issue where IndexOutOfRangeException was thrown when creating a stacked camera from script.
-- Fixed an issue where NullReferenceException was thrown when camera prefab referenced a camera outside the prefab in the camera stack.
-- Fixed an issue with Screen Space Decals where dark artefacts appeared in the editor.
-- Fixed an issue where SSAO would not apply to a scene when using the Deferred Rendering Path and with no Directional light active.
-- Fixed an issue causing 'implicit truncation of vector type' warning when using ShaderGraph shaders in the Forward+ Rendering Path
-- Fixed noise and flicker caused by TAA when the *Very High* option is in use.
-- Fixed memory leak from render texture when rtHandle realloc failed to be added to pool.
-- Fixed an issue where Rendering Layers didn't work properly when opening a project.
-- Fixed shader stripping when using APV.
-- Add GBuffer (fill) passes to ComplexLit and Unlit shader to prevent GBuffer data holes.
-- Fixed HDR output persisting even if the user explicitly turned it off.
-- Fixed an issue where it wasn't possible to add a Renderer Feature on a renderer if another feature had a missing or broken script. This issue impacted the Universal Render Pipeline.
-- Fixed an issue where reflection probes were not updating correctly when using Forward+.
-- Fixed transparent materials getting marked as dirty during material UI updates and project saving.
-- Fixed IndexOutOfRangeException error when using Native RenderPass on Deferred.
-- Fixed scene elements not being sorted correctly when RenderGraph is enabled on OS.
-- Fixed the URP Debug Rendering map overlays when RenderGraph is enabled.
-- Fixed visible outline when composited ShadowCaster2Ds with transparency overlap
-- Fixed missing padding at the bottom of URP's Global Settings
-- Fixed an issue where selecting a stacked camera caused the editor to freeze and sometimes crash.
-- Fix Overdraw and Wireframe debugger views not rendering correctly
-
-## [16.0.3] - 2023-07-04
-
-This version is compatible with Unity 2023.3.0a1.
-
-### Changed
-- Stripping or IRenderPipelineGraphicsSettings.
-
-### Fixed
-- Fixed an issue where rendering layers keywords were not enabled correctly when using Decals & SSAO in Deferred.
-- Fixed an issue where incorrect Shader Keyword Prefiltering was used with SSAO when AfterOpaque was used.
-
-## [16.0.2] - 2023-06-28
-
-This version is compatible with Unity 2023.2.0a22.
-
-### Changed
-- Improved URP main thread usage in XR.
-
-### Fixed
-- Added workarounds for MSAA-specific visual artifacts on materials that use alpha clipping in unexpected ways.
-- Fixed an issue where changing RenderSettings before camera rendering would not always take effect.
-- Fixed null exceptions when ShadowCaster2D are included as part of a prefab.
-- Fixed an issue where assets were incorrectly being saved when making builds.
-- Added a missing G-buffer normal decoding for the **URP Sample Buffer** node in Fullscreen shadergraphs when using **Accurate G-buffer normals** in the deferred renderer. **Note:** The decoded normal values for background pixels are undefined.
-- Fixed the Color Grading LUT not updating when enabling or disabling Render Graph repeatedly.
-- Fixed Screen space Overlay UI rendered at the wrong size for scaling mode "Constant Pixel Size" or "Constant Physical Size", when HDR output is active.
-- Updated the documentation to mention that the Screen Space decal technique does not support blending of normals when using the Deferred rendering path with Accurate G-Buffer Normals enabled. The Automatic decal technique now prefers the D-Buffer technique if Accurate G-Buffer Normals are enabled.
-- changed the PostPro passes injection points to more correct locations.
-- 2D - Fix additional draw call when Foremost Sorting Layer is enabled during unlit
-
-## [16.0.1] - 2023-05-23
-
-This version is compatible with Unity 2023.2.0a17.
-
-### Added
-- Added XR occlusionMesh scaling, occlusionMesh enable/disable, mirroView mode setter for SRP XR.
-
-### Changed
-- Enabled deferred renderer to now use Framebuffer Fetch for Shadowmask.
-- Added HDR Output override per camera.
-
-### Fixed
-- Fixed errors caused by Camera's Preview window.
+- Fixed Render Targets being released when using multiple cameras.
 - Fixed the Screen flicker in Scene view.
-- Fixed the broken links to documentation for volume components.
-- Fixed Native RenderPass errors when using RendererFeature which is executed in between GBuffer and Deferred Lighting passes.
-- Disabled MSAA on devices without MSAA store support (Apple GPUs A8 and lower).
-- Fixed URP and core package leaking materials when entering and exiting Play Mode.
-- Fixed removal of missing renderer feature.
-- Fixed error message in filtered view when decals are enabled.
-- Fixed missing y-flip for preview cameras.
 - Increased lighting BRDF specular max for half float math (mobile) to match the visual look of full float math (desktop) better.
-- Fixed rendering on HDR displays with the 2D renderer or the Universal renderer and no post processing.
-- Fixed redundant blit is used due to postFX, although it is disabled in rendererData.
-- Fixed volume and volume profile help URLs.
-- Fixed HDR output so it is no longer too saturated when HDR rendering is disabled on the camera.
-- Fixed incorrect MSAA sample count when using Deferred renderer and rendering to a target texture.
-- Fixed ShaderGraph preview window displaying a blank window when using DepthNormals pass.
-- Fixed HDR output from being too saturated by default when a camera doesn't have the additional camera data yet.
-- Fixed an issue where the `ShadowShape2DProvider_Collider` would improperly track a collider using a Rigidbody2D.
-- Enabled passes injected in `RenderPassEvent.AfterRenderingPostProcessing` to now execute before final blit and post-processing anti-aliasing effects rather than after, when using the Render Graph.
-- Fixed HDR Debug Views without antialiasing, with Render Graph and with passes injected in `RenderPassEvent.AfterRenderingPostProcessing`.
-- Enabled stripping BlitHDROverlay from build if HDR output is not allowed and stripping unused shader is allowed.
-- Fixed an issue with reference images for Decal tests and lowered the threshold to catch issues better.
+- Disabled MSAA on devices without MSAA store support (Apple GPUs A8 and lower).
 - Fixed an issue where using the Reflection Probe Node with the Forward+ rendering path would result in flickering on the object.
-- Removed serialization and cache vertices and indices for sprite lights causing bloat in prefabs for 2D.
-- Fixed TAA resource leak on entering or exiting the playmode.
-- Changed the ScreenSpace Decals sorting criteria to **None** to fix flickering issues.
-- Remove URP motion vector fallback shader. This fixes major TAA jittering and blurring artefacts with decals. Custom shader writers can still add ' UsePass "Hidden/Universal Render Pipeline/ObjectMotionVectorFallback/MOTIONVECTORS" ' to their shaders to use the fallback pass
-- Remove URP motion vector fallback shader. This fixes major TAA jittering and blurring artefacts with terrain meshes (when they're offset from the origin). Custom shader writers can still add ' UsePass "Hidden/Universal Render Pipeline/ObjectMotionVectorFallback/MOTIONVECTORS" ' to their shaders to use the fallback pass
-- Remove URP motion vector fallback shader. This fixes major TAA jittering and blurring artefacts on and around opaque shuriken particles when the emitter is moving. Custom shader writers can still add ' UsePass "Hidden/Universal Render Pipeline/ObjectMotionVectorFallback/MOTIONVECTORS" ' to their shaders to use the fallback pass
+- Fixed TAA resource leak on entering/exiting the playmode.
+- Fixed rare iOS shader building failure due to URP Lit Forward Pass shader varyings struct variable mismatch
 
-## [16.0.0] - 2023-03-22
+## [14.0.6] - 2023-03-24
 
-This version is compatible with Unity 2023.2.0a9.
-
-### Changed
-- Disabled the ability for decals to enqueue passes when running on unsupported APIs, such as OpenGL or GLES3, instead of displaying the magenta error.
-- Added sampling clamping functions to prevent out of viewport sampling in URP.
+This version is compatible with Unity 2022.2.13f1.
 
 ### Fixed
-- Fixed an issue where scenes were not marked dirty after changing the volume update setting on cameras.
-- Corrected the render scale value when rendering scene view.
-- Fixed SMAA so it now works properly on mobile when **Use defaults for sampler precision** is selected as the **Shader precision model** in Project Settings.
-- Fixed an issue causing Dynamic Resolution to be disabled during URP rendering.
-- Fixed the 2D Sprite Light & Freeform Light fast normal map quality setting to correctly use the normal map.
-- Fixed an issue where some sprites were causing null exception errors.
-- Fixed a missing keyword in ParticlesSimpleLit for Lightmap shadow mixing.
-- Fixed the debug rendering overlay not being rendered when FinalBlit pass is in use.
-- Fixed light batching with Rendergraph2D passes.
-- Fixed NullReferenceException being thrown when opening Light Explorer with 2D Lights.
-- Fixed camera stacking causing a blackscreen and RG null pointer exception error.
-- Fixed the warnings that appear in `GlobalIllumination.hlsl` regarding gradient instruction used in a loop.
-- Fixed an issue where keywords used in Post Processing were also stripped in other shaders.
-- Fixed various errors that appeared when Strict Variant Matching is enabled.
-- Fixed an issue so that deferred rendering now works correctly in builds with Accurate GBuffer Normals enabled.
-- Fixed an issue where the main light shadows were incorrect if the scene and game windows were open.
-- Fixed an issue where instantiating and destroying cameras, with Volume Update Mode set to ViaScripting, would allocate each time.
-- Fixed the HDR output so it is no longer overly saturated because of a Color Grading variant not included in builds.
-- Fixed the additional light shadows and soft shadows missing on transparent lit objects when using the deferred renderer.
-- Fixed an issue where the Depth Priming check was accidentally removed, which caused CI failures.
-- Fixed an issue where **Write Rendering Layers** was sometimes incorrectly enabled in Deferred Rendering.
-- Fixed the missing LOD-CrossFade and Alpha-Clip support in URP's motion vector pass.
-- Fixed the offscreen depth pass in the RenderGraph path.
-- Changed the ScreenSpace Decals sorting criteria to the same criteria used by DBuffer Decals.
-- Fixed an issue where alpha clipping was not working with Unlit shader's DepthNormal pass.
-- Disabled negative color and NaN write to TAA history.
-- Fixed gbuffer resource leak in URP deferred.
-- Fixed LOD crossfade when rendering with BatchRendererGroup.
-- Added vertex SH option to URP rendering and fixed HL2 forward light perf regression.
-- Fixed releasing releasing unnecessary Render Targets when using multiple cameras with different Renderer Assets.
-- Fixed a null exception when adding a sorting layer.
-- Fixed color and depth mismatch when scaling is on.
-- 2D - Fix uninitialized SpriteProps in CanvasRenderer
-
-## [15.0.3] - 2022-12-02
-
-This version is compatible with Unity 2023.2.0a1.
-
-### Changed
-- Improved shadow atlas building performance when there are a lot of lights.
-- Deprecated ScriptableRenderPipelineExtensionAttributeand LightingExplorerExtensionAttribute.
-- Removed support for GLES2.0 and WebGL1.0.
-- Disabled HDRP Global Settings when HDRP is not active.
-- Removed shader parameters used by additional lights when additional lights are disabled in URP Assets.
-- Added Shader Keyword Prefiltering for LOD Crossfade.
-- Improved the stability and robustness of the Lens Flare Screen Space effect.
-
-### Fixed
-- Fixed an issue where a ParticlesUnlit.mat warning appeared when creating a new material.
-- Fixed **High Dynamic Range** Grading Mode variants getting needlessly stripped when **Strip Unused Post Processing Variants** was selected (even though it's not a volume feature and is part of the UPR asset).
-- Fixed an issue in deferred rendering mode where the Material inspector would log errors about color and depth dimensions not matching.
-- Fixed decals for foveated rendering.
-- Fixed artifacts that could appear in _MotionVectorTexture for some platforms.
-- Released render targets of non-used renderers.
-- Fixed post-process effects in scene view shaded mode.
-- Fixed an issue with slower build-times caused by large Additional Light Shadows arrays in URP Shaders.
 - Fixed ComplexLit mixed lighting by matching ComplexLit shader keywords with the Lit shader.
 - Fixed an issue causing materials using Shader Graphs with material override to disappear when using the Deferred rendering path if alpha clipping is enabled in the material.
-- Enabled Global Settings to always upgrade when opening an old URP project.
-- Fixed a missing keyword in ParticleLit for Lightmap shadow mixing.
-- Enabled RenderObjects Render Features to now render correctly when injected after rendering.
-- Fixed an issue causing GPU hangs when using Forward+ for the default renderer while using Forward or Deferred for the active camera renderer.
-- Fixed 2D game view flickering when using URP Pixel Perfect and Cinemachine Pixel Perfect Extension.
-- Fixed an issue where the Universal Renderer could incorrectly clear the render target during the forward opaques pass even if the render target contains valid rendering data produced by a pass that ran before opaque rendering.
+- Fixed y-flipped shading on gizmos in game view.
+- Fixed a light cookie out of bounds.
+- Fixed an issue causing Dynamic Resolution to be disabled during URP rendering.
+- Fixed a missing keyword in ParticlesSimpleLit for Lightmap shadow mixing.
+- Fixed Reflection Probe baking throwing errors with Render Scale set not to 1
+- Fixed issue where disabling/enabling ShadowCaster2Ds can create duplicate shadows.
+- Fixed an issue so that deferred rendering now works correctly in builds with Accurate GBuffer Normals enabled.
+- Fixed the 2D Sprite Light & Freeform Light fast normal map quality setting to correctly use the normal map.
+- Fixed a bug with the shadow mesh bounds of ShadowCaster2D so that shadows no longer disappear.
+- Fixed GC.Allocs with sorting layers in Light2D.
+- Prevent negative color and NaN write to TAA history.
+- Fixed an issue where scenes were not marked dirty after changing the volume update setting on cameras.
+- Fixed resource leak in URP deferred.
+- Added vertex SH option to URP rendering and fixed HL2 forward light perf regression.
+- Fixed an issue where instantiating and destroying cameras, with Volume Update Mode set to ViaScripting, would allocate each time
+- 2d - Fix null exception when adding a sorting layer
+- Fixed an issue where main light shadows were incorrect if scene and game windows were open.
 
-## [15.0.2] - 2022-11-04
+## [14.0.5] - 2022-12-12
 
-This version is compatible with Unity 2023.1.0a23.
-
-### Added
-- Added Clearing of Multi Render Targets in RenderingCommandBuffer.
+This version is compatible with Unity 2022.2.4f1.
 
 ### Changed
-- Improved the name for Dynamic Resolution property.
-- Light soft shadow quality setting in URPAsset which lights use by default. Per light override is still possible.
-- Messages regarding reducing resolution for additional punctual lights are now only displayed in debug builds.
-- Removed Volume Update Mode from Additional Settings.
-- Improved visual quality of FXAA so it no longer introduces structured noise and blurring. Performance should be mostly unchanged.
-- Removed the remaining obsolete usages of render targets to use RTHandles properly.
-- Replaced CustomEditorForRenderPipeline and VolumeComponentMenuForRenderPipeline with separate attributes.
-- Disabled support for using Depth32Stencil8 format on Android due to crashes.
+- Shader parameters used by additional lights are now removed when additional lights are disabled in URP Assets.
 
 ### Fixed
-- Added force depth prepass option when requesting the Depth Texture.
-- Fixed memory leak issue in URP deferred when resizing preview camera window.
-- Fixed an issue that the Shaders now correctly fallback to error shader.
-- Fixed decals to produce correct world to tangent matrix.
-- Fixed decals to pass correct viewDirectionWS to screen space and gbuffer lighting.
-- Fixed instacing error when decals loaded, but not the decal shaders.
-- Fixed issue where selecting the URP asset could break HDRP blitter when HDRP is the active pipeline.
-- Fixed soft shadow filtering quality when using large empty shadow atlas. Use allocated atlas size instead of requested size.
-- Display Stats is now always shown in the first position on the Rendering Debugger.
-- Fixed an issue and OnMouseOver now works with camera stacking.
-- Fixed light banding artifacts on normal maps.
-- Disabled depth priming on GLES when MSAA is enabled.
-- Disabled depth priming when baking reflection probes.
-- Fixed incorrect blit material set during Pixel Perfect Upscale pass.
 - Set default contribution to 0 for ColorLookup VolumeComponent, which makes the interpolation with the implicit default global volume behave as expected.
-- Fixed graphics stereo tests.
-- Fixed for BatchRendererGroup global SH values and the URP unity_ProbesOcclusion that use float16 on iOS, which caused rendering problems.
-- Fixed a resource leak when switching between scenes with different pipeline assets.
-- Fixed the TerrainLit shader so that mixed light baking now works with shadow mask.
-- Fixed lens flare position and occlusion for all OpenGL APIs.
-- Added missing URL links to decal projector and 2D shadow casters.
-- Fixed a case where TAA was flickering in XR.
-- Fixed rare iOS shader building failure due to URP Lit Forward Pass shader varyings struct variable mismatch.
-- Fixed SSAO in rendergraph on the SetSourceSize call.
-- Fixed SSAO in URP when using non-uniform rendering.
-- Fixed render scale with SMAA.
 - Fixed Full Screen Pass functionality when used with XR.
+- RenderObjects Render Features now render correctly when injected after rendering.
+- Fixed an issue in deferred rendering mode where the Material inspector would log errors about color and depth dimensions not matching.
+- Fixed an issue where a ParticlesUnlit.mat warning appeared when creating a new material.
+- Fixed an issue with slower build-times caused by large Additional Light Shadows arrays in URP Shaders.
+- Fixed a bug where lights with different blend styles may have missing shadows.
+- Fixed mixed lights when using deferred rendering and shadow mask.
+- Fixed releasing render targets when using multiple renderers.
+- Fixed an issue where the Universal Renderer could incorrectly clear the render target during the forward opaques pass even if the render target contains valid rendering data produced by a pass that ran before opaque rendering.
 
-### Removed
-- Obsoleted ClipType, PolyType, PolyFillType, JoinType, and EndType enums from clipper.
+## [14.0.4] - 2022-11-04
 
-## [15.0.1] - 2022-08-04
-
-This version is compatible with Unity 2023.1.0a19.
+This version is compatible with Unity 2022.2.2f1.
 
 ### Added
 - UniversalRenderPipeline.SingleCameraRequest. Use this as the RequestData parameter in SubmitRenderRequest to render a single camera.
-- Added light cookies stripping.
-- Exposed xrPass to public so that URP users could leverage Core XRSystem API to script XR rendering.
 
 ### Changed
-- Tooltips improvement.
-- Foveated Rendering is now integrated in URP for supported platforms.
-- Improved motion vector pass. It should now use the same matrices as the Lit shader.
-
-### Fixed
-- Fixed Post Processing disabling MSAA on swapbuffer when it's needed.
-- Fixed URP 2D - Fix Light2D upgrading issue with m_AlphaBlendOnOverlap property.
-- Fixed an issue where camera UI inspector's clearFlag was not respected.
-- Fixed a Gizmo and grid artifact in the editor view.
-- Fixed an issue where the material upgrader was showing up when the URP package was being installed.
-- Fixed Gizmos in Game View when using Viewports.
-- Fixed SpeedTree Shadergraph causes errors spammed in console.
-- Fixed specular highlight edges on Android.
-- Fixed depth pre-pass being always executed on GLES devices.
-- Fixed incorrect light brightness when using SimpleLit shader.
-- Fixed a wireframe view issue in URP.
-- Fixed an issue with 2D Spot Light artifacts in light.
-- Fixed alpha discard on Unlit Sprite targets for Shadergraph.
-
-### Removed
-- RenderSingleCamera is now obsolete. Please use RenderPipeline.SubmitRenderRequest with RequestData of the SingleCameraRequest type.
-Graphics: Camera.SubmitRenderRequests is now obsolete. Please use RenderPipeline.SubmitRenderRequest with RequestData of a supported type such as RenderPipeline.StandardRequest.
-
-## [15.0.0] - 2022-06-13
-
-This version is compatible with Unity 2023.1.0a6.
-
-### Added
-- All pre-built URP shaders and URP Shader Graph shaders now support the Mesh LOD cross-fade. Use the UniversalRenderPipelineAsset.lodCrossFadeDitheringType property to select the type of the cross-fade.
-- Add Alpha Clipping to shadergraph options for Sprite sub targets.
-- Added Screen Coordinates Override feature. Adapted post effects to support Screen Coordinates Override. (Used, for example, to support Cluster Display.)
-
-### Changed
-- Changed the samples field to a dropdown: High (12 samples), Medium (8 samples) and Low (4 samples).
-- Changed the the final After Opaque passes to be merged with the last blur pass.
-- Downsampling will now not only affect the AO pass but also the blur passes.
-- Improved Depth test to avoid incorrectly adding AO in places where two objects are far away from one another.
-- Changed light and decal layers to rendering layers.
 - Adapted URP to use Blitter interface for full screen draws.
-- Removed `DRAW_PROCEDURAL` variant for shaders.
-- Factored out full screen blits to utility function.
-- Updated terrain SSAO tests for DX11 and DX12 by using the reference images from Vulkan.
+* Removed `DRAW_PRCEDURAL` variant for shaders.
+* Factored out full screen blits to utility function.
+* Updated terrain SSAO tests for DX11 and DX12 by using the reference images from Vulkan.
 - Improved edge quality for alpha-clipped materials when multisampling is used in URP.
 - Reduced the number of memcpy operations from NativeArray access in URP for performance.
 - Added tooltips for upscaling filters.
@@ -309,13 +92,11 @@ This version is compatible with Unity 2023.1.0a6.
 - SSAO: Downsampling will now not only affect the AO pass but also the blur passes.
 - SSAO: Depth test improved to avoid incorrectly adding AO in places where two objects are far away from one another.
 - Moved Volume Update Mode out of Additional Settings.
+- Messages regarding reducing resolution for additional punctual lights are now only displayed in debug builds.
 - Avoid using Depth32Stencil8 format on Android.
 
 ### Fixed
-- Fixed spot light distance attenuation artefact on some platforms due to fp16 precision issue.
-- Fixed RenderGraph GBuffer pass not rendering.
-- Fixed URP 2D - vertex color for sprite shapes.
-- Fixed URP 2D - incorrect output when post process is enabled.
+- Fixed a crash on standalone profiler executing the URP Upgrader.
 - Fixed so objects don't disappear when using Depth Priming and Rendering Debugger.
 - Improved fallback to single shadow cascade on GLES2.
 - Fixed materials that use Autodesk Interactive shader to convert correctly.
@@ -327,45 +108,50 @@ This version is compatible with Unity 2023.1.0a6.
 - URP: Fixed SSAO being flipped in after opaque.
 - URP: Fixed Decals being flipped.
 - Fixed an issue with Depth Priming when executing the DepthNormals prepass with MSAA on.
+- Fixed Gizmos in Game View when using Viewports (UUM-7069).
+- Fixed SpeedTree Shadergraph causes errors spammed in console.
+- Fixed specular highlight edges on Android.
+- Fixed depth pre-pass being always executed on GLES devices.
+- Fixed incorrect light brightness when using SimpleLit shader.
+- Fixed alpha discard on Unlit Sprite targets for Shadergraph.
 - Fixed 2D Spot Light artifacts in light.
 - Fixed additional light perf regression on Quest.
+- Fixed memory leak issue in URP deferred when resizing preview camera window.
+- Fixed an issue where camera UI inspector's clearFlag is not respected.
+- Fixed issue where selecting the URP asset could break HDRP blitter when HDRP is the active pipeline.
+- Fixed an issue that the Shaders now correctly fallback to error shader.
 - Fixed excessive banding from FSR in URP.
 - Fixed decals correctly handle last batch.
 - Fixed decal msaa error then camera is selected in deferred rendering path.
 - Fixed render scale correctly work with screen size property. This includes decals.
+- Fixed decals to produce correct world to tangent matrix.
+- Fixed decals to pass correct viewDirectionWS to screen space and gbuffer lighting.
 - Fixed decal screen space to work without intermediate texture and DBuffer to force using intermediate texture.
+- Fixed instacing error when decals loaded, but not the decal shaders.
+- Display Stats is now always shown in the first position on the Rendering Debugger.
 - Fixed wireframe view in URP ([UUM-2548](https://jira.unity3d.com/browse/UUM-2548)).
 - 2D - Fixed incorrect blit material set during Pixel Perfect Upscale pass.
+- Disabled depth priming on GLES when MSAA is enabled.
+- Disabled depth priming when baking reflection probes.
+- Fixed a resource leak when switching between scenes with different pipeline assets.
 - Fixed missing Depth Copy texture in Scene view.
-- Fixed an issue in deferred rendering mode where the Material inspector would log errors about color and depth dimensions not matching.
-- Fixed an issue where a ParticlesUnlit.mat warning appeared when creating a new material.
+- Fixed soft shadow filtering quality when using large empty shadow atlas. Use allocated atlas size instead of requested size.
+- Fixed light banding artifacts on normal maps.
+- Fixed render scale with SMAA.
+
+### Removed
+- RenderSingleCamera is now obsolete. Please use RenderPipeline.SubmitRenderRequest with RequestData of the SingleCameraRequest type.
+- Graphics: Camera.SubmitRenderRequests is now obsolete. Please use RenderPipeline.SubmitRenderRequest with RequestData of a supported type such as RenderPipeline.StandardRequest.
 
 ## [14.0.3] - 2021-05-09
 
-This version is compatible with Unity 2022.2.0a14.
-
-### Added
-- Soft Shadows filtering quality as per light option. Low, PCF 3x3 pixel area with fixed offsets which is recommended for mobile. Medium, Tent 5x5 pixel area as the default. High, Tent 7x7 pixel area.
-- Default DOTS compatible loading shader (FallbackLoading.shader).
-- #pragma editor_sync_compilation directive to FallbackError.shader.
-- CommandBuffer variable to RenderingData struct and switched all of the renderer to use that buffer instead of creating local command buffers.
+This version is compatible with Unity 2022.2.0b15.
 
 ### Changed
-- Changed `PostProcessPass` to internal visibility since it's in internal namespace.
-- Removed `SHADER_API_MOBILE` from shaders in cases where it affected quality.
-- Removed `SHADER_HINT_NICE_QUALITY` from shaders.
-- Removed low quality light fade for lighting consistency on both desktop and mobile.
-- Removed SHADER_QUALITY_LOW, SHADER_QUALITY_MEDIUM, SHADER_QUALITY_HIGH from shaders so everything is SHADER_QUALITY_HIGH.
-- Merged the `MaterialError.shader` and `FallbackError.shader`.
 - Added new UI/UX for the converter framework.
 - Changed so Unity exports shader variants information into a file in a temp folder.
 
 ### Fixed
-- Fixed camera sorting layer render target not being allocated in the 2d renderer.
-- Fixed an issue with too many variants being included in ShaderGraph shaders used in URP. [].
-- Fixed an issue in where a user could stack cameras with different renderers and not get a warning in the editor (this is not supported).
-- Fixed decal automatic technique to correctly work with webgl.
-- Fixed ScreenSpaceShadows target which was not bound during draw.
 - Fixed setters so they don't cause an infinite loop in URP pipeline asset.
 - Fixed spot and point light harsh distance falloff artefact on some platforms due to fp16 precision issue.
 - Fixed `_InternalLut` so it isn't released too early and logs warnings when using post-processing in stacked camera's in URP 2D.
@@ -381,12 +167,29 @@ This version is compatible with Unity 2022.2.0a14.
 
 ## [14.0.2] - 2021-02-04
 
-This version is compatible with Unity 2022.2.0a8.
+This version is compatible with Unity 2022.2.0a14.
 
 ### Added
+- Added Soft Shadows filtering quality as per light option. Low, PCF 3x3 pixel area with fixed offsets which is recommended for mobile. Medium, Tent 5x5 pixel area as the default. High, Tent 7x7 pixel area.
+- Added default DOTS compatible loading shader (FallbackLoading.shader)
+- Add #pragma editor_sync_compilation directive to FallbackError.shader
+- Added commandBuffer variable to RenderingData struct and switched all of the renderer to use that buffer instead of creating local command buffers.
 - Added automatic Alpha-To-Coverage feature which improves visual quality for alpha-clipped opaque geometry when MSAA is enabled
 
+### Changed
+- PostProcessPass to internal visibility since it's in Internal namespace.
+- Removed SHADER_API_MOBILE from shaders in cases where it affected quality.
+- Removed SHADER_HINT_NICE_QUALITY from shaders.
+- Removed low quality light fade for lighting consistency on both desktop and mobile.
+- Removed SHADER_QUALITY_LOW, SHADER_QUALITY_MEDIUM, SHADER_QUALITY_HIGH from shaders. Everything is now "SHADER_QUALITY_HIGH".
+- Merged MaterialError.shader and FallbackError.shader
+
 ### Fixed
+- Fixed camera sorting layer render target not being allocated in the 2d renderer [case 1389780](https://issuetracker.unity3d.com/issues/urp-2d-renderer-setrendertarget-function-throws-exception-after-upgrading-project-from-2021-dot-1-to-2022-dot-1)
+- Fixed an issue with too many variants being included in ShaderGraph shaders used in URP. [[case 1378545](https://issuetracker.unity3d.com/issues/some-lit-shaders-are-having-huge-count-of-variants-which-leads-to-project-build-prevention)]
+- Fixed an issue in where a user could stack cameras with different renderers and not get a warning in the editor (this is not supported).
+- Fixed decal automatic technique to correctly work with webgl. [case 1370326](https://issuetracker.unity3d.com/issues/pink-textures-appear-on-decal-projector-when-building-to-webgl2-and-decal-technique-is-set-to-automatic)
+- Fixed ScreenSpaceShadows target which was not bound during draw. [case 1388353](https://issuetracker.unity3d.com/product/unity/issues/guid/1388353/)
 - Use D24_UNorm_S8_UInt depth buffer format on some platforms to improve performance.
 
 ## [14.0.1] - 2021-12-07

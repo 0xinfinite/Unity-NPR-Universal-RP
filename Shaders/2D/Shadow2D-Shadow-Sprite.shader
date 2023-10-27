@@ -3,25 +3,30 @@ Shader "Hidden/Shadow2DShadowSprite"
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
-        _Color("Tint", Color) = (1,1,1,1)
         [HideInInspector] _ShadowColorMask("__ShadowColorMask", Int) = 1
     }
     SubShader
     {
-        Tags { "RenderType"="Opaque" }
+        Tags { "RenderType"="Transparent" }
 
         Cull Off
         BlendOp Add
-        Blend One One
+        Blend One One, One One
         ZWrite Off
         ZTest Always
 
-        // Process the shadow
         Pass
         {
-            Name "Draw Sprite Shadow (R)"
+            //Bit 0: Composite Shadow Bit, Bit 1: Global Shadow Bit
+            Stencil
+            {
+                Ref  0
+                Comp Equal
+                Pass Keep
+                Fail Keep
+            }
 
-            ColorMask R
+            ColorMask [_ShadowColorMask]
 
             HLSLPROGRAM
             #pragma vertex vert
@@ -31,35 +36,32 @@ Shader "Hidden/Shadow2DShadowSprite"
 
             struct Attributes
             {
-                float4 vertex   : POSITION;
-                float2 uv       : TEXCOORD0;
-                float4 color    : COLOR;
+                float4 vertex : POSITION;
+                float2 uv : TEXCOORD0;
             };
 
             struct Varyings
             {
-                float4 vertex   : SV_POSITION;
-                float2 uv       : TEXCOORD0;
-                float4 color    : COLOR;
+                float2 uv : TEXCOORD0;
+                float4 vertex : SV_POSITION;
             };
 
             sampler2D _MainTex;
             float4    _MainTex_ST;
-            float4    _Color;
 
             Varyings vert (Attributes v)
             {
                 Varyings o;
                 o.vertex = TransformObjectToHClip(v.vertex.xyz);
                 o.uv = TRANSFORM_TEX(v.uv, _MainTex);
-                o.color = _Color.a * v.color;
                 return o;
             }
 
             half4 frag(Varyings i) : SV_Target
             {
-                half4 main = i.color * tex2D(_MainTex, i.uv);
-                return half4(main.a, main.a, main.a, main.a);
+                half4 main = tex2D(_MainTex, i.uv);
+                half color = main.a;
+                return half4(color, color, color, color);
             }
             ENDHLSL
         }

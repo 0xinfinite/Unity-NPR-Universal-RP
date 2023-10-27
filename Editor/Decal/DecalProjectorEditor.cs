@@ -397,12 +397,6 @@ namespace UnityEditor.Rendering.Universal
         [DrawGizmo(GizmoType.Selected | GizmoType.Active)]
         static void DrawGizmosSelected(DecalProjector decalProjector, GizmoType gizmoType)
         {
-            float lod = Gizmos.CalculateLOD(decalProjector.transform.position, decalProjector.size.magnitude * 0.25f);
-
-            // skip drawing anything if it will be too small or behind the camera on screen
-            if (lod < 0.1f)
-                return;
-
             UpdateColorsInHandlesIfRequired();
 
             const float k_DotLength = 5f;
@@ -418,45 +412,37 @@ namespace UnityEditor.Rendering.Universal
                 boxHandle.size = scaledSize;
                 bool isVolumeEditMode = editMode == k_EditShapePreservingUV || editMode == k_EditShapeWithoutPreservingUV;
                 bool isPivotEditMode = editMode == k_EditUVAndPivot;
-                if (lod > 0.5f)
+                boxHandle.DrawHull(isVolumeEditMode);
+
+                Vector3 pivot = Vector3.zero;
+                Vector3 projectedPivot = new Vector3(0, 0, scaledPivot.z - .5f * scaledSize.z);
+
+                if (isPivotEditMode)
                 {
-                    boxHandle.DrawHull(isVolumeEditMode);
+                    Handles.DrawDottedLines(new[] { projectedPivot, pivot }, k_DotLength);
                 }
                 else
-                    Handles.DrawWireCube(scaledPivot, scaledSize); // simplify the drawing if too small on screen
-
-                if (lod == 1.0f) // only draw when big enough on screen to be useable
                 {
-                    Vector3 pivot = Vector3.zero;
-                    Vector3 projectedPivot = new Vector3(0, 0, scaledPivot.z - .5f * scaledSize.z);
+                    float arrowSize = scaledSize.z * 0.25f;
+                    Handles.ArrowHandleCap(0, projectedPivot, Quaternion.identity, arrowSize, EventType.Repaint);
+                }
 
-                    if (isPivotEditMode)
-                    {
-                        Handles.DrawDottedLines(new[] { projectedPivot, pivot }, k_DotLength);
-                    }
-                    else
-                    {
-                        float arrowSize = scaledSize.z * 0.25f;
-                        Handles.ArrowHandleCap(0, projectedPivot, Quaternion.identity, arrowSize, EventType.Repaint);
-                    }
+                //draw UV and bolder edges
+                using (new Handles.DrawingScope(Matrix4x4.TRS(decalProjector.transform.position + decalProjector.transform.rotation * new Vector3(scaledPivot.x, scaledPivot.y, scaledPivot.z - .5f * scaledSize.z), decalProjector.transform.rotation, Vector3.one)))
+                {
+                    Vector2 UVSize = new Vector2(
+                        (decalProjector.uvScale.x > k_Limit || decalProjector.uvScale.x < -k_Limit) ? 0f : scaledSize.x / decalProjector.uvScale.x,
+                        (decalProjector.uvScale.y > k_Limit || decalProjector.uvScale.y < -k_Limit) ? 0f : scaledSize.y / decalProjector.uvScale.y
+                    );
+                    Vector2 UVCenter = UVSize * .5f - new Vector2(decalProjector.uvBias.x * UVSize.x, decalProjector.uvBias.y * UVSize.y) - (Vector2)scaledSize * .5f;
 
-                    //draw UV and bolder edges
-                    using (new Handles.DrawingScope(Matrix4x4.TRS(decalProjector.transform.position + decalProjector.transform.rotation * new Vector3(scaledPivot.x, scaledPivot.y, scaledPivot.z - .5f * scaledSize.z), decalProjector.transform.rotation, Vector3.one)))
-                    {
-                        Vector2 UVSize = new Vector2(
-                            (decalProjector.uvScale.x > k_Limit || decalProjector.uvScale.x < -k_Limit) ? 0f : scaledSize.x / decalProjector.uvScale.x,
-                            (decalProjector.uvScale.y > k_Limit || decalProjector.uvScale.y < -k_Limit) ? 0f : scaledSize.y / decalProjector.uvScale.y
-                        );
-                        Vector2 UVCenter = UVSize * .5f - new Vector2(decalProjector.uvBias.x * UVSize.x, decalProjector.uvBias.y * UVSize.y) - (Vector2)scaledSize * .5f;
+                    uvHandles.center = UVCenter;
+                    uvHandles.size = UVSize;
+                    uvHandles.DrawRect(dottedLine: true, screenSpaceSize: k_DotLength);
 
-                        uvHandles.center = UVCenter;
-                        uvHandles.size = UVSize;
-                        uvHandles.DrawRect(dottedLine: true, screenSpaceSize: k_DotLength);
-
-                        uvHandles.center = default;
-                        uvHandles.size = scaledSize;
-                        uvHandles.DrawRect(dottedLine: false, thickness: 3f);
-                    }
+                    uvHandles.center = default;
+                    uvHandles.size = scaledSize;
+                    uvHandles.DrawRect(dottedLine: false, thickness: 3f);
                 }
             }
         }
