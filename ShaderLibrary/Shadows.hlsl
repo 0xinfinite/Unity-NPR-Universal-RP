@@ -53,6 +53,13 @@ TEXTURE2D_SHADOW(_MainLightShadowmapTexture);
 TEXTURE2D_SHADOW(_AdditionalLightsShadowmapTexture);
 SAMPLER_CMP(sampler_LinearClampCompare);
 
+TEXTURE2D_SHADOW(_CachedShadowmap);  //added temporary
+TEXTURE2D_SHADOW(_CachedShadowmapAtlas);
+float4x4    _CachedAdditionalLightsWorldToShadow[MAX_VISIBLE_LIGHTS];
+float4      _CachedAdditionalShadowParams[MAX_VISIBLE_LIGHTS];         // Per-light data
+//float4x4    _CachedShadow;
+//float4 _CachedShadowOffset;
+
 // GLES3 causes a performance regression in some devices when using CBUFFER.
 #ifndef SHADER_API_GLES3
 CBUFFER_START(LightShadows)
@@ -176,6 +183,18 @@ half4 GetAdditionalLightShadowParams(int lightIndex)
         // Same defaults as set in AdditionalLightsShadowCasterPass.cs
         return half4(0, 0, 0, -1);
     #endif
+}
+
+half4 GetCachedAdditionalLightShadowParams(int lightIndex)
+{
+#if defined(ADDITIONAL_LIGHT_CALCULATE_SHADOWS)
+
+    return _CachedAdditionalShadowParams[lightIndex];
+
+#else
+    // Same defaults as set in AdditionalLightsShadowCasterPass.cs
+    return half4(0, 0, 0, -1);
+#endif
 }
 
 half SampleScreenSpaceShadowmap(float4 shadowCoord)
@@ -354,6 +373,58 @@ half AdditionalLightRealtimeShadow(int lightIndex, float3 positionWS, half3 ligh
     #endif
 }
 
+half CachedAdditionalLightShadow(int lightIndex, float3 positionWS, half3 lightDirection) {
+//#if defined(ADDITIONAL_LIGHT_CALCULATE_SHADOWS)
+    ShadowSamplingData shadowSamplingData = GetAdditionalLightShadowSamplingData(lightIndex);
+
+    half4 shadowParams = //half4(1, 1, 0, _CachedShadowOffset.z);//
+        GetCachedAdditionalLightShadowParams(lightIndex);
+
+    int shadowSliceIndex = shadowParams.w;
+    if (shadowSliceIndex < 0)
+        return 1.0;
+
+    half isPointLight = shadowParams.z;
+
+    UNITY_BRANCH
+        if (isPointLight)
+        {
+            // This is a point light, we have to find out which shadow slice to sample from
+            float cubemapFaceId = CubeMapFaceID(-lightDirection);
+            shadowSliceIndex += cubemapFaceId;
+        }
+
+//#if USE_STRUCTURED_BUFFER_FOR_LIGHT_DATA
+  //  float4 shadowCoord = mul(_AdditionalLightsWorldToShadow_SSBO[shadowSliceIndex], float4(positionWS, 1.0));
+//#else
+    float4 shadowCoord = mul(_CachedAdditionalLightsWorldToShadow[shadowSliceIndex], float4(positionWS, 1.0));
+//#endif
+    //float4 shadowCoord = mul(_CachedShadow, float4(positionWS+(lightDirection * _CachedShadowOffset.x), 1.0));
+//
+//    real attenuation = 1;
+//
+//    // Compiler will optimize this branch away as long as isPerspectiveProjection is known at compile time
+//
+//#if (_SHADOWS_SOFT)
+//    if (shadowParams.y > SOFT_SHADOW_QUALITY_OFF)
+//    {
+//        attenuation = SampleShadowmapFiltered(TEXTURE2D_SHADOW_ARGS(_CachedShadowmap, sampler_LinearClampCompare), shadowCoord, shadowSamplingData);
+//    }
+//    else
+//#endif
+//    {
+//        // 1-tap hardware comparison
+//        attenuation = real(SAMPLE_TEXTURE2D_SHADOW(_CachedShadowmap, sampler_LinearClampCompare, shadowCoord.xyz));
+//    }
+
+
+    return //attenuation;//
+    SampleShadowmap(TEXTURE2D_ARGS(_CachedShadowmapAtlas, sampler_LinearClampCompare), shadowCoord, shadowSamplingData, shadowParams, true);
+//#else
+//    return half(1.0);
+//#endif
+}
+
 half GetMainLightShadowFade(float3 positionWS)
 {
     float3 camToPixel = positionWS - _WorldSpaceCameraPos;
@@ -416,8 +487,11 @@ half MainLightShadow(float4 shadowCoord, float3 positionWS, half4 shadowMask, ha
 
 half AdditionalLightShadow(int lightIndex, float3 positionWS, half3 lightDirection, half4 shadowMask, half4 occlusionProbeChannels)
 {
+#if defined(CACHED_SHADOW_ON)
+    half realtimeShadow = min( AdditionalLightRealtimeShadow(lightIndex, positionWS, lightDirection), CachedAdditionalLightShadow(lightIndex, positionWS, lightDirection));
+#else
     half realtimeShadow = AdditionalLightRealtimeShadow(lightIndex, positionWS, lightDirection);
-
+#endif
 #ifdef CALCULATE_BAKED_SHADOWS
     half bakedShadow = BakedShadow(shadowMask, occlusionProbeChannels);
 #else

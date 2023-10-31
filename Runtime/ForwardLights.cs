@@ -445,9 +445,10 @@ namespace UnityEngine.Rendering.Universal.Internal
             }
         }
 
-        void InitializeLightConstants(NativeArray<VisibleLight> lights, int lightIndex, out Vector4 lightPos, out Vector4 lightColor, out Vector4 lightAttenuation, out Vector4 lightSpotDir, out Vector4 lightOcclusionProbeChannel, out uint lightLayerMask, out bool isSubtractive)
+        void InitializeLightConstants(NativeArray<VisibleLight> lights, int lightIndex, out Vector4 lightPos, out Vector4 lightColor, out Vector4 lightAttenuation, out Vector4 lightSpotDir, out Vector4 lightOcclusionProbeChannel, out uint lightLayerMask, out bool isSubtractive,
+            float punctualLightFalloffStart = 0.8f)
         {
-            UniversalRenderPipeline.InitializeLightConstants_Common(lights, lightIndex, out lightPos, out lightColor, out lightAttenuation, out lightSpotDir, out lightOcclusionProbeChannel);
+            UniversalRenderPipeline.InitializeLightConstants_Common(lights, lightIndex, out lightPos, out lightColor, out lightAttenuation, out lightSpotDir, out lightOcclusionProbeChannel, punctualLightFalloffStart);
             lightLayerMask = 0;
             isSubtractive = false;
 
@@ -498,7 +499,8 @@ namespace UnityEngine.Rendering.Universal.Internal
             Vector4 lightPos, lightColor, lightAttenuation, lightSpotDir, lightOcclusionChannel;
             uint lightLayerMask;
             bool isSubtractive;
-            InitializeLightConstants(lightData.visibleLights, lightData.mainLightIndex, out lightPos, out lightColor, out lightAttenuation, out lightSpotDir, out lightOcclusionChannel, out lightLayerMask, out isSubtractive);
+            InitializeLightConstants(lightData.visibleLights, lightData.mainLightIndex, out lightPos, out lightColor, out lightAttenuation, out lightSpotDir, out lightOcclusionChannel, out lightLayerMask, out isSubtractive,
+                UniversalRenderPipeline.asset.punctualLightFalloffStart);
             lightColor.w = isSubtractive ? 0f : 1f;
 
             cmd.SetGlobalVector(LightConstantBuffer._MainLightPosition, lightPos);
@@ -528,7 +530,7 @@ namespace UnityEngine.Rendering.Universal.Internal
                             InitializeLightConstants(lights, i,
                                 out data.position, out data.color, out data.attenuation,
                                 out data.spotDirection, out data.occlusionProbeChannels,
-                                out data.layerMask, out _);
+                                out data.layerMask, out _, UniversalRenderPipeline.asset.punctualLightFalloffStart);
                             additionalLightsData[lightIter] = data;
                             lightIter++;
                         }
@@ -560,7 +562,8 @@ namespace UnityEngine.Rendering.Universal.Internal
                                 out m_AdditionalLightSpotDirections[lightIter],
                                 out m_AdditionalLightOcclusionProbeChannels[lightIter],
                                 out uint lightLayerMask,
-                                out var isSubtractive);
+                                out var isSubtractive,
+                                UniversalRenderPipeline.asset.punctualLightFalloffStart);
 
                             m_AdditionalLightsLayerMasks[lightIter] = math.asfloat(lightLayerMask);
                             m_AdditionalLightColors[lightIter].w = isSubtractive ? 1f : 0f;

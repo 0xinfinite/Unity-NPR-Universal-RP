@@ -67,8 +67,16 @@ float DistanceAttenuation(float distanceSqr, half2 distanceAttenuation)
     float lightAtten = rcp(distanceSqr);
     float2 distanceAttenuationFloat = float2(distanceAttenuation);
 
+    float lightRange = distanceAttenuationFloat.x;
+    float lightRangeSqr = lightRange * lightRange;
+    float fadeStartDistanceSqr = 0.8f * 0.8f * lightRangeSqr;
+    float fadeRangeSqr = (fadeStartDistanceSqr - lightRangeSqr);
+    float lightRangeSqrOverFadeRangeSqr = -lightRangeSqr / fadeRangeSqr;
+    float oneOverLightRangeSqr = 1.0f / max(0.0001f, lightRangeSqr);        //copied from a part of GetPunctualLightDistanceAttenuation() from
+                                                                            //original com.unity.render-pipelines.universal\Runtime\UniversalRenderPipelineCore.cs
+
     // Use the smoothing factor also used in the Unity lightmapper.
-    half factor = half(distanceSqr * distanceAttenuationFloat.x);
+    half factor = half(distanceSqr * oneOverLightRangeSqr);//distanceAttenuationFloat.x);
     half smoothFactor = saturate(half(1.0) - factor * factor);
     smoothFactor = smoothFactor * smoothFactor;
 

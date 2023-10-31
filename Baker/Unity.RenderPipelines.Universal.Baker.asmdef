@@ -1,5 +1,5 @@
 {
-    "name": "Unity.RenderPipelines.Universal.Runtime",
+    "name": "Unity.RenderPipelines.Universal.Baker",
     "rootNamespace": "",
     "references": [
         "GUID:df380645f10b7bc4b97d4f5eb6303d95",

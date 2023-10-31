@@ -487,6 +487,8 @@ namespace UnityEngine.Rendering.Universal
 #endif
         [SerializeField] bool m_ReflectionProbeBoxProjection = false;
 
+        [SerializeField, Range(0,1)] float m_PunctualLightFalloffStart = 0.8f;
+
         // Shadows Settings
         [SerializeField] float m_ShadowDistance = 50.0f;
         [SerializeField] int m_ShadowCascadeCount = 1;
@@ -1267,12 +1269,22 @@ namespace UnityEngine.Rendering.Universal
         }
 
         /// <summary>
-        /// Specifies if this <c>UniversalRenderPipelineAsset</c> should allow box projection for the reflection probes in the scene.
+        /// Add for custom lights : designate falloff starting range with slider
         /// </summary>
         public bool reflectionProbeBoxProjection
         {
             get { return m_ReflectionProbeBoxProjection; }
             internal set { m_ReflectionProbeBoxProjection = value; }
+        }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public float punctualLightFalloffStart
+        {
+            get { return m_PunctualLightFalloffStart; }
+            internal set { m_PunctualLightFalloffStart = value; }
         }
 
         /// <summary>

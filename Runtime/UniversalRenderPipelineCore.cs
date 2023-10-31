@@ -1541,7 +1541,7 @@ namespace UnityEngine.Rendering.Universal
             }
         }
 
-        internal static void GetPunctualLightDistanceAttenuation(float lightRange, ref Vector4 lightAttenuation)
+        internal static void GetPunctualLightDistanceAttenuation(float lightRange, ref Vector4 lightAttenuation, float punctualLightFalloffStart = 0.8f)
         {
             // Light attenuation in universal matches the unity vanilla one (HINT_NICE_QUALITY).
             // attenuation = 1.0 / distanceToLightSqr
@@ -1550,15 +1550,16 @@ namespace UnityEngine.Rendering.Universal
 
             // The current smoothing factor matches the one used in the Unity lightmapper.
             // smoothFactor = (1.0 - saturate((distanceSqr * 1.0 / lightRangeSqr)^2))^2
-            float lightRangeSqr = lightRange * lightRange;
-            float fadeStartDistanceSqr = 0.8f * 0.8f * lightRangeSqr;
-            float fadeRangeSqr = (fadeStartDistanceSqr - lightRangeSqr);
-            float lightRangeSqrOverFadeRangeSqr = -lightRangeSqr / fadeRangeSqr;
-            float oneOverLightRangeSqr = 1.0f / Mathf.Max(0.0001f, lightRangeSqr);
+            //float lightRangeSqr = lightRange * lightRange;
+            //float fadeStartDistanceSqr = 0.8f * 0.8f * lightRangeSqr;
+            //float fadeRangeSqr = (fadeStartDistanceSqr - lightRangeSqr);
+            //float lightRangeSqrOverFadeRangeSqr = -lightRangeSqr / fadeRangeSqr;
+            //float oneOverLightRangeSqr = 1.0f / Mathf.Max(0.0001f, lightRangeSqr);
 
             // On all devices: Use the smoothing factor that matches the GI.
-            lightAttenuation.x = oneOverLightRangeSqr;
-            lightAttenuation.y = lightRangeSqrOverFadeRangeSqr;
+            lightAttenuation.x = lightRange;//oneOverLightRangeSqr;
+            lightAttenuation.y = punctualLightFalloffStart;//lightRange;//lightRangeSqrOverFadeRangeSqr;
+            //lightAttenuation.z = lightRange;
         }
 
         internal static void GetSpotAngleAttenuation(
@@ -1604,7 +1605,8 @@ namespace UnityEngine.Rendering.Universal
         /// <param name="lightAttenuation">The attenuation of the light.</param>
         /// <param name="lightSpotDir">The direction of the light.</param>
         /// <param name="lightOcclusionProbeChannel">The occlusion probe channel for the light.</param>
-        public static void InitializeLightConstants_Common(NativeArray<VisibleLight> lights, int lightIndex, out Vector4 lightPos, out Vector4 lightColor, out Vector4 lightAttenuation, out Vector4 lightSpotDir, out Vector4 lightOcclusionProbeChannel)
+        public static void InitializeLightConstants_Common(NativeArray<VisibleLight> lights, int lightIndex, out Vector4 lightPos, out Vector4 lightColor, out Vector4 lightAttenuation, out Vector4 lightSpotDir, out Vector4 lightOcclusionProbeChannel,
+            float punctualLightFalloffStart = 0.8f)
         {
             lightPos = k_DefaultLightPosition;
             lightColor = k_DefaultLightColor;
@@ -1633,7 +1635,7 @@ namespace UnityEngine.Rendering.Universal
                 Vector4 pos = lightLocalToWorld.GetColumn(3);
                 lightPos = new Vector4(pos.x, pos.y, pos.z, 1.0f);
 
-                GetPunctualLightDistanceAttenuation(lightData.range, ref lightAttenuation);
+                GetPunctualLightDistanceAttenuation(lightData.range, ref lightAttenuation, punctualLightFalloffStart);
 
                 if (lightType == LightType.Spot)
                 {

@@ -71,6 +71,9 @@ namespace UnityEditor.Rendering.Universal
         public SerializedProperty colorGradingLutSize { get; }
         public SerializedProperty useFastSRGBLinearConversion { get; }
 
+        //  Added for custom light
+        public SerializedProperty punctualLightFalloffStartProp { get; }
+
 #if ADAPTIVE_PERFORMANCE_2_0_0_OR_NEWER
         public SerializedProperty useAdaptivePerformance { get; }
 #endif
@@ -149,6 +152,9 @@ namespace UnityEditor.Rendering.Universal
             colorGradingLutSize = serializedObject.FindProperty("m_ColorGradingLutSize");
 
             useFastSRGBLinearConversion = serializedObject.FindProperty("m_UseFastSRGBLinearConversion");
+
+
+            punctualLightFalloffStartProp = serializedObject.FindProperty("m_PunctualLightFalloffStart");
 
 #if ADAPTIVE_PERFORMANCE_2_0_0_OR_NEWER
             useAdaptivePerformance = serializedObject.FindProperty("m_UseAdaptivePerformance");

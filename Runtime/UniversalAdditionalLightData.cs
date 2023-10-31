@@ -59,6 +59,14 @@ namespace UnityEngine.Rendering.Universal
     [URPHelpURL("universal-additional-light-data")]
     public class UniversalAdditionalLightData : MonoBehaviour, ISerializationCallbackReceiver, IAdditionalData
     {
+        [SerializeField, Range(0, 1)] private float m_LightFalloffStartRange = 0.8f;
+
+        public float lightFalloffStartRange
+        {
+            get { return m_LightFalloffStartRange; }
+            set { m_LightFalloffStartRange = value; }
+        }
+
         // Version 0 means serialized data before the version field.
         [SerializeField] int m_Version = 3;
         internal int version

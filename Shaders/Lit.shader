@@ -159,6 +159,10 @@ Shader "Universal Render Pipeline/Lit"
             #pragma multi_compile_fog
             #pragma multi_compile_fragment _ DEBUG_DISPLAY
 
+        //-------------------------------------
+            //  custom global keyword
+            #pragma multi_compile _ CACHED_SHADOW_ON
+
             //--------------------------------------
             // GPU Instancing
             #pragma multi_compile_instancing
@@ -286,6 +290,10 @@ Shader "Universal Render Pipeline/Lit"
             #pragma multi_compile _ DYNAMICLIGHTMAP_ON
             #pragma multi_compile_fragment _ LOD_FADE_CROSSFADE
             #pragma multi_compile_fragment _ _GBUFFER_NORMALS_OCT
+
+            //-------------------------------------
+            //  custom global keyword
+            #pragma multi_compile _ CACHED_SHADOW_ON
 
             //--------------------------------------
             // GPU Instancing

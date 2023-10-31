@@ -259,6 +259,12 @@ namespace UnityEditor.Rendering.Universal
             EditorGUILayout.PropertyField(serialized.reflectionProbeBlendingProp, Styles.reflectionProbeBlendingText);
             EditorGUILayout.PropertyField(serialized.reflectionProbeBoxProjectionProp, Styles.reflectionProbeBoxProjectionText);
             EditorGUI.indentLevel--;
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Punctual Light Settings");
+            EditorGUI.indentLevel++;
+            EditorGUILayout.PropertyField(serialized.punctualLightFalloffStartProp);
+            EditorGUI.indentLevel--;
         }
 
         static void DrawLightingAdditional(SerializedUniversalRenderPipelineAsset serialized, Editor ownerEditor)
