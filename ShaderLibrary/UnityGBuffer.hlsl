@@ -170,6 +170,59 @@ SurfaceData SurfaceDataFromGbuffer(half4 gbuffer0, half4 gbuffer1, half4 gbuffer
     return surfaceData;
 }
 
+FragmentOutput BRDFDataToGbufferAndShadowColor(BRDFData brdfData, InputData inputData, half smoothness, half3 globalIllumination, half occlusion = 1.0, half4 shadowed = half4(0,0,0,1))
+{
+    half3 packedNormalWS = PackNormal(inputData.normalWS);
+
+    uint materialFlags = 0;
+
+#ifdef _RECEIVE_SHADOWS_OFF
+    materialFlags |= kMaterialFlagReceiveShadowsOff;
+#endif
+
+    half3 packedSpecular;
+
+#ifdef _SPECULAR_SETUP
+    materialFlags |= kMaterialFlagSpecularSetup;
+    packedSpecular = brdfData.specular.rgb;
+#else
+    packedSpecular.r = brdfData.reflectivity;
+    packedSpecular.gb = 0.0;
+#endif
+
+#ifdef _SPECULARHIGHLIGHTS_OFF
+    // During the next deferred shading pass, we don't use a shader variant to disable specular calculations.
+    // Instead, we can either silence specular contribution when writing the gbuffer, and/or reserve a bit in the gbuffer
+    // and use this during shading to skip computations via dynamic branching. Fastest option depends on platforms.
+    materialFlags |= kMaterialFlagSpecularHighlightsOff;
+    packedSpecular = 0.0.xxx;
+#endif
+
+#if defined(LIGHTMAP_ON) && defined(_MIXED_LIGHTING_SUBTRACTIVE)
+    materialFlags |= kMaterialFlagSubtractiveMixedLighting;
+#endif
+
+    FragmentOutput output;
+    output.GBuffer0 = half4(brdfData.albedo.rgb, PackMaterialFlags(materialFlags));  // diffuse           diffuse         diffuse         materialFlags   (sRGB rendertarget)
+    output.GBuffer1 = half4(packedSpecular, occlusion);                              // metallic/specular specular        specular        occlusion
+    output.GBuffer2 = half4(packedNormalWS, smoothness);                             // encoded-normal    encoded-normal  encoded-normal  smoothness
+    output.GBuffer3 = half4(globalIllumination, 1);                                  // GI                GI              GI              unused          (lighting buffer)
+#if _RENDER_PASS_ENABLED
+    output.GBuffer4 = inputData.positionCS.z;
+    output.GBuffer5 = shadowed;// half4(additional.shadowed, 1);
+#endif
+//#if OUTPUT_SHADOWMASK
+//    output.GBUFFER_SHADOWMASK = inputData.shadowMask; // will have unity_ProbesOcclusion value if subtractive lighting is used (baked)
+//#endif
+#ifdef _WRITE_RENDERING_LAYERS
+    uint renderingLayers = GetMeshRenderingLayer();
+    output.GBUFFER_LIGHT_LAYERS = float4(EncodeMeshRenderingLayer(renderingLayers), 0.0, 0.0, 0.0);
+#endif
+
+    return output;
+}
+
+
 // This will encode SurfaceData into GBuffer
 FragmentOutput BRDFDataToGbuffer(BRDFData brdfData, InputData inputData, half smoothness, half3 globalIllumination, half occlusion = 1.0)
 {
@@ -259,6 +312,43 @@ BRDFData BRDFDataFromGbuffer(half4 gbuffer0, half4 gbuffer1, half4 gbuffer2)
 
     return brdfData;
 }
+//
+//BRDFData BRDFDataFromGbuffer(half4 gbuffer0, half4 gbuffer1, half4 gbuffer2, out half3 shadowed)
+//{
+//    half3 albedo = gbuffer0.rgb;
+//    half3 specular = gbuffer1.rgb;
+//    uint materialFlags = UnpackMaterialFlags(gbuffer0.a);
+//    half smoothness = gbuffer2.a;
+//
+//    BRDFData brdfData = (BRDFData)0;
+//    half alpha = half(1.0); // NOTE: alpha can get modfied, forward writes it out (_ALPHAPREMULTIPLY_ON).
+//
+//    half3 brdfDiffuse;
+//    half3 brdfSpecular;
+//    half reflectivity;
+//    half oneMinusReflectivity;
+//
+//    if ((materialFlags & kMaterialFlagSpecularSetup) != 0)
+//    {
+//        // Specular setup
+//        reflectivity = ReflectivitySpecular(specular);
+//        oneMinusReflectivity = half(1.0) - reflectivity;
+//        brdfDiffuse = albedo * oneMinusReflectivity;
+//        brdfSpecular = specular;
+//    }
+//    else
+//    {
+//        // Metallic setup
+//        reflectivity = specular.r;
+//        oneMinusReflectivity = 1.0 - reflectivity;
+//        half metallic = MetallicFromReflectivity(reflectivity);
+//        brdfDiffuse = albedo * oneMinusReflectivity;
+//        brdfSpecular = lerp(kDieletricSpec.rgb, albedo, metallic);
+//    }
+//    InitializeBRDFDataDirect(albedo, brdfDiffuse, brdfSpecular, reflectivity, oneMinusReflectivity, smoothness, alpha, brdfData);
+//
+//    return brdfData;
+//}
 
 InputData InputDataFromGbufferAndWorldPosition(half4 gbuffer2, float3 wsPos)
 {

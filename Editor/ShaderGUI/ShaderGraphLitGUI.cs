@@ -3,6 +3,7 @@ using UnityEditor.Rendering.Universal;
 using UnityEditor.Rendering.Universal.ShaderGUI;
 using UnityEngine;
 using static Unity.Rendering.Universal.ShaderUtils;
+using Property = UnityEditor.Rendering.Universal.ShaderGUI.Property;
 
 namespace UnityEditor
 {

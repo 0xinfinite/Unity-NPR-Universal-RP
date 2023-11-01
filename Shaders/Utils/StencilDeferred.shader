@@ -1,37 +1,46 @@
 Shader "Hidden/Universal Render Pipeline/StencilDeferred"
 {
-    Properties {
-        _StencilRef ("StencilRef", Int) = 0
-        _StencilReadMask ("StencilReadMask", Int) = 0
-        _StencilWriteMask ("StencilWriteMask", Int) = 0
+    Properties{
+        _StencilRef("StencilRef", Int) = 0
+        _StencilReadMask("StencilReadMask", Int) = 0
+        _StencilWriteMask("StencilWriteMask", Int) = 0
 
-        _LitPunctualStencilRef ("LitPunctualStencilWriteMask", Int) = 0
-        _LitPunctualStencilReadMask ("LitPunctualStencilReadMask", Int) = 0
-        _LitPunctualStencilWriteMask ("LitPunctualStencilWriteMask", Int) = 0
+        _LitPunctualStencilRef("LitPunctualStencilWriteMask", Int) = 0
+        _LitPunctualStencilReadMask("LitPunctualStencilReadMask", Int) = 0
+        _LitPunctualStencilWriteMask("LitPunctualStencilWriteMask", Int) = 0
 
-        _SimpleLitPunctualStencilRef ("SimpleLitPunctualStencilWriteMask", Int) = 0
-        _SimpleLitPunctualStencilReadMask ("SimpleLitPunctualStencilReadMask", Int) = 0
-        _SimpleLitPunctualStencilWriteMask ("SimpleLitPunctualStencilWriteMask", Int) = 0
+        _SimpleLitPunctualStencilRef("SimpleLitPunctualStencilWriteMask", Int) = 0
+        _SimpleLitPunctualStencilReadMask("SimpleLitPunctualStencilReadMask", Int) = 0
+        _SimpleLitPunctualStencilWriteMask("SimpleLitPunctualStencilWriteMask", Int) = 0
 
-        _LitDirStencilRef ("LitDirStencilRef", Int) = 0
-        _LitDirStencilReadMask ("LitDirStencilReadMask", Int) = 0
-        _LitDirStencilWriteMask ("LitDirStencilWriteMask", Int) = 0
+        _StylizedLitPunctualStencilRef("StylizedLitPunctualStencilWriteMask", Int) = 0
+        _StylizedLitPunctualStencilReadMask("StylizedLitPunctualStencilReadMask", Int) = 0
+        _StylizedLitPunctualStencilWriteMask("StylizedLitPunctualStencilWriteMask", Int) = 0
 
-        _SimpleLitDirStencilRef ("SimpleLitDirStencilRef", Int) = 0
-        _SimpleLitDirStencilReadMask ("SimpleLitDirStencilReadMask", Int) = 0
-        _SimpleLitDirStencilWriteMask ("SimpleLitDirStencilWriteMask", Int) = 0
+        _LitDirStencilRef("LitDirStencilRef", Int) = 0
+        _LitDirStencilReadMask("LitDirStencilReadMask", Int) = 0
+        _LitDirStencilWriteMask("LitDirStencilWriteMask", Int) = 0
 
-        _ClearStencilRef ("ClearStencilRef", Int) = 0
-        _ClearStencilReadMask ("ClearStencilReadMask", Int) = 0
-        _ClearStencilWriteMask ("ClearStencilWriteMask", Int) = 0
+        _SimpleLitDirStencilRef("SimpleLitDirStencilRef", Int) = 0
+        _SimpleLitDirStencilReadMask("SimpleLitDirStencilReadMask", Int) = 0
+        _SimpleLitDirStencilWriteMask("SimpleLitDirStencilWriteMask", Int) = 0
+
+        _StylizedLitDirStencilRef("StylizedLitDirStencilRef", Int) = 0
+        _StylizedLitDirStencilReadMask("StylizedLitDirStencilReadMask", Int) = 0
+        _StylizedLitDirStencilWriteMask("StylizedLitDirStencilWriteMask", Int) = 0
+
+        _ClearStencilRef("ClearStencilRef", Int) = 0
+        _ClearStencilReadMask("ClearStencilReadMask", Int) = 0
+        _ClearStencilWriteMask("ClearStencilWriteMask", Int) = 0
     }
 
-    HLSLINCLUDE
+        HLSLINCLUDE
 
-    #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-    #include "Packages/com.unity.render-pipelines.universal/Shaders/Utils/Deferred.hlsl"
-    #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
-    #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRendering.hlsl"
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Stylized/StylizedLighting.hlsl"
+#include "Packages/com.unity.render-pipelines.universal/Shaders/Utils/Deferred.hlsl"
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRendering.hlsl"
 
     struct Attributes
     {
@@ -255,6 +264,10 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
         half4 gbuffer0 = LOAD_FRAMEBUFFER_INPUT(GBUFFER0, input.positionCS.xy);
         half4 gbuffer1 = LOAD_FRAMEBUFFER_INPUT(GBUFFER1, input.positionCS.xy);
         half4 gbuffer2 = LOAD_FRAMEBUFFER_INPUT(GBUFFER2, input.positionCS.xy);
+        half4 gbuffer5 = half4(0, 0, 0, 1);
+#if defined(GBUFFER_OPTIONAL_SLOT_2)
+            gbuffer5 = LOAD_FRAMEBUFFER_INPUT(GBUFFER5, input.positionCS.xy);
+#endif
         #if defined(_DEFERRED_MIXED_LIGHTING)
         shadowMask = LOAD_FRAMEBUFFER_INPUT(GBUFFER4, input.positionCS.xy);
         #endif
@@ -335,6 +348,22 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
 
             // TODO: if !defined(_SPECGLOSSMAP) && !defined(_SPECULAR_COLOR), force specularColor to 0 in gbuffer code
             color = diffuseColor * surfaceData.albedo + specularColor;
+        #elif defined(_STYLIZEDLIT)
+            #if SHADER_API_MOBILE || SHADER_API_SWITCH
+            // Specular highlights are still silenced by setting specular to 0.0 during gbuffer pass and GPU timing is still reduced.
+            bool materialSpecularHighlightsOff = false;
+            #else
+            bool materialSpecularHighlightsOff = (materialFlags & kMaterialFlagSpecularHighlightsOff);
+            #endif
+            BRDFData brdfData = BRDFDataFromGbuffer(gbuffer0, gbuffer1, gbuffer2);
+            half4 shadowed = half4(0,0,0,0);
+#if defined(GBUFFER_OPTIONAL_SLOT_2) && _RENDER_PASS_ENABLED
+            shadowed = gbuffer5.rgb;
+#endif
+            half4 lightColor = LightingStylizedBased(brdfData, unityLight, inputData.normalWS, inputData.viewDirectionWS, materialSpecularHighlightsOff);
+            color = lerp(
+                lerp(shadowed.rgb, lightColor.rgb, shadowed.a)
+                ,lightColor.rgb, lightColor.a);
         #endif
 
         return half4(color, alpha);
@@ -452,6 +481,12 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             #pragma multi_compile_fragment _ _LIGHT_COOKIES
             #pragma multi_compile_fragment _ _FOVEATED_RENDERING_NON_UNIFORM_RASTER
 
+            #pragma multi_compile _ CACHED_SHADOW_ON
+
+            #pragma multi_compile_fragment _SHADOWCOLOR
+            #pragma multi_compile_fragment _SHADOWCOLORMAP
+            #pragma multi_compile_fragment _WARPMAP
+
             #pragma vertex Vertex
             #pragma fragment DeferredShading
             //#pragma enable_d3d11_debug_symbols
@@ -498,6 +533,57 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             #pragma multi_compile_fragment _ _RENDER_PASS_ENABLED
             #pragma multi_compile_fragment _ _LIGHT_COOKIES
             #pragma multi_compile_fragment _ _FOVEATED_RENDERING_NON_UNIFORM_RASTER
+
+            #pragma multi_compile _ CACHED_SHADOW_ON
+
+            #pragma vertex Vertex
+            #pragma fragment DeferredShading
+            //#pragma enable_d3d11_debug_symbols
+
+            ENDHLSL
+        }
+
+
+            Pass
+        {
+            Name "Deferred Punctual Light (StylizedLit)"
+
+            ZTest GEqual
+            ZWrite Off
+            ZClip false
+            Cull Front
+            Blend One One, Zero One
+            BlendOp Add, Add
+
+            Stencil {
+                Ref[_StylizedLitPunctualStencilRef]
+                ReadMask[_StylizedLitPunctualStencilReadMask]
+                WriteMask[_StylizedLitPunctualStencilWriteMask]
+                Comp Equal
+                Pass Zero
+                Fail Keep
+                ZFail Keep
+            }
+
+            HLSLPROGRAM
+            #pragma exclude_renderers gles gles3 glcore
+            #pragma target 4.5
+
+            #pragma multi_compile _POINT _SPOT
+            #pragma multi_compile_fragment _STYLIZEDLIT
+            #pragma multi_compile_fragment _ _ADDITIONAL_LIGHT_SHADOWS
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT
+            #pragma multi_compile_fragment _ LIGHTMAP_SHADOW_MIXING
+            #pragma multi_compile_fragment _ SHADOWS_SHADOWMASK
+            #pragma multi_compile_fragment _ _GBUFFER_NORMALS_OCT
+            #pragma multi_compile_fragment _ _DEFERRED_MIXED_LIGHTING
+            #pragma multi_compile_fragment _ _SCREEN_SPACE_OCCLUSION
+            #pragma multi_compile_fragment _ _LIGHT_LAYERS
+            #pragma multi_compile_fragment _ _RENDER_PASS_ENABLED
+            #pragma multi_compile_fragment _ _LIGHT_COOKIES
+            #pragma multi_compile_fragment _ _FOVEATED_RENDERING_NON_UNIFORM_RASTER
+
+            #pragma multi_compile _ CACHED_SHADOW_ON
 
             #pragma vertex Vertex
             #pragma fragment DeferredShading
@@ -582,6 +668,55 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
 
             #pragma multi_compile _DIRECTIONAL
             #pragma multi_compile_fragment _SIMPLELIT
+            #pragma multi_compile_fragment _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
+            #pragma multi_compile_fragment _ _DEFERRED_MAIN_LIGHT
+            #pragma multi_compile_fragment _ _DEFERRED_FIRST_LIGHT
+            #pragma multi_compile_fragment _ _ADDITIONAL_LIGHT_SHADOWS
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT
+            #pragma multi_compile_fragment _ LIGHTMAP_SHADOW_MIXING
+            #pragma multi_compile_fragment _ SHADOWS_SHADOWMASK
+            #pragma multi_compile_fragment _ _GBUFFER_NORMALS_OCT
+            #pragma multi_compile_fragment _ _DEFERRED_MIXED_LIGHTING
+            #pragma multi_compile_fragment _ _SCREEN_SPACE_OCCLUSION
+            #pragma multi_compile_fragment _ _LIGHT_LAYERS
+            #pragma multi_compile_fragment _ _RENDER_PASS_ENABLED
+            #pragma multi_compile_fragment _ _LIGHT_COOKIES
+            #pragma multi_compile_fragment _ _FOVEATED_RENDERING_NON_UNIFORM_RASTER
+
+            #pragma vertex Vertex
+            #pragma fragment DeferredShading
+            //#pragma enable_d3d11_debug_symbols
+
+            ENDHLSL
+        }
+
+
+            Pass
+        {
+            Name "Deferred Directional Light (StylizedLit)"
+
+            ZTest NotEqual
+            ZWrite Off
+            Cull Off
+            Blend One SrcAlpha, Zero One
+            BlendOp Add, Add
+
+            Stencil {
+                Ref[_StylizedLitDirStencilRef]
+                ReadMask[_StylizedLitDirStencilReadMask]
+                WriteMask[_StylizedLitDirStencilWriteMask]
+                Comp Equal
+                Pass Keep
+                Fail Keep
+                ZFail Keep
+            }
+
+            HLSLPROGRAM
+            #pragma exclude_renderers gles gles3 glcore
+            #pragma target 4.5
+
+            #pragma multi_compile _DIRECTIONAL
+            #pragma multi_compile_fragment _STYLIZEDLIT
             #pragma multi_compile_fragment _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
             #pragma multi_compile_fragment _ _DEFERRED_MAIN_LIGHT
             #pragma multi_compile_fragment _ _DEFERRED_FIRST_LIGHT
@@ -691,6 +826,10 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
 
             ENDHLSL
         }
+
+
+
+          
     }
 
     FallBack "Hidden/Universal Render Pipeline/FallbackError"

@@ -137,6 +137,8 @@ struct LightingData
     half3 additionalLightsColor;
     half3 vertexLightingColor;
     half3 emissionColor;
+    half  giAdditive;   //added for custom
+    half  giMultiplier;
 };
 
 half3 CalculateLightingColor(LightingData lightingData, half3 albedo)

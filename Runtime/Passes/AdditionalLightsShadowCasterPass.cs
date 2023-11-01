@@ -770,7 +770,9 @@ namespace UnityEngine.Rendering.Universal.Internal
                     }
                     else if (CachedShadowmapManager.manager)
                     {
-                        if (CachedShadowmapManager.manager.LightShadowDict[shadowLight.light])
+                        bool shadowBoundInsideFrustum = GeometryUtility.TestPlanesAABB(GeometryUtility.CalculateFrustumPlanes(renderingData.cameraData.camera), new Bounds(shadowLight.light.transform.position,
+                            shadowLight.light.range*2*Vector3.one));
+                        if (CachedShadowmapManager.manager.LightShadowDict[shadowLight.light] && shadowBoundInsideFrustum)
                         {
                             CachedShadowmap cachedShadow = CachedShadowmapManager.manager.LightShadowDict[shadowLight.light];
                             Matrix4x4 shadowTransform;
@@ -952,6 +954,7 @@ namespace UnityEngine.Rendering.Universal.Internal
                     int cachedIndex = CachedShadowmapManager.manager.LightNumDict[CachedShadowmapManager.manager.LightIdDict[light]];//CachedShadowmapManager.manager.LightNumDict[ CachedShadowmapManager.manager.LightIdDict[light]] ;
                     SetLightId(globalShadowSliceIndex, cachedIndex);
                     m_CachedAdditionalLightIndexToShadowParams[additionalLightIndex] = new Vector4(shadowParams.x, shadowParams.y, shadowParams.z, cachedIndex);
+
                     isValidCachedShadow = true;
                     //Debug.Log("cachedIndex : " + cachedIndex);
                 }

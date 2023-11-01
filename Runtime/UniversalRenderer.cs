@@ -138,6 +138,8 @@ namespace UnityEngine.Rendering.Universal
         RenderingMode m_RenderingMode;
         DepthPrimingMode m_DepthPrimingMode;
         CopyDepthMode m_CopyDepthMode;
+        bool m_DrawOpaque;
+        bool m_DrawTransparent;     //added for custom;
         bool m_DepthPrimingRecommended;
         StencilState m_DefaultStencilState;
         LightCookieManager m_LightCookieManager;
@@ -220,6 +222,9 @@ namespace UnityEngine.Rendering.Universal
             this.m_RenderingMode = data.renderingMode;
             this.m_DepthPrimingMode = data.depthPrimingMode;
             this.m_CopyDepthMode = data.copyDepthMode;
+            this.m_DrawOpaque = data.drawOpaque;
+            this.m_DrawTransparent = data.drawTransparent;
+            
             useRenderPassEnabled = data.useNativeRenderPass && SystemInfo.graphicsDeviceType != GraphicsDeviceType.OpenGLES2;
 
 #if UNITY_ANDROID || UNITY_IOS || UNITY_TVOS
@@ -957,7 +962,7 @@ namespace UnityEngine.Rendering.Universal
 
             bool lastCameraInTheStack = cameraData.resolveFinalTarget;
 
-            if (this.renderingModeActual == RenderingMode.Deferred)
+            if (this.renderingModeActual == RenderingMode.Deferred && m_DrawOpaque)
             {
                 if (m_DeferredLights.UseRenderPass && (RenderPassEvent.AfterRenderingGbuffer == renderPassInputs.requiresDepthNormalAtEvent || !useRenderPassEnabled))
                     m_DeferredLights.DisableFramebufferFetchInput();
@@ -999,32 +1004,35 @@ namespace UnityEngine.Rendering.Universal
                     }
                 }
 
-                DrawObjectsPass renderOpaqueForwardPass = null;
-                if (renderingLayerProvidesRenderObjectPass)
+                if (m_DrawOpaque)
                 {
-                    renderOpaqueForwardPass = m_RenderOpaqueForwardWithRenderingLayersPass;
-                    m_RenderOpaqueForwardWithRenderingLayersPass.Setup(m_ActiveCameraColorAttachment, m_DecalLayersTexture, m_ActiveCameraDepthAttachment);
-                }
-                else
-                    renderOpaqueForwardPass = m_RenderOpaqueForwardPass;
+                    DrawObjectsPass renderOpaqueForwardPass = null;
+                    if (renderingLayerProvidesRenderObjectPass)
+                    {
+                        renderOpaqueForwardPass = m_RenderOpaqueForwardWithRenderingLayersPass;
+                        m_RenderOpaqueForwardWithRenderingLayersPass.Setup(m_ActiveCameraColorAttachment, m_DecalLayersTexture, m_ActiveCameraDepthAttachment);
+                    }
+                    else
+                        renderOpaqueForwardPass = m_RenderOpaqueForwardPass;
 
-                renderOpaqueForwardPass.ConfigureColorStoreAction(opaquePassColorStoreAction);
-                renderOpaqueForwardPass.ConfigureDepthStoreAction(opaquePassDepthStoreAction);
+                    renderOpaqueForwardPass.ConfigureColorStoreAction(opaquePassColorStoreAction);
+                    renderOpaqueForwardPass.ConfigureDepthStoreAction(opaquePassDepthStoreAction);
 
-                // If there is any custom render pass renders to opaque pass' target before opaque pass,
-                // we can't clear color as it contains the valid rendering output.
-                bool hasPassesBeforeOpaque = activeRenderPassQueue.Find(x => (x.renderPassEvent <= RenderPassEvent.BeforeRenderingOpaques) && !x.overrideCameraTarget) != null;
-                ClearFlag opaqueForwardPassClearFlag = (hasPassesBeforeOpaque || cameraData.renderType != CameraRenderType.Base)
-                                                    ? ClearFlag.None
-                                                    : ClearFlag.Color;
+                    // If there is any custom render pass renders to opaque pass' target before opaque pass,
+                    // we can't clear color as it contains the valid rendering output.
+                    bool hasPassesBeforeOpaque = activeRenderPassQueue.Find(x => (x.renderPassEvent <= RenderPassEvent.BeforeRenderingOpaques) && !x.overrideCameraTarget) != null;
+                    ClearFlag opaqueForwardPassClearFlag = (hasPassesBeforeOpaque || cameraData.renderType != CameraRenderType.Base)
+                                                        ? ClearFlag.None
+                                                        : ClearFlag.Color;
 #if ENABLE_VR && ENABLE_XR_MODULE
-                // workaround for DX11 and DX12 XR test failures.
-                // XRTODO: investigate DX XR clear issues.
-                if (SystemInfo.usesLoadStoreActions)
+                    // workaround for DX11 and DX12 XR test failures.
+                    // XRTODO: investigate DX XR clear issues.
+                    if (SystemInfo.usesLoadStoreActions)
 #endif
-                renderOpaqueForwardPass.ConfigureClear(opaqueForwardPassClearFlag, Color.black);
+                        renderOpaqueForwardPass.ConfigureClear(opaqueForwardPassClearFlag, Color.black);
 
-                EnqueuePass(renderOpaqueForwardPass);
+                    EnqueuePass(renderOpaqueForwardPass);
+                }
             }
 
             if (camera.clearFlags == CameraClearFlags.Skybox && cameraData.renderType != CameraRenderType.Overlay)
@@ -1077,33 +1085,35 @@ namespace UnityEngine.Rendering.Universal
                 m_MotionVectorPass.Setup(m_MotionVectorColor, m_MotionVectorDepth);
                 EnqueuePass(m_MotionVectorPass);
             }
-
+            if (m_DrawTransparent)
+            {
 #if ADAPTIVE_PERFORMANCE_2_1_0_OR_NEWER
             if (needTransparencyPass)
 #endif
-            {
-                if (transparentsNeedSettingsPass)
                 {
-                    EnqueuePass(m_TransparentSettingsPass);
+                    if (transparentsNeedSettingsPass)
+                    {
+                        EnqueuePass(m_TransparentSettingsPass);
+                    }
+
+                    // if this is not lastCameraInTheStack we still need to Store, since the MSAA buffer might be needed by the Overlay cameras
+                    RenderBufferStoreAction transparentPassColorStoreAction = cameraTargetDescriptor.msaaSamples > 1 && lastCameraInTheStack ? RenderBufferStoreAction.Resolve : RenderBufferStoreAction.Store;
+                    RenderBufferStoreAction transparentPassDepthStoreAction = lastCameraInTheStack ? RenderBufferStoreAction.DontCare : RenderBufferStoreAction.Store;
+
+                    // If CopyDepthPass pass event is scheduled on or after AfterRenderingTransparent, we will need to store the depth buffer or resolve (store for now until latest trunk has depth resolve support) it for MSAA case
+                    if (requiresDepthCopyPass && m_CopyDepthPass.renderPassEvent >= RenderPassEvent.AfterRenderingTransparents)
+                    {
+                        transparentPassDepthStoreAction = RenderBufferStoreAction.Store;
+
+                        // handle depth resolve on platforms supporting it
+                        if (cameraTargetDescriptor.msaaSamples > 1 && RenderingUtils.MultisampleDepthResolveSupported())
+                            transparentPassDepthStoreAction = RenderBufferStoreAction.Resolve;
+                    }
+
+                    m_RenderTransparentForwardPass.ConfigureColorStoreAction(transparentPassColorStoreAction);
+                    m_RenderTransparentForwardPass.ConfigureDepthStoreAction(transparentPassDepthStoreAction);
+                    EnqueuePass(m_RenderTransparentForwardPass);
                 }
-
-                // if this is not lastCameraInTheStack we still need to Store, since the MSAA buffer might be needed by the Overlay cameras
-                RenderBufferStoreAction transparentPassColorStoreAction = cameraTargetDescriptor.msaaSamples > 1 && lastCameraInTheStack ? RenderBufferStoreAction.Resolve : RenderBufferStoreAction.Store;
-                RenderBufferStoreAction transparentPassDepthStoreAction = lastCameraInTheStack ? RenderBufferStoreAction.DontCare : RenderBufferStoreAction.Store;
-
-                // If CopyDepthPass pass event is scheduled on or after AfterRenderingTransparent, we will need to store the depth buffer or resolve (store for now until latest trunk has depth resolve support) it for MSAA case
-                if (requiresDepthCopyPass && m_CopyDepthPass.renderPassEvent >= RenderPassEvent.AfterRenderingTransparents)
-                {
-                    transparentPassDepthStoreAction = RenderBufferStoreAction.Store;
-
-                    // handle depth resolve on platforms supporting it
-                    if (cameraTargetDescriptor.msaaSamples > 1 && RenderingUtils.MultisampleDepthResolveSupported())
-                        transparentPassDepthStoreAction = RenderBufferStoreAction.Resolve;
-                }
-
-                m_RenderTransparentForwardPass.ConfigureColorStoreAction(transparentPassColorStoreAction);
-                m_RenderTransparentForwardPass.ConfigureDepthStoreAction(transparentPassDepthStoreAction);
-                EnqueuePass(m_RenderTransparentForwardPass);
             }
             EnqueuePass(m_OnRenderObjectCallbackPass);
 

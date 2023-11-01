@@ -24,6 +24,8 @@ namespace UnityEditor.Rendering.Universal
             public static readonly GUIContent DepthPrimingModeLabel = EditorGUIUtility.TrTextContent("Depth Priming Mode", "With depth priming enabled, Unity uses the depth buffer generated in the depth prepass to determine if a fragment should be rendered or skipped during the Base Camera opaque pass. Disabled: Unity does not perform depth priming. Auto: If there is a Render Pass that requires a depth prepass, Unity performs the depth prepass and depth priming. Forced: Unity performs the depth prepass and depth priming.");
             public static readonly GUIContent DepthPrimingModeInfo = EditorGUIUtility.TrTextContent("On Android, iOS, and Apple TV, Unity performs depth priming only in the Forced mode. On tiled GPUs, which are common to those platforms, depth priming might reduce performance when combined with MSAA.");
             public static readonly GUIContent CopyDepthModeLabel = EditorGUIUtility.TrTextContent("Depth Texture Mode", "Controls after which pass URP copies the scene depth. It has a significant impact on mobile devices bandwidth usage. It also allows to force a depth prepass to generate it.");
+            public static readonly GUIContent DrawOpaqueLabel = EditorGUIUtility.TrTextContent("Draw Opaque", "Allow to draw Opaque Objects.");
+            public static readonly GUIContent DrawTransparentLabel = EditorGUIUtility.TrTextContent("Draw Transparent", "Allow to draw Transparent Objects.");
             public static readonly GUIContent RenderPassLabel = EditorGUIUtility.TrTextContent("Native RenderPass", "Enables URP to use RenderPass API. Has no effect on OpenGLES2");
 
             public static readonly GUIContent RenderPassSectionLabel = EditorGUIUtility.TrTextContent("RenderPass", "This section contains properties related to render passes.");
@@ -44,6 +46,8 @@ namespace UnityEditor.Rendering.Universal
         SerializedProperty m_RenderingMode;
         SerializedProperty m_DepthPrimingMode;
         SerializedProperty m_CopyDepthMode;
+        SerializedProperty m_DrawOpaque;
+        SerializedProperty m_DrawTransparent;
         SerializedProperty m_AccurateGbufferNormals;
         SerializedProperty m_UseNativeRenderPass;
         SerializedProperty m_DefaultStencilState;
@@ -59,6 +63,8 @@ namespace UnityEditor.Rendering.Universal
             m_RenderingMode = serializedObject.FindProperty("m_RenderingMode");
             m_DepthPrimingMode = serializedObject.FindProperty("m_DepthPrimingMode");
             m_CopyDepthMode = serializedObject.FindProperty("m_CopyDepthMode");
+            m_DrawOpaque = serializedObject.FindProperty("m_DrawOpaque");
+            m_DrawTransparent = serializedObject.FindProperty("m_DrawTransparent");
             m_AccurateGbufferNormals = serializedObject.FindProperty("m_AccurateGbufferNormals");
             m_UseNativeRenderPass = serializedObject.FindProperty("m_UseNativeRenderPass");
             m_DefaultStencilState = serializedObject.FindProperty("m_DefaultStencilState");
@@ -106,6 +112,9 @@ namespace UnityEditor.Rendering.Universal
             }
 
             EditorGUILayout.PropertyField(m_CopyDepthMode, Styles.CopyDepthModeLabel);
+            EditorGUILayout.PropertyField(m_DrawOpaque, Styles.DrawOpaqueLabel);
+            EditorGUILayout.PropertyField(m_DrawTransparent, Styles.DrawTransparentLabel);
+
 
 
             EditorGUI.indentLevel--;

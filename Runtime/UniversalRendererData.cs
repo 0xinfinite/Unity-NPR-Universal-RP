@@ -156,6 +156,8 @@ namespace UnityEngine.Rendering.Universal
         [SerializeField] RenderingMode m_RenderingMode = RenderingMode.Forward;
         [SerializeField] DepthPrimingMode m_DepthPrimingMode = DepthPrimingMode.Disabled; // Default disabled because there are some outstanding issues with Text Mesh rendering.
         [SerializeField] CopyDepthMode m_CopyDepthMode = CopyDepthMode.AfterTransparents;
+        [SerializeField] bool m_DrawOpaque = true;
+        [SerializeField] bool m_DrawTransparent = true;
 #if UNITY_EDITOR
         // Do not strip accurateGbufferNormals on Mobile Vulkan as some GPUs do not support R8G8B8A8_SNorm, which then force us to use accurateGbufferNormals
         [ShaderKeywordFilter.ApplyRulesIfNotGraphicsAPI(GraphicsDeviceType.Vulkan)]
@@ -262,6 +264,26 @@ namespace UnityEngine.Rendering.Universal
             {
                 SetDirty();
                 m_CopyDepthMode = value;
+            }
+        }
+
+        public bool drawOpaque
+        {
+            get => m_DrawOpaque;
+            set
+            {
+                SetDirty();
+                m_DrawOpaque = value;
+            }
+        }
+
+        public bool drawTransparent
+        {
+            get => m_DrawTransparent;
+            set
+            {
+                SetDirty();
+                m_DrawTransparent = value;
             }
         }
 
