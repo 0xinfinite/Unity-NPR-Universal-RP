@@ -1221,6 +1221,9 @@ namespace UnityEngine.Rendering.Universal
 
         /// <summary> Keyword used for Drawing procedurally.</summary>
         public const string UseDrawProcedural = "_USE_DRAW_PROCEDURAL";
+
+        //Custom keywords below
+        public const string CachedShadow = "CACHED_SHADOW_ON";
     }
 
     public sealed partial class UniversalRenderPipeline

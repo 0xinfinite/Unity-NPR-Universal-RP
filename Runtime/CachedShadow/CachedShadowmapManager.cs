@@ -11,7 +11,7 @@ public class CachedShadowmapManager : MonoBehaviour
 
 
     static int cachedShadowmapId = Shader.PropertyToID("_CachedShadowmapAtlas");
-    private GlobalKeyword cachedShadowKeyword;
+    //private GlobalKeyword cachedShadowKeyword;
 
     private Dictionary<int, int> lightNumDict;
 
@@ -47,7 +47,7 @@ public class CachedShadowmapManager : MonoBehaviour
     {
         lightIdDict = new Dictionary<Light, int>();
         lightNumDict = new Dictionary<int, int>();
-        cachedShadowKeyword = GlobalKeyword.Create("CACHED_SHADOW_ON");
+        //cachedShadowKeyword = GlobalKeyword.Create("CACHED_SHADOW_ON");
 
         CachedShadowmap[] cachedShadows = GameObject.FindObjectsOfType<CachedShadowmap>();
 
@@ -71,13 +71,13 @@ public class CachedShadowmapManager : MonoBehaviour
         }
     }
 
-    private void OnEnable()
-    {
-        if (lightNumDict != null && lightNumDict.Count > 0)
-        {
-            Shader.SetKeyword(cachedShadowKeyword, true); 
-        }
-    }
+    //private void OnEnable()
+    //{
+        //if (lightNumDict != null && lightNumDict.Count > 0)
+        //{
+        //    Shader.SetKeyword(cachedShadowKeyword, true); 
+        //}
+    //}
 
     // Start is called before the first frame update
     void Start()
@@ -127,8 +127,8 @@ public class CachedShadowmapManager : MonoBehaviour
         //}
     //}
 
-    private void OnDisable()
-    {
-        Shader.SetKeyword(cachedShadowKeyword, false);
-    }
+    //private void OnDisable()
+    //{
+    //    Shader.SetKeyword(cachedShadowKeyword, false);
+    //}
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Unity.Collections;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Experimental.Rendering.RenderGraphModule;
+using static Unity.Burst.Intrinsics.X86.Avx;
 
 namespace UnityEngine.Rendering.Universal.Internal
 {
@@ -237,7 +238,7 @@ namespace UnityEngine.Rendering.Universal.Internal
                 #if DEVELOPMENT_BUILD
                 if (!m_IssuedMessageAboutPointLightHardShadowResolutionTooSmall)
                 {
-                    Debug.LogWarning("Too many additional punctual lights shadows, increase shadow atlas size or remove some shadowed lights");
+                    //Debug.LogWarning("Too many additional punctual lights shadows, increase shadow atlas size or remove some shadowed lights");
                     m_IssuedMessageAboutPointLightHardShadowResolutionTooSmall = true; // Only output this once per shadow requests configuration
                 }
                 #endif
@@ -264,7 +265,7 @@ namespace UnityEngine.Rendering.Universal.Internal
                     #if DEVELOPMENT_BUILD
                     if (!m_IssuedMessageAboutPointLightSoftShadowResolutionTooSmall)
                     {
-                        Debug.LogWarning("Too many additional punctual lights shadows to use Soft Shadows. Increase shadow atlas size, remove some shadowed lights or use Hard Shadows.");
+                        //Debug.LogWarning("Too many additional punctual lights shadows to use Soft Shadows. Increase shadow atlas size, remove some shadowed lights or use Hard Shadows.");
                         // With such small resolutions no fovBias can give good visual results
                         m_IssuedMessageAboutPointLightSoftShadowResolutionTooSmall = true; // Only output this once per shadow requests configuration
                     }
@@ -423,13 +424,13 @@ namespace UnityEngine.Rendering.Universal.Internal
             #if DEVELOPMENT_BUILD
             if (!m_IssuedMessageAboutShadowMapsTooBig && tooManyShadows)
             {
-                Debug.LogWarning($"Too many additional punctual lights shadows. URP tried reducing shadow resolutions by {shadowSlicesScaleFactor} but it was still too much. Increase shadow atlas size, decrease big shadow resolutions, or reduce the number of shadow maps active in the same frame (currently was {totalShadowSlicesCount}).");
+                //Debug.LogWarning($"Too many additional punctual lights shadows. URP tried reducing shadow resolutions by {shadowSlicesScaleFactor} but it was still too much. Increase shadow atlas size, decrease big shadow resolutions, or reduce the number of shadow maps active in the same frame (currently was {totalShadowSlicesCount}).");
                 m_IssuedMessageAboutShadowMapsTooBig = true; // Only output this once per shadow requests configuration
             }
 
             if (!m_IssuedMessageAboutShadowMapsRescale && shadowSlicesScaleFactor > 1)
             {
-                Debug.Log($"Reduced additional punctual light shadows resolution by {shadowSlicesScaleFactor} to make {totalShadowSlicesCount} shadow maps fit in the {atlasSize}x{atlasSize} shadow atlas. To avoid this, increase shadow atlas size, decrease big shadow resolutions, or reduce the number of shadow maps active in the same frame");
+                //Debug.Log($"Reduced additional punctual light shadows resolution by {shadowSlicesScaleFactor} to make {totalShadowSlicesCount} shadow maps fit in the {atlasSize}x{atlasSize} shadow atlas. To avoid this, increase shadow atlas size, decrease big shadow resolutions, or reduce the number of shadow maps active in the same frame");
                 m_IssuedMessageAboutShadowMapsRescale = true; // Only output this once per shadow requests configuration
             }
             #endif
@@ -514,7 +515,7 @@ namespace UnityEngine.Rendering.Universal.Internal
             using var profScope = new ProfilingScope(null, m_ProfilingSetupSampler);
 
             Clear();
-
+            
             renderTargetWidth = renderingData.shadowData.additionalLightsShadowmapWidth;
             renderTargetHeight = renderingData.shadowData.additionalLightsShadowmapHeight;
 
@@ -628,7 +629,7 @@ namespace UnityEngine.Rendering.Universal.Internal
             {
                 if (!m_IssuedMessageAboutRemovedShadowSlices)
                 {
-                    Debug.LogWarning($"Too many additional punctual lights shadows to look good, URP removed {totalShadowResolutionRequestsCount - totalShadowSlicesCount } shadow maps to make the others fit in the shadow atlas. To avoid this, increase shadow atlas size, remove some shadowed lights, replace soft shadows by hard shadows ; or replace point lights by spot lights");
+                    //Debug.LogWarning($"Too many additional punctual lights shadows to look good, URP removed {totalShadowResolutionRequestsCount - totalShadowSlicesCount } shadow maps to make the others fit in the shadow atlas. To avoid this, increase shadow atlas size, remove some shadowed lights, replace soft shadows by hard shadows ; or replace point lights by spot lights");
                     m_IssuedMessageAboutRemovedShadowSlices = true;  // Only output this once per shadow requests configuration
                 }
             }
@@ -695,7 +696,7 @@ namespace UnityEngine.Rendering.Universal.Internal
                     if (!m_IssuedMessageAboutShadowSlicesTooMany)
                     {
                         // This case can especially happen in Deferred, where there can be a high number of visibleLights
-                        Debug.Log($"There are too many shadowed additional punctual lights active at the same time, URP will not render all the shadows. To ensure all shadows are rendered, reduce the number of shadowed additional lights in the scene ; make sure they are not active at the same time ; or replace point lights by spot lights (spot lights use less shadow maps than point lights).");
+                        //Debug.Log($"There are too many shadowed additional punctual lights active at the same time, URP will not render all the shadows. To ensure all shadows are rendered, reduce the number of shadowed additional lights in the scene ; make sure they are not active at the same time ; or replace point lights by spot lights (spot lights use less shadow maps than point lights).");
                         m_IssuedMessageAboutShadowSlicesTooMany = true; // Only output this once
                     }
                     #endif
@@ -719,6 +720,7 @@ namespace UnityEngine.Rendering.Universal.Internal
 
                         if (IsValidShadowCastingLight(ref renderingData.lightData, visibleLightIndex))
                         {
+                            //Debug.Log("additionalLightIndex : " + additionalLightIndex);
                             if (m_VisibleLightIndexToSortedShadowResolutionRequestsFirstSliceIndex[visibleLightIndex] == -1)
                             {
                                 // We could not find place in the shadow atlas for shadow maps of this light.
@@ -754,7 +756,7 @@ namespace UnityEngine.Rendering.Universal.Internal
                                             //SetLightId(light, additionalLightIndex);
                                             int cachedIndex = CachedShadowmapManager.manager.LightNumDict[CachedShadowmapManager.manager.LightIdDict[light]];//CachedShadowmapManager.manager.LightNumDict[ CachedShadowmapManager.manager.LightIdDict[light]] ;
                                             SetLightId(globalShadowSliceIndex, cachedIndex);
-                                            m_CachedAdditionalLightIndexToShadowParams[globalShadowSliceIndex] = new Vector4(shadowParams.x, shadowParams.y, shadowParams.z, cachedIndex);
+                                            m_CachedAdditionalLightIndexToShadowParams[additionalLightIndex] = new Vector4(shadowParams.x, shadowParams.y, shadowParams.z, cachedIndex);
                                             //Debug.Log("cachedIndex : " + cachedIndex);
                                         }
                                     }
@@ -795,7 +797,7 @@ namespace UnityEngine.Rendering.Universal.Internal
                                         {
                                             int cachedIndex = CachedShadowmapManager.manager.LightNumDict[CachedShadowmapManager.manager.LightIdDict[light]]+perLightShadowSlice;// CachedShadowmapManager.manager.LightNumDict[CachedShadowmapManager.manager.LightIdDict[light]] + perLightShadowSlice;
                                             SetLightId(globalShadowSliceIndex, cachedIndex);
-                                            m_CachedAdditionalLightIndexToShadowParams[globalShadowSliceIndex] = new Vector4( shadowParams.x, shadowParams.y, shadowParams.z,
+                                            m_CachedAdditionalLightIndexToShadowParams[additionalLightIndex] = new Vector4(shadowParams.x, shadowParams.y, shadowParams.z,
                                                 CachedShadowmapManager.manager.LightNumDict[CachedShadowmapManager.manager.LightIdDict[light]]);
                                             //Debug.Log("cachedIndex : " + cachedIndex);
                                         }
@@ -818,7 +820,12 @@ namespace UnityEngine.Rendering.Universal.Internal
 
             if (CachedShadowmapManager.manager && CachedShadowmapManager.manager.CachedShadowmapAtlas != null)
             {
+                CoreUtils.SetKeyword(renderingData.commandBuffer, ShaderKeywordStrings.CachedShadow, true);
                 SliceCachedShadowMatrices(shadowCastingLightsBufferCount);
+            }
+            else
+            {
+                CoreUtils.SetKeyword(renderingData.commandBuffer, ShaderKeywordStrings.CachedShadow, false);
             }
 
             // Trim shadow atlas dimensions if possible (to avoid allocating texture space that will not be used)
@@ -908,10 +915,11 @@ namespace UnityEngine.Rendering.Universal.Internal
 
             for (int globalShadowSliceIndex = 0; globalShadowSliceIndex < shadowCastingLightsBufferCount; ++globalShadowSliceIndex)
             {
+                
                 if (!lightToCachedIndex.ContainsKey(globalShadowSliceIndex)) continue;
 
                 int index = lightToCachedIndex[globalShadowSliceIndex];
-
+                 //Debug.Log("globalShadowSliceIndex : " + globalShadowSliceIndex + " / slice index : " + index);
                 sliceTransform = Matrix4x4.identity;
                 sliceTransform.m00 = scaleOffset; 
                 sliceTransform.m11 = scaleOffset; 
