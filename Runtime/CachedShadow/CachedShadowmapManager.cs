@@ -17,6 +17,10 @@ public class CachedShadowmapManager : MonoBehaviour
 
     private Dictionary<Light,int> lightIdDict;
 
+    private Dictionary<Light, CachedShadowmap> lightShadowDict;
+
+    public Dictionary<Light,CachedShadowmap> LightShadowDict { get { return lightShadowDict; } }
+
     public Dictionary<Light,int> LightIdDict { get { return lightIdDict; } }
 
     public Dictionary<int, int> LightNumDict { get { return lightNumDict; } }
@@ -47,6 +51,7 @@ public class CachedShadowmapManager : MonoBehaviour
     {
         lightIdDict = new Dictionary<Light, int>();
         lightNumDict = new Dictionary<int, int>();
+        lightShadowDict = new Dictionary<Light, CachedShadowmap>();
         //cachedShadowKeyword = GlobalKeyword.Create("CACHED_SHADOW_ON");
 
         CachedShadowmap[] cachedShadows = GameObject.FindObjectsOfType<CachedShadowmap>();
@@ -56,7 +61,7 @@ public class CachedShadowmapManager : MonoBehaviour
         {
             lightIdDict.Add(shadow._Light, shadow._Light.GetInstanceID());
             lightNumDict.Add(shadow._Light.GetInstanceID(), shadow.LightNum);
-
+            lightShadowDict.Add(shadow._Light, shadow);
             //switch (shadow._Light.type)
             //{
             //    case LightType.Spot:
