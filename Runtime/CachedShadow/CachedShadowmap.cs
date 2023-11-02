@@ -49,7 +49,7 @@ public class CachedShadowmap : MonoBehaviour
         {
             case CubemapFace.PositiveX:
                 return ShadowUtils.GetShadowTransform(shaderMat, Matrix4x4.TRS(transform.position, Quaternion.LookRotation(Vector3.right, Vector3.up), Vector3.one));
-                break;
+                
             case CubemapFace.NegativeX:
                 return ShadowUtils.GetShadowTransform(shaderMat, Matrix4x4.TRS(transform.position, Quaternion.LookRotation(Vector3.left, Vector3.up), Vector3.one));
                 

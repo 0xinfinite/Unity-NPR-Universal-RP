@@ -16,6 +16,11 @@
 #else
 #endif
 
+//#if _RENDER_PASS_ENABLED && _STYLIZEDLIT
+//    #define GBUFFER_OPTIONAL_SLOT_1 GBuffer4
+//    #define GBUFFER_OPTIONAL_SLOT_2 GBuffer5
+//    #define GBUFFER_OPTIONAL_SLOT_1_TYPE float
+//#el
 #if _RENDER_PASS_ENABLED
     #define GBUFFER_OPTIONAL_SLOT_1 GBuffer4
     #define GBUFFER_OPTIONAL_SLOT_1_TYPE float
@@ -49,6 +54,7 @@
 #define kLightingInvalid  -1  // No dynamic lighting: can aliase any other material type as they are skipped using stencil
 #define kLightingLit       1  // lit shader
 #define kLightingSimpleLit 2  // Simple lit shader
+#define kLightingStylizedLit 3
 // clearcoat 3
 // backscatter 4
 // skin 5
@@ -170,7 +176,7 @@ SurfaceData SurfaceDataFromGbuffer(half4 gbuffer0, half4 gbuffer1, half4 gbuffer
     return surfaceData;
 }
 
-FragmentOutput BRDFDataToGbufferAndShadowColor(BRDFData brdfData, InputData inputData, half smoothness, half3 globalIllumination, half occlusion = 1.0, half4 shadowed = half4(0,0,0,1))
+FragmentOutput BRDFDataToGbufferStylized(BRDFData brdfData, InputData inputData, half smoothness, half3 globalIllumination, half occlusion = 1.0, half warpMapOffset = 0)
 {
     half3 packedNormalWS = PackNormal(inputData.normalWS);
 
@@ -184,7 +190,7 @@ FragmentOutput BRDFDataToGbufferAndShadowColor(BRDFData brdfData, InputData inpu
 
 #ifdef _SPECULAR_SETUP
     materialFlags |= kMaterialFlagSpecularSetup;
-    packedSpecular = brdfData.specular.rgb;
+    packedSpecular = (brdfData.specular.r+ brdfData.specular.g+ brdfData.specular.b)*0.3333;
 #else
     packedSpecular.r = brdfData.reflectivity;
     packedSpecular.gb = 0.0;
@@ -204,12 +210,12 @@ FragmentOutput BRDFDataToGbufferAndShadowColor(BRDFData brdfData, InputData inpu
 
     FragmentOutput output;
     output.GBuffer0 = half4(brdfData.albedo.rgb, PackMaterialFlags(materialFlags));  // diffuse           diffuse         diffuse         materialFlags   (sRGB rendertarget)
-    output.GBuffer1 = half4(packedSpecular, occlusion);                              // metallic/specular specular        specular        occlusion
+    output.GBuffer1 = half4(packedSpecular.x, warpMapOffset, 0, occlusion);           // metallic/specular warpmap-index   unused-yet      occlusion
     output.GBuffer2 = half4(packedNormalWS, smoothness);                             // encoded-normal    encoded-normal  encoded-normal  smoothness
     output.GBuffer3 = half4(globalIllumination, 1);                                  // GI                GI              GI              unused          (lighting buffer)
 #if _RENDER_PASS_ENABLED
     output.GBuffer4 = inputData.positionCS.z;
-    output.GBuffer5 = shadowed;// half4(additional.shadowed, 1);
+    //output.GBuffer5 = half4(shadowed, warpMapOffset);// half4(additional.shadowed, 1);
 #endif
 //#if OUTPUT_SHADOWMASK
 //    output.GBUFFER_SHADOWMASK = inputData.shadowMask; // will have unity_ProbesOcclusion value if subtractive lighting is used (baked)

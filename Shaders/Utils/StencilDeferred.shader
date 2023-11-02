@@ -116,22 +116,27 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
     TEXTURE2D_X_HALF(_GBuffer0);
     TEXTURE2D_X_HALF(_GBuffer1);
     TEXTURE2D_X_HALF(_GBuffer2);
+    //TEXTURE2D_X_HALF(_GBuffer3);
 
 #if _RENDER_PASS_ENABLED
 
     #define GBUFFER0 0
     #define GBUFFER1 1
     #define GBUFFER2 2
-    #define GBUFFER3 3
+    //#define GBUFFER3 3
 
     FRAMEBUFFER_INPUT_HALF(GBUFFER0);
     FRAMEBUFFER_INPUT_HALF(GBUFFER1);
     FRAMEBUFFER_INPUT_HALF(GBUFFER2);
-    FRAMEBUFFER_INPUT_FLOAT(GBUFFER3);
+    //FRAMEBUFFER_INPUT_FLOAT(GBUFFER3);
     #if OUTPUT_SHADOWMASK
     #define GBUFFER4 4
     FRAMEBUFFER_INPUT_HALF(GBUFFER4);
     #endif
+
+    #define GBUFFER5 5
+    FRAMEBUFFER_INPUT_HALF(GBUFFER5);
+
 #else
     #ifdef GBUFFER_OPTIONAL_SLOT_1
     TEXTURE2D_X_HALF(_GBuffer4);
@@ -142,6 +147,8 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
     TEXTURE2D_X_HALF(_GBuffer5);
     #elif defined(GBUFFER_OPTIONAL_SLOT_2)
     TEXTURE2D_X(_GBuffer5);
+    #elif defined(_STYLIZEDLIT)&& _RENDER_PASS_ENABLED
+    TEXTURE2D_X_HALF(_GBuffer5);
     #endif
     #ifdef GBUFFER_OPTIONAL_SLOT_3
     TEXTURE2D_X(_GBuffer6);
@@ -260,14 +267,16 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
         half4 shadowMask = 1.0;
 
         #if _RENDER_PASS_ENABLED
-        float d        = LOAD_FRAMEBUFFER_INPUT(GBUFFER3, input.positionCS.xy).x;
+        //float d        = LOAD_FRAMEBUFFER_INPUT(GBUFFER3, input.positionCS.xy).x;
+        float4 gbuffer3 = LOAD_FRAMEBUFFER_INPUT(GBUFFER3, input.positionCS.xy);
+        float d = gbuffer3.x;
         half4 gbuffer0 = LOAD_FRAMEBUFFER_INPUT(GBUFFER0, input.positionCS.xy);
         half4 gbuffer1 = LOAD_FRAMEBUFFER_INPUT(GBUFFER1, input.positionCS.xy);
         half4 gbuffer2 = LOAD_FRAMEBUFFER_INPUT(GBUFFER2, input.positionCS.xy);
-        half4 gbuffer5 = half4(0, 0, 0, 1);
-#if defined(GBUFFER_OPTIONAL_SLOT_2)
+        /*half4 gbuffer5 = half4(0, 0, 0, 0);
+#if defined(_STYLIZEDLIT)
             gbuffer5 = LOAD_FRAMEBUFFER_INPUT(GBUFFER5, input.positionCS.xy);
-#endif
+#endif*/
         #if defined(_DEFERRED_MIXED_LIGHTING)
         shadowMask = LOAD_FRAMEBUFFER_INPUT(GBUFFER4, input.positionCS.xy);
         #endif
@@ -278,11 +287,12 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
         half4 gbuffer0 = SAMPLE_TEXTURE2D_X_LOD(_GBuffer0, my_point_clamp_sampler, screen_uv, 0);
         half4 gbuffer1 = SAMPLE_TEXTURE2D_X_LOD(_GBuffer1, my_point_clamp_sampler, screen_uv, 0);
         half4 gbuffer2 = SAMPLE_TEXTURE2D_X_LOD(_GBuffer2, my_point_clamp_sampler, screen_uv, 0);
+        //half4 gbuffer3 = SAMPLE_TEXTURE2D_X_LOD(_GBuffer3, my_point_clamp_sampler, screen_uv, 0);
         #if defined(_DEFERRED_MIXED_LIGHTING)
         shadowMask = SAMPLE_TEXTURE2D_X_LOD(MERGE_NAME(_, GBUFFER_SHADOWMASK), my_point_clamp_sampler, screen_uv, 0);
         #endif
         #endif
-
+        half warpMapOffset = gbuffer1.y;
         half surfaceDataOcclusion = gbuffer1.a;
         uint materialFlags = UnpackMaterialFlags(gbuffer0.a);
 
@@ -356,14 +366,15 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             bool materialSpecularHighlightsOff = (materialFlags & kMaterialFlagSpecularHighlightsOff);
             #endif
             BRDFData brdfData = BRDFDataFromGbuffer(gbuffer0, gbuffer1, gbuffer2);
-            half4 shadowed = half4(0,0,0,0);
-#if defined(GBUFFER_OPTIONAL_SLOT_2) && _RENDER_PASS_ENABLED
-            shadowed = gbuffer5.rgb;
-#endif
-            half4 lightColor = LightingStylizedBased(brdfData, unityLight, inputData.normalWS, inputData.viewDirectionWS, materialSpecularHighlightsOff);
-            color = lerp(
-                lerp(shadowed.rgb, lightColor.rgb, shadowed.a)
-                ,lightColor.rgb, lightColor.a);
+            half giLT = gbuffer2.w;
+      /*      half4 shadowed = half4(0,0,0,0);
+#if defined(_STYLIZEDLIT) && _RENDER_PASS_ENABLED
+            shadowed = gbuffer5;
+#endif*/
+            half4 lightColor = LightingStylizedBased(brdfData, unityLight, inputData.normalWS, inputData.viewDirectionWS, materialSpecularHighlightsOff, warpMapOffset);
+            color = (color,0, lightColor.a) * lightColor.rgb; /*lerp(
+                lerp(shadowed.rgb, lightColor.rgb, giLT)
+                ,lightColor.rgb, lightColor.a);*/
         #endif
 
         return half4(color, alpha);
@@ -482,6 +493,7 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             #pragma multi_compile_fragment _ _FOVEATED_RENDERING_NON_UNIFORM_RASTER
 
             #pragma multi_compile _ CACHED_SHADOW_ON
+            #pragma multi_compile _ WARPMAP_ATLAS
 
             #pragma multi_compile_fragment _SHADOWCOLOR
             #pragma multi_compile_fragment _SHADOWCOLORMAP
@@ -535,6 +547,7 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             #pragma multi_compile_fragment _ _FOVEATED_RENDERING_NON_UNIFORM_RASTER
 
             #pragma multi_compile _ CACHED_SHADOW_ON
+            #pragma multi_compile _ WARPMAP_ATLAS
 
             #pragma vertex Vertex
             #pragma fragment DeferredShading
@@ -584,6 +597,7 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             #pragma multi_compile_fragment _ _FOVEATED_RENDERING_NON_UNIFORM_RASTER
 
             #pragma multi_compile _ CACHED_SHADOW_ON
+            #pragma multi_compile _ WARPMAP_ATLAS
 
             #pragma vertex Vertex
             #pragma fragment DeferredShading

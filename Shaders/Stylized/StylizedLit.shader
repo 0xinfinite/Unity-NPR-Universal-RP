@@ -17,6 +17,7 @@ Shader "Universal Render Pipeline/Stylized Lit"
         _ShadowCastOffset("Shadow Cast offset", Float) = 0.0
         _AdditionalShadowCastOffset("Additional Shadow Cast offset", Float) = 0.0
         _WarpMap("Warp Map For Shading", 2D) = "white" {}
+        _WarpMapIndex("Warp Map Index From Atlas", Integer) = 0
         _BaseMultiplier("Base Map Multiplier", Float) = 1.0
             _GIAdditive("Global Illumination Additive", Range(0.0,1.0)) = 1.0
         _GIMultiplier("Global Illumination Multiplier", Range(0.0, 1.0)) = 1.0
@@ -178,6 +179,7 @@ Shader "Universal Render Pipeline/Stylized Lit"
             //  custom global keyword
             #pragma multi_compile _ MAIN_CHARACTER_SHADOW_ON
             #pragma multi_compile _ CACHED_SHADOW_ON
+            #pragma multi_compile _ WARPMAP_ATLAS
 
             //--------------------------------------
             // GPU Instancing
@@ -313,6 +315,7 @@ Shader "Universal Render Pipeline/Stylized Lit"
             //-------------------------------------
             //  custom global keyword
 #pragma multi_compile _ CACHED_SHADOW_ON
+#pragma multi_compile _ WARPMAP_ATLAS
 
             //--------------------------------------
             // GPU Instancing

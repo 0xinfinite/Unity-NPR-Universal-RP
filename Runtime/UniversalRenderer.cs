@@ -140,6 +140,8 @@ namespace UnityEngine.Rendering.Universal
         CopyDepthMode m_CopyDepthMode;
         bool m_DrawOpaque;
         bool m_DrawTransparent;     //added for custom;
+        Texture2D m_WarpMapAtlas;
+        int m_WarpMapCount;
         bool m_DepthPrimingRecommended;
         StencilState m_DefaultStencilState;
         LightCookieManager m_LightCookieManager;
@@ -224,7 +226,12 @@ namespace UnityEngine.Rendering.Universal
             this.m_CopyDepthMode = data.copyDepthMode;
             this.m_DrawOpaque = data.drawOpaque;
             this.m_DrawTransparent = data.drawTransparent;
-            
+            this.m_WarpMapAtlas = data.warpMapAtlas;
+            this.m_WarpMapCount = data.warpMapCount;
+            m_ForwardLights.warpMapAtlas = m_WarpMapAtlas;
+            m_ForwardLights.warpMapCount = m_WarpMapCount;
+
+
             useRenderPassEnabled = data.useNativeRenderPass && SystemInfo.graphicsDeviceType != GraphicsDeviceType.OpenGLES2;
 
 #if UNITY_ANDROID || UNITY_IOS || UNITY_TVOS
@@ -259,6 +266,8 @@ namespace UnityEngine.Rendering.Universal
                 deferredInitParams.lightCookieManager = m_LightCookieManager;
                 m_DeferredLights = new DeferredLights(deferredInitParams, useRenderPassEnabled);
                 m_DeferredLights.AccurateGbufferNormals = data.accurateGbufferNormals;
+                m_DeferredLights.WarpMapAtlas = data.warpMapAtlas;
+                m_DeferredLights.WarpMapCount = data.warpMapCount;
 
                 m_GBufferPass = new GBufferPass(RenderPassEvent.BeforeRenderingGbuffer, RenderQueueRange.opaque, data.opaqueLayerMask, m_DefaultStencilState, stencilData.stencilReference, m_DeferredLights);
                 // Forward-only pass only runs if deferred renderer is enabled.
@@ -1238,7 +1247,9 @@ namespace UnityEngine.Rendering.Universal
             m_ForwardLights.Setup(context, ref renderingData);
 
             if (this.renderingModeActual == RenderingMode.Deferred)
+            {
                 m_DeferredLights.SetupLights(context, ref renderingData);
+            }
         }
 
         /// <inheritdoc />

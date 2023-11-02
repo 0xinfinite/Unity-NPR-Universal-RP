@@ -7,6 +7,7 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine.Experimental.Rendering.RenderGraphModule;
 using static Unity.Mathematics.math;
+using static Unity.Burst.Intrinsics.X86.Avx;
 //#define URP_HAS_BURST
 
 // TODO SimpleLit material, make sure when variant is !defined(_SPECGLOSSMAP) && !defined(_SPECULAR_COLOR), specular is correctly silenced.
@@ -86,6 +87,8 @@ namespace UnityEngine.Rendering.Universal.Internal
             public static int _ShadowLightIndex = Shader.PropertyToID("_ShadowLightIndex");
             public static int _LightLayerMask = Shader.PropertyToID("_LightLayerMask");
             public static int _CookieLightIndex = Shader.PropertyToID("_CookieLightIndex");
+            public static int _WarpMapAtlas = Shader.PropertyToID("_WarpMapAtlas"); // ForwardLights.LightConstantBuffer also refers to the same ShaderPropertyID - TODO: move this definition to a common location shared by other UniversalRP classes
+            public static int _WarpMapCount = Shader.PropertyToID("_WarpMapCount"); // ForwardLights.LightConstantBuffer also refers to the same ShaderPropertyID - TODO: move this definition to a common location shared by other UniversalRP classes
         }
 
         internal static readonly string[] k_GBufferNames = new string[]
@@ -197,6 +200,23 @@ namespace UnityEngine.Rendering.Universal.Internal
             get { return m_AccurateGbufferNormals; }
             set { m_AccurateGbufferNormals = value || !RenderingUtils.SupportsGraphicsFormat(GraphicsFormat.R8G8B8A8_SNorm, FormatUsage.Render); }
         }
+
+        private Texture2D m_WarpMapAtlas;
+
+        internal Texture2D WarpMapAtlas
+        {
+            get { return m_WarpMapAtlas; }
+            set { m_WarpMapAtlas = value; }
+        }
+
+        private int m_WarpMapCount;
+
+        internal int WarpMapCount
+        {
+            get => m_WarpMapCount; 
+            set { m_WarpMapCount = value; }
+        }
+
         // We browse all visible lights and found the mixed lighting setup every frame.
         internal MixedLightingSetup MixedLightingSetup { get; set; }
         //
@@ -600,6 +620,7 @@ namespace UnityEngine.Rendering.Universal.Internal
                 if (!HasStencilLightsOfType(LightType.Directional))
                     RenderSSAOBeforeShading(cmd, ref renderingData);
 
+                SetWarpMapAtlas(context, cmd, ref renderingData);
                 RenderStencilLights(context, cmd, ref renderingData);
 
                 CoreUtils.SetKeyword(cmd, ShaderKeywordStrings._DEFERRED_MIXED_LIGHTING, false);
@@ -740,6 +761,19 @@ namespace UnityEngine.Rendering.Universal.Internal
         bool HasStencilLightsOfType(LightType type)
         {
             return m_stencilVisLightOffsets[(int)type] != k_InvalidLightOffset;
+        }
+        void SetWarpMapAtlas(ScriptableRenderContext context, CommandBuffer cmd, ref RenderingData renderingData)
+        {
+            if(m_WarpMapAtlas)
+            {
+                CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.WarpMapAtlas, true);
+                cmd.SetGlobalTexture(ShaderConstants._WarpMapAtlas, m_WarpMapAtlas);
+                cmd.SetGlobalInteger(ShaderConstants._WarpMapCount, m_WarpMapCount);
+            }
+            else
+            {
+                CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.WarpMapAtlas, false);
+            }
         }
 
         void RenderStencilLights(ScriptableRenderContext context, CommandBuffer cmd, ref RenderingData renderingData)

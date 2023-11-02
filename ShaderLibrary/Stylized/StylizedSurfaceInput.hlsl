@@ -9,8 +9,8 @@
 TEXTURE2D(_BaseMap);
 SAMPLER(sampler_BaseMap);
 TEXTURE2D(_ShadowColorMap);
-TEXTURE2D(_WarpMap);
-SAMPLER(sampler_WarpMap);
+//TEXTURE2D(_WarpMap);
+//SAMPLER(sampler_WarpMap);
 float4 _BaseMap_TexelSize;
 float4 _BaseMap_MipInfo;
 TEXTURE2D(_BumpMap);

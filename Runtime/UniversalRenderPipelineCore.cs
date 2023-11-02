@@ -1224,6 +1224,7 @@ namespace UnityEngine.Rendering.Universal
 
         //Custom keywords below
         public const string CachedShadow = "CACHED_SHADOW_ON";
+        public const string WarpMapAtlas = "WARPMAP_ATLAS";
     }
 
     public sealed partial class UniversalRenderPipeline

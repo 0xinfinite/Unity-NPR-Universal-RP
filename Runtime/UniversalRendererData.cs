@@ -158,6 +158,8 @@ namespace UnityEngine.Rendering.Universal
         [SerializeField] CopyDepthMode m_CopyDepthMode = CopyDepthMode.AfterTransparents;
         [SerializeField] bool m_DrawOpaque = true;
         [SerializeField] bool m_DrawTransparent = true;
+        [SerializeField] Texture2D m_WarpMapAtlas;
+        [SerializeField] int m_WarpMapCount = 1;
 #if UNITY_EDITOR
         // Do not strip accurateGbufferNormals on Mobile Vulkan as some GPUs do not support R8G8B8A8_SNorm, which then force us to use accurateGbufferNormals
         [ShaderKeywordFilter.ApplyRulesIfNotGraphicsAPI(GraphicsDeviceType.Vulkan)]
@@ -284,6 +286,26 @@ namespace UnityEngine.Rendering.Universal
             {
                 SetDirty();
                 m_DrawTransparent = value;
+            }
+        }
+
+        public Texture2D warpMapAtlas
+        {
+            get => m_WarpMapAtlas;
+            set
+            {
+                SetDirty();
+                m_WarpMapAtlas = value;
+            }
+        }
+
+        public int warpMapCount
+        {
+            get => m_WarpMapCount;
+            set
+            {
+                SetDirty();
+                m_WarpMapCount = value;
             }
         }
 

@@ -19,6 +19,11 @@
     #define OUTPUT_SH(normalWS, OUT) OUT.xyz = SampleSHVertex(normalWS)
 #endif
 
+TEXTURE2D(_WarpMapAtlas);
+SAMPLER(sampler_WarpMapAtlas);
+int _WarpMapCount;
+//float4 _WarpMapAtlas_ST;
+
 /////////////////////////////////////////////////////////////////////////////////
 ////                      Lighting Functions                                   //
 /////////////////////////////////////////////////////////////////////////////////
@@ -37,14 +42,20 @@
 //    return lightColor * specularReflection;
 //}
 
+half2 GetWarpMapUVFromAtlas(half NdotL, half warpMapOffset) {
+    half y = (1.0 / (half)max(_WarpMapCount, 1));
+    return half2(NdotL, warpMapOffset + (y * 0.5));
+}
+
 half4 LightingStylizedBased(BRDFData brdfData, BRDFData brdfDataClearCoat,
     half3 lightColor, half3 lightDirectionWS, half lightAttenuation,
     half3 normalWS, half3 viewDirectionWS,
-    half clearCoatMask, bool specularHighlightsOff)
+    half clearCoatMask, bool specularHighlightsOff, half warpMapOffset = 0)
 {
     half NdotL = saturate(dot(normalWS, lightDirectionWS));
-#if defined(_WARPMAP)
-    NdotL = saturate(SampleAlbedoAlpha(float2(NdotL, 0.5)* _WarpMap_ST.xy + _WarpMap_ST.zw, _WarpMap, sampler_WarpMap).r);
+#if defined(WARPMAP_ATLAS)
+    //half4 warpMapOffset = half4(1, 1, 0, 0);//GetWarpMapOffsetFromAtlas(warpMapIndex);
+    NdotL = saturate(SAMPLE_TEXTURE2D(_WarpMapAtlas, sampler_WarpMapAtlas, GetWarpMapUVFromAtlas(NdotL, warpMapOffset) /** warpMapOffset.xy + warpMapOffset.zw*/).r);
 #endif
     half attenuation = lightAttenuation * NdotL;
     half3 radiance = lightColor; //* attenuation;
@@ -76,9 +87,9 @@ half4 LightingStylizedBased(BRDFData brdfData, BRDFData brdfDataClearCoat,
     return half4(brdf * radiance, attenuation);
 }
 
-half4 LightingStylizedBased(BRDFData brdfData, BRDFData brdfDataClearCoat, Light light, half3 normalWS, half3 viewDirectionWS, half clearCoatMask, bool specularHighlightsOff)
+half4 LightingStylizedBased(BRDFData brdfData, BRDFData brdfDataClearCoat, Light light, half3 normalWS, half3 viewDirectionWS, half clearCoatMask, bool specularHighlightsOff, half warpMapOffset = 0)
 {
-    return LightingStylizedBased(brdfData, brdfDataClearCoat, light.color, light.direction, light.distanceAttenuation * light.shadowAttenuation, normalWS, viewDirectionWS, clearCoatMask, specularHighlightsOff);
+    return LightingStylizedBased(brdfData, brdfDataClearCoat, light.color, light.direction, light.distanceAttenuation * light.shadowAttenuation, normalWS, viewDirectionWS, clearCoatMask, specularHighlightsOff, warpMapOffset);
 }
 
 // Backwards compatibility
@@ -103,10 +114,10 @@ half4 LightingStylizedBased(BRDFData brdfData, half3 lightColor, half3 lightDire
     return LightingStylizedBased(brdfData, light, normalWS, viewDirectionWS);
 }
 
-half4 LightingStylizedBased(BRDFData brdfData, Light light, half3 normalWS, half3 viewDirectionWS, bool specularHighlightsOff)
+half4 LightingStylizedBased(BRDFData brdfData, Light light, half3 normalWS, half3 viewDirectionWS, bool specularHighlightsOff, half warpMapOffset = 0)
 {
     const BRDFData noClearCoat = (BRDFData)0;
-    return LightingStylizedBased(brdfData, noClearCoat, light, normalWS, viewDirectionWS, 0.0, specularHighlightsOff);
+    return LightingStylizedBased(brdfData, noClearCoat, light, normalWS, viewDirectionWS, 0.0, specularHighlightsOff, warpMapOffset);
 }
 
 half4 LightingStylizedBased(BRDFData brdfData, half3 lightColor, half3 lightDirectionWS, half lightAttenuation, half3 normalWS, half3 viewDirectionWS, bool specularHighlightsOff)
@@ -307,7 +318,7 @@ StylizedLightingData CreateStylizedLightingData(InputData inputData, SurfaceData
 ////////////////////////////////////////////////////////////////////////////////
 /// PBR lighting...
 ////////////////////////////////////////////////////////////////////////////////
-half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData, half3 shadowed, float4 offsets, half3 shadowColor)
+half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData, half3 shadowed, float4 offsets, half3 shadowColor, half warpMapOffset = 0)
 {
     float shadowcastOffset = offsets.x;
     float additionalShadowcastOffset = offsets.y;
@@ -357,7 +368,7 @@ half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData, half3 s
         lightingData.mainLightColor = LightingStylizedBased(brdfData, brdfDataClearCoat,
                                                               mainLight,
                                                               inputData.normalWS, inputData.viewDirectionWS,
-                                                              surfaceData.clearCoatMask, specularHighlightsOff);
+                                                              surfaceData.clearCoatMask, specularHighlightsOff, warpMapOffset);
     }
 
     #if defined(_ADDITIONAL_LIGHTS)
@@ -376,7 +387,7 @@ half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData, half3 s
         {
             lightingData.additionalLightsColor += LightingStylizedBased(brdfData, brdfDataClearCoat, light,
                                                                           inputData.normalWS, inputData.viewDirectionWS,
-                                                                          surfaceData.clearCoatMask, specularHighlightsOff);
+                                                                          surfaceData.clearCoatMask, specularHighlightsOff, warpMapOffset);
         }
     }
     #endif
@@ -390,7 +401,7 @@ half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData, half3 s
         {
             lightingData.additionalLightsColor += LightingStylizedBased(brdfData, brdfDataClearCoat, light,
                                                                           inputData.normalWS, inputData.viewDirectionWS,
-                                                                          surfaceData.clearCoatMask, specularHighlightsOff);
+                                                                          surfaceData.clearCoatMask, specularHighlightsOff, warpMapOffset);
         }
     LIGHT_LOOP_END
     #endif

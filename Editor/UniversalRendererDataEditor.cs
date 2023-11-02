@@ -26,6 +26,8 @@ namespace UnityEditor.Rendering.Universal
             public static readonly GUIContent CopyDepthModeLabel = EditorGUIUtility.TrTextContent("Depth Texture Mode", "Controls after which pass URP copies the scene depth. It has a significant impact on mobile devices bandwidth usage. It also allows to force a depth prepass to generate it.");
             public static readonly GUIContent DrawOpaqueLabel = EditorGUIUtility.TrTextContent("Draw Opaque", "Allow to draw Opaque Objects.");
             public static readonly GUIContent DrawTransparentLabel = EditorGUIUtility.TrTextContent("Draw Transparent", "Allow to draw Transparent Objects.");
+            public static readonly GUIContent WarpMapLabel = EditorGUIUtility.TrTextContent("Warp Map", "Warp Map for Shading");
+            public static readonly GUIContent WarpMapCountLabel = EditorGUIUtility.TrTextContent("Warp Map", "Warp Map Count for Shading");
             public static readonly GUIContent RenderPassLabel = EditorGUIUtility.TrTextContent("Native RenderPass", "Enables URP to use RenderPass API. Has no effect on OpenGLES2");
 
             public static readonly GUIContent RenderPassSectionLabel = EditorGUIUtility.TrTextContent("RenderPass", "This section contains properties related to render passes.");
@@ -48,6 +50,8 @@ namespace UnityEditor.Rendering.Universal
         SerializedProperty m_CopyDepthMode;
         SerializedProperty m_DrawOpaque;
         SerializedProperty m_DrawTransparent;
+        SerializedProperty m_WarpMapAtlas;
+        SerializedProperty m_WarpMapCount;
         SerializedProperty m_AccurateGbufferNormals;
         SerializedProperty m_UseNativeRenderPass;
         SerializedProperty m_DefaultStencilState;
@@ -65,6 +69,8 @@ namespace UnityEditor.Rendering.Universal
             m_CopyDepthMode = serializedObject.FindProperty("m_CopyDepthMode");
             m_DrawOpaque = serializedObject.FindProperty("m_DrawOpaque");
             m_DrawTransparent = serializedObject.FindProperty("m_DrawTransparent");
+            m_WarpMapAtlas = serializedObject.FindProperty("m_WarpMapAtlas");
+            m_WarpMapCount = serializedObject.FindProperty("m_WarpMapCount");
             m_AccurateGbufferNormals = serializedObject.FindProperty("m_AccurateGbufferNormals");
             m_UseNativeRenderPass = serializedObject.FindProperty("m_UseNativeRenderPass");
             m_DefaultStencilState = serializedObject.FindProperty("m_DefaultStencilState");
@@ -114,6 +120,8 @@ namespace UnityEditor.Rendering.Universal
             EditorGUILayout.PropertyField(m_CopyDepthMode, Styles.CopyDepthModeLabel);
             EditorGUILayout.PropertyField(m_DrawOpaque, Styles.DrawOpaqueLabel);
             EditorGUILayout.PropertyField(m_DrawTransparent, Styles.DrawTransparentLabel);
+            EditorGUILayout.PropertyField(m_WarpMapAtlas, Styles.WarpMapLabel);
+            EditorGUILayout.PropertyField(m_WarpMapCount, Styles.WarpMapCountLabel);
 
 
 

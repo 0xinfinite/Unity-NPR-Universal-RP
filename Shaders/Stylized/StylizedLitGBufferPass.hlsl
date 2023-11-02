@@ -220,9 +220,9 @@ FragmentOutput LitGBufferPassFragment(Varyings input)
     AmbientOcclusionFactor aoFactor = CreateAmbientOcclusionFactor(inputData, surfaceData);
     Light mainLight = GetMainLight(inputData, inputData.shadowMask, aoFactor, _ShadowCastOffset);//(inputData.shadowCoord, inputData.positionWS, inputData.shadowMask, _ShadowCastOffset);
     MixRealtimeAndBakedGI(mainLight, inputData.normalWS, inputData.bakedGI, inputData.shadowMask);
-    half3 color = GlobalIllumination(brdfData, inputData.bakedGI, surfaceData.occlusion, inputData.positionWS, inputData.normalWS, inputData.viewDirectionWS);
+    half3 color = lerp(additionalData.shadowed * _ShadowColor, GlobalIllumination(brdfData, inputData.bakedGI, surfaceData.occlusion, inputData.positionWS, inputData.normalWS, inputData.viewDirectionWS) , _GIMultiplier);
 
-    return BRDFDataToGbufferAndShadowColor(brdfData, inputData, surfaceData.smoothness, surfaceData.emission + color, surfaceData.occlusion, half4(additionalData.shadowed, _GIMultiplier));
+    return BRDFDataToGbufferStylized(brdfData, inputData, surfaceData.smoothness, surfaceData.emission + color, surfaceData.occlusion, (half)_WarpMapIndex / (half)_WarpMapCount);
 }
 
 #endif

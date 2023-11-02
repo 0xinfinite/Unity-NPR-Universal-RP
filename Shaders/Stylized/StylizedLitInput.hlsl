@@ -16,8 +16,9 @@
 CBUFFER_START(UnityPerMaterial)
 float4 _BaseMap_ST;
 float4 _DetailAlbedoMap_ST;
-float4 _WarpMap_ST;
+//float4 _WarpMap_ST;
 half4 _BaseColor;
+int _WarpMapIndex;
 half _GIAdditive;
 half4 _ShadowColor;
 half4 _SpecColor;
@@ -54,6 +55,7 @@ UNITY_DOTS_INSTANCING_START(MaterialPropertyMetadata)
     UNITY_DOTS_INSTANCED_PROP(float, _AdditionalShadowCastOffset)
     UNITY_DOTS_INSTANCED_PROP(float , _Cutoff)
     UNITY_DOTS_INSTANCED_PROP(float,  _DepthForward)
+    UNITY_DOTS_INSTANCED_PROP(int, _WarpMapIndex)
     UNITY_DOTS_INSTANCED_PROP(float, _GIAdditive)
     UNITY_DOTS_INSTANCED_PROP(float , _BaseMultiplier)
     UNITY_DOTS_INSTANCED_PROP(float , _GIMultiplier)
@@ -70,6 +72,7 @@ UNITY_DOTS_INSTANCING_START(MaterialPropertyMetadata)
 UNITY_DOTS_INSTANCING_END(MaterialPropertyMetadata)
 
 #define _BaseColor              UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float4 , _BaseColor)
+#define _WarpMapIndex      UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(int  , _WarpMapIndex)
 #define _GIAdditive      UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float  , _GIAdditive)
 #define _ShadowColor            UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float4 , _ShadowColor)
 #define _SpecColor              UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float4 , _SpecColor)

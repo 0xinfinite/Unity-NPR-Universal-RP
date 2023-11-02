@@ -28,6 +28,9 @@ namespace UnityEngine.Rendering.Universal.Internal
             public static int _AdditionalLightsSpotDir;
             public static int _AdditionalLightOcclusionProbeChannel;
             public static int _AdditionalLightsLayerMasks;
+
+            public static int _WarpMapAtlas;
+            public static int _WarpMapCount; 
         }
 
         int m_AdditionalLightsBufferId;
@@ -68,6 +71,22 @@ namespace UnityEngine.Rendering.Universal.Internal
         int m_LightCount;
         int m_BinCount;
 
+        Texture2D m_WarpMapAtlas;
+
+        public Texture2D warpMapAtlas
+        {
+            get { return m_WarpMapAtlas; }
+            set { m_WarpMapAtlas = value; }
+        }
+
+        int m_WarpMapCount;
+
+        public int warpMapCount
+        {
+            get => m_WarpMapCount;
+            set { m_WarpMapCount = value; }
+        }
+
         internal struct InitParams
         {
             public LightCookieManager lightCookieManager;
@@ -107,6 +126,9 @@ namespace UnityEngine.Rendering.Universal.Internal
             LightConstantBuffer._MainLightOcclusionProbesChannel = Shader.PropertyToID("_MainLightOcclusionProbes");
             LightConstantBuffer._MainLightLayerMask = Shader.PropertyToID("_MainLightLayerMask");
             LightConstantBuffer._AdditionalLightsCount = Shader.PropertyToID("_AdditionalLightsCount");
+
+            LightConstantBuffer._WarpMapAtlas = Shader.PropertyToID("_WarpMapAtlas");
+            LightConstantBuffer._WarpMapCount = Shader.PropertyToID("_WarpMapCount");
 
             if (m_UseStructuredBuffer)
             {
@@ -372,6 +394,7 @@ namespace UnityEngine.Rendering.Universal.Internal
                 }
 
                 SetupShaderLightConstants(cmd, ref renderingData);
+                SetWarpMapAtlas(cmd, ref renderingData);
 
                 bool lightCountCheck = (renderingData.cameraData.renderer.stripAdditionalLightOffVariants && renderingData.lightData.supportsAdditionalLights) || additionalLightsCount > 0;
                 CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.AdditionalLightsVertex,
@@ -493,6 +516,21 @@ namespace UnityEngine.Rendering.Universal.Internal
             SetupMainLightConstants(cmd, ref renderingData.lightData);
             SetupAdditionalLightConstants(cmd, ref renderingData);
         }
+
+        void SetWarpMapAtlas(CommandBuffer cmd, ref RenderingData renderingData)
+        {
+            if (m_WarpMapAtlas)
+            {
+                CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.WarpMapAtlas, true);
+                cmd.SetGlobalTexture(LightConstantBuffer._WarpMapAtlas, m_WarpMapAtlas);
+                cmd.SetGlobalInteger(LightConstantBuffer._WarpMapCount , m_WarpMapCount);
+            }
+            else
+            {
+                CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.WarpMapAtlas, false);
+            }
+        }
+
 
         void SetupMainLightConstants(CommandBuffer cmd, ref LightData lightData)
         {

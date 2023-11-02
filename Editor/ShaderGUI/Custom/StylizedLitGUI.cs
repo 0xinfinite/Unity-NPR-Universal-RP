@@ -162,6 +162,8 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
 
             public MaterialProperty warpMap;
 
+            public MaterialProperty warpMapIndex;
+
             public MaterialProperty baseMultiplier;
 
             public MaterialProperty giMultiplier;
@@ -278,7 +280,8 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
              shadowCastOffset = BaseShaderGUI.FindProperty("_ShadowCastOffset", properties, false);
              additionalShadowCastOffset = BaseShaderGUI.FindProperty("_AdditionalShadowCastOffset", properties, false);
              warpMap = BaseShaderGUI.FindProperty("_WarpMap", properties, false);
-             baseMultiplier = BaseShaderGUI.FindProperty("_BaseMultiplier", properties, false);
+                warpMapIndex = BaseShaderGUI.FindProperty("_WarpMapIndex", properties, false);
+                baseMultiplier = BaseShaderGUI.FindProperty("_BaseMultiplier", properties, false);
              giMultiplier = BaseShaderGUI.FindProperty("_GIMultiplier", properties, false);
 
             metallic = BaseShaderGUI.FindProperty("_Metallic", properties);
@@ -405,6 +408,7 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
                 materialEditor.FloatProperty(properties.shadowCastOffset, "Shadowcast Offset");
                 materialEditor.FloatProperty(properties.additionalShadowCastOffset, "Additional Shadowcast Offset");
                 materialEditor.TextureProperty(properties.warpMap, "Warp Texture");
+                materialEditor.IntegerProperty(properties.warpMapIndex, "Warp Map Index From Atlas");
                 materialEditor.FloatProperty(properties.baseMultiplier, "Base Map Multiplier on shadow side");
                 materialEditor.RangeProperty(properties.giAdditive, "Global Illumination Additive On Bright Side");
                 materialEditor.RangeProperty(properties.giMultiplier, "Global Illumination Slider");
