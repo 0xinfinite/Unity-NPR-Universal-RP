@@ -26,6 +26,8 @@
 
 <img src="https://github.com/0xinfinite/0xinfinite.github.io/blob/master/img/Cached-shadow.gif?raw=true">
 
+In the image above, the shadow casters for static objects are turned off.
+
 ## Per-Material Shadow Depth Bias
 
 <img src="https://github.com/0xinfinite/0xinfinite.github.io/blob/master/img/Per-Material-ShadowBias.png?raw=true">
