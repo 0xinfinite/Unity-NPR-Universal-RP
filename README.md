@@ -46,7 +46,7 @@ In the image above, the shadow casters for static objects are turned off.
 
 <img src="https://github.com/0xinfinite/0xinfinite.github.io/blob/master/img/how%20to%20render%20main%20character%20shadow.png?raw=true">
 <img src="https://github.com/0xinfinite/0xinfinite.github.io/blob/master/img/main%20character%20shadow.gif?raw=true">
-An optional feature that increases the shadow resolution of the main character or saves the shadow map by focusing the shadow frustum on the main character.
+An optional feature that increases the shadow resolution of the main character or increase performance by focusing the shadow frustum on the main character.
 
 ## Screen-space Shadow caster
 
