@@ -156,10 +156,16 @@ namespace UnityEngine.Rendering.Universal
         [SerializeField] RenderingMode m_RenderingMode = RenderingMode.Forward;
         [SerializeField] DepthPrimingMode m_DepthPrimingMode = DepthPrimingMode.Disabled; // Default disabled because there are some outstanding issues with Text Mesh rendering.
         [SerializeField] CopyDepthMode m_CopyDepthMode = CopyDepthMode.AfterTransparents;
+
         [SerializeField] bool m_DrawOpaque = true;
         [SerializeField] bool m_DrawTransparent = true;
         [SerializeField] Texture2D m_WarpMapAtlas;
         [SerializeField] int m_WarpMapCount = 1;
+        [SerializeField] Texture2D m_DistanceAttenuationMapAtlas;
+        [SerializeField] int m_BaseIndexOfDistanceAttenuationMap;
+        [SerializeField] int m_DistanceAttenuationMapCount;
+        [SerializeField, Range(0,1)] float m_PunctionalLightFallOffStart;
+
 #if UNITY_EDITOR
         // Do not strip accurateGbufferNormals on Mobile Vulkan as some GPUs do not support R8G8B8A8_SNorm, which then force us to use accurateGbufferNormals
         [ShaderKeywordFilter.ApplyRulesIfNotGraphicsAPI(GraphicsDeviceType.Vulkan)]
@@ -307,6 +313,31 @@ namespace UnityEngine.Rendering.Universal
                 SetDirty();
                 m_WarpMapCount = value;
             }
+        }
+
+        public Texture2D distanceAttenuationMapAtlas
+        {
+            get => m_DistanceAttenuationMapAtlas;
+            set { m_DistanceAttenuationMapAtlas = value; }
+        }
+
+        public int baseIndexOfDistanceAttenuationMap
+        {
+            get => m_BaseIndexOfDistanceAttenuationMap;
+            set { m_BaseIndexOfDistanceAttenuationMap = value; }
+        }
+
+
+        public int distanceAttenuationMapCount
+        {
+            get => m_DistanceAttenuationMapCount;
+            set { m_DistanceAttenuationMapCount = value; }
+        }
+
+        public float punctionalLightFallOffStart
+        {
+            get => m_PunctionalLightFallOffStart;
+            set { m_PunctionalLightFallOffStart = value; }
         }
 
         /// <summary>

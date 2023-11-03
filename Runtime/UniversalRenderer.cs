@@ -138,10 +138,16 @@ namespace UnityEngine.Rendering.Universal
         RenderingMode m_RenderingMode;
         DepthPrimingMode m_DepthPrimingMode;
         CopyDepthMode m_CopyDepthMode;
+
         bool m_DrawOpaque;
         bool m_DrawTransparent;     //added for custom;
         Texture2D m_WarpMapAtlas;
         int m_WarpMapCount;
+        Texture2D m_DistanceAttenuationMapAtlas;
+        int m_BaseIndexOfDistanceAttenuationMap;
+        int m_DistanceAttenuationMapCount;
+        float m_PunctionalLightFallOffStart;
+
         bool m_DepthPrimingRecommended;
         StencilState m_DefaultStencilState;
         LightCookieManager m_LightCookieManager;
@@ -228,8 +234,16 @@ namespace UnityEngine.Rendering.Universal
             this.m_DrawTransparent = data.drawTransparent;
             this.m_WarpMapAtlas = data.warpMapAtlas;
             this.m_WarpMapCount = data.warpMapCount;
+            this.m_DistanceAttenuationMapAtlas = data.distanceAttenuationMapAtlas;
+            this.m_BaseIndexOfDistanceAttenuationMap = data.baseIndexOfDistanceAttenuationMap;
+            this.m_DistanceAttenuationMapCount = data.distanceAttenuationMapCount;
+            this.m_PunctionalLightFallOffStart = data.punctionalLightFallOffStart;
             m_ForwardLights.warpMapAtlas = m_WarpMapAtlas;
             m_ForwardLights.warpMapCount = m_WarpMapCount;
+            m_ForwardLights.distanceAttenuationMapAtlas = m_DistanceAttenuationMapAtlas;
+            m_ForwardLights.baseIndexOfDistanceAttenuationOffset = m_BaseIndexOfDistanceAttenuationMap;
+            m_ForwardLights.DistanceAttenuationMapCount = m_DistanceAttenuationMapCount;
+            m_ForwardLights.PunctionalLightFallOffStart = m_PunctionalLightFallOffStart;
 
 
             useRenderPassEnabled = data.useNativeRenderPass && SystemInfo.graphicsDeviceType != GraphicsDeviceType.OpenGLES2;
@@ -268,6 +282,10 @@ namespace UnityEngine.Rendering.Universal
                 m_DeferredLights.AccurateGbufferNormals = data.accurateGbufferNormals;
                 m_DeferredLights.WarpMapAtlas = data.warpMapAtlas;
                 m_DeferredLights.WarpMapCount = data.warpMapCount;
+                m_DeferredLights.DistanceAttenuationMapAtlas = data.distanceAttenuationMapAtlas;
+                m_DeferredLights.BaseIndexOfDistanceAttenuation = data.baseIndexOfDistanceAttenuationMap;
+                m_DeferredLights.DistanceAttenuationMapCount = data.distanceAttenuationMapCount;
+                m_DeferredLights.PunctionalLightFallOffStart = data.punctionalLightFallOffStart;
 
                 m_GBufferPass = new GBufferPass(RenderPassEvent.BeforeRenderingGbuffer, RenderQueueRange.opaque, data.opaqueLayerMask, m_DefaultStencilState, stencilData.stencilReference, m_DeferredLights);
                 // Forward-only pass only runs if deferred renderer is enabled.

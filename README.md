@@ -1,21 +1,71 @@
-WIP : 
+# Custom Unity Universal Renderpipeline
 
-1. Deferred Stylized Shading
-WarpMap 기반 툰 셰이딩을 디퍼드 패스에서 구현
+ This project forked from Unity URP 14.0.8 and customized for Non-Photorealistic Rendering.
+ This package is tailored for Unity 2022.3.2f1 and is not guaranteed to work with other Unity versions.
+ 
+ MIT license adapted on this repository.
 
-2. Non-physically based punctual light range
-멀어지면 너무 어둡고, 가까우면 하얗게 타는 스팟, 포인트 라이트의 밝기를 Warp맵을 이용하여 어느 거리에서든 부드럽게 방출하는 선택적 파이프라인 기능
 
-3. Main Character Focused Directional Light Shadow
-메인캐릭터만 들어가는 크기의 직선광 그림자 절두체로 특정 캐릭터에게 그림자 해상도를 집중하는 선택적 파이프라인 기능
+# Features
 
-4. Cached punctual light shadow
-고정된 스팟, 포인트 라이트는 고정된 스태틱 오브젝트를 항상 렌더할 필요가 없다는 것에 착안, 캐시 섀도우맵을 구워 다이나믹 오브젝트만 그리는 것으로 드로우콜을 아끼는 선택적 파이프라인 기능
 
-planned in future:
 
-1. Cached Directional light shadow
-캐시 라이트 섀도우의 직선광 버전
+## Stylized Shading on Deferred Rendering
 
-2. Main Character Focused point light shadow
-포인트 라이트 한면의 절두체를 메인 캐릭터가 가득 차도록 fov를 조절하여 포인트라이트의 6면 렌더를 절약하여 퍼포먼스를 높이는 선택적 기능
+<img src="https://github.com/0xinfinite/0xinfinite.github.io/blob/master/img/Deferred-NPR.gif?raw=true">
+
+## Warpmap Atlas based Shading
+
+<img src="https://github.com/0xinfinite/0xinfinite.github.io/blob/master/img/Warpmap.gif?raw=true">
+
+## Customized Punctual Light Range
+
+<img src="https://github.com/0xinfinite/0xinfinite.github.io/blob/master/img/non-physically-falloff.gif?raw=true">
+
+## Cached Punctual Light Shadow
+
+<img src="https://github.com/0xinfinite/0xinfinite.github.io/blob/master/img/Cached-shadow.gif?raw=true">
+
+## Per-Material Shadow Depth Bias
+
+<img src="https://github.com/0xinfinite/0xinfinite.github.io/blob/master/img/Per-Material-ShadowBias.png?raw=true">
+
+## Customized Skinned Mesh Renderer
+
+<img src="https://github.com/0xinfinite/0xinfinite.github.io/blob/master/img/facial%20normal%20compare.gif?raw=true">
+
+
+
+
+# WIP or Planned in future
+
+
+## Main Character Focused Light Shadow
+
+<img src="https://github.com/0xinfinite/0xinfinite.github.io/blob/master/img/how%20to%20render%20main%20character%20shadow.png?raw=true">
+<img src="https://github.com/0xinfinite/0xinfinite.github.io/blob/master/img/main%20character%20shadow.gif?raw=true">
+An optional feature that increases the shadow resolution of the main character or saves the shadow map by focusing the shadow frustum on the main character.
+
+## Screen-space Shadow caster
+
+Screen-space-aware shadow caster feature for easier shadow placement.
+
+## Face Focused Hair Shadow
+
+The feature to confine the additional shadow frustum to the face to apply natural cartoon hair shadows.
+
+## Global Shade Color Control
+
+Optional feature to set the light source and shadow color collectively in universal render data.
+
+
+## Bake Cached Shadow Feature on URP
+
+A Feature to bake Cached Shadows within URP (now I have to bake shadows from other projects in the Legacy pipeline).
+
+## Manual Light Probe
+
+Light probes that can be manually placed and modified
+
+
+

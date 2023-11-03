@@ -72,13 +72,13 @@ void InitializeInputData(Varyings input, half3 normalTS, out InputData inputData
 
     inputData.viewDirectionWS = viewDirWS;
 
-    #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
-        inputData.shadowCoord = input.shadowCoord;
-    #elif defined(MAIN_LIGHT_CALCULATE_SHADOWS)
-        inputData.shadowCoord = TransformWorldToShadowCoord(inputData.positionWS);
-    #else
+    //#if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
+    //    inputData.shadowCoord = input.shadowCoord;
+    //#elif defined(MAIN_LIGHT_CALCULATE_SHADOWS)
+    //    inputData.shadowCoord = TransformWorldToShadowCoord(inputData.positionWS);
+    //#else
         inputData.shadowCoord = float4(0, 0, 0, 0);
-    #endif
+    //#endif
 
     #ifdef _ADDITIONAL_LIGHTS_VERTEX
         inputData.fogCoord = InitializeInputDataFog(float4(inputData.positionWS, 1.0), input.fogFactorAndVertexLight.x);

@@ -4,7 +4,7 @@
 // Must match Universal ShaderGraph master node
 struct AdditionalSurfaceData
 {
-    half3 shadowed;
+    half4 shadowed;
     //half shadowcastOffset;
 };
 

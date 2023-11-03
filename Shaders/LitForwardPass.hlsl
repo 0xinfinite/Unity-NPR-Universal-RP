@@ -90,13 +90,13 @@ void InitializeInputData(Varyings input, half3 normalTS, out InputData inputData
     inputData.normalWS = NormalizeNormalPerPixel(inputData.normalWS);
     inputData.viewDirectionWS = viewDirWS;
 
-#if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
-    inputData.shadowCoord = input.shadowCoord;
-#elif defined(MAIN_LIGHT_CALCULATE_SHADOWS)
-    inputData.shadowCoord = TransformWorldToShadowCoord(inputData.positionWS);
-#else
+//#if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
+//    inputData.shadowCoord = input.shadowCoord;
+//#elif defined(MAIN_LIGHT_CALCULATE_SHADOWS)
+//    inputData.shadowCoord = TransformWorldToShadowCoord(inputData.positionWS);
+//#else
     inputData.shadowCoord = float4(0, 0, 0, 0);
-#endif
+//#endif
 #ifdef _ADDITIONAL_LIGHTS_VERTEX
     inputData.fogCoord = InitializeInputDataFog(float4(input.positionWS, 1.0), input.fogFactorAndVertexLight.x);
     inputData.vertexLighting = input.fogFactorAndVertexLight.yzw;
@@ -233,7 +233,7 @@ void LitPassFragment(
 
     half4 color = UniversalFragmentPBR(inputData, surfaceData);
     color.rgb = MixFog(color.rgb, inputData.fogCoord);
-    color.a = OutputAlpha(color.a, IsSurfaceTypeTransparent(_Surface));
+    color.a = OutputAlpha(/*color.a*/surfaceData.alpha, IsSurfaceTypeTransparent(_Surface));
 
     outColor = color;
 

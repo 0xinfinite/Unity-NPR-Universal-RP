@@ -21,10 +21,14 @@
 ///////////////////////////////////////////////////////////////////////////////
 //                      Lighting Functions                                   //
 ///////////////////////////////////////////////////////////////////////////////
-half3 LightingLambert(half3 lightColor, half3 lightDir, half3 normal)
+half4 LightingLambert(half4 lightColor, half3 lightDir, half3 normal)
 {
     half NdotL = saturate(dot(normal, lightDir));
     return lightColor * NdotL;
+}
+half4 LightingLambert(half3 lightColor, half3 lightDir, half3 normal)
+{
+    return LightingLambert(half4 (lightColor, (lightColor.r+ lightColor.g+ lightColor.b)*0.3333), lightDir, normal);
 }
 
 half3 LightingSpecular(half3 lightColor, half3 lightDir, half3 normal, half3 viewDir, half4 specular, half smoothness)
@@ -36,13 +40,14 @@ half3 LightingSpecular(half3 lightColor, half3 lightDir, half3 normal, half3 vie
     return lightColor * specularReflection;
 }
 
-half3 LightingPhysicallyBased(BRDFData brdfData, BRDFData brdfDataClearCoat,
+half4 LightingPhysicallyBased(BRDFData brdfData, BRDFData brdfDataClearCoat,
     half3 lightColor, half3 lightDirectionWS, half lightAttenuation,
     half3 normalWS, half3 viewDirectionWS,
     half clearCoatMask, bool specularHighlightsOff)
 {
     half NdotL = saturate(dot(normalWS, lightDirectionWS));
-    half3 radiance = lightColor * (lightAttenuation * NdotL);
+    half attenuation = (lightAttenuation * NdotL);
+    half3 radiance = lightColor * attenuation;
 
     half3 brdf = brdfData.diffuse;
 #ifndef _SPECULARHIGHLIGHTS_OFF
@@ -68,16 +73,16 @@ half3 LightingPhysicallyBased(BRDFData brdfData, BRDFData brdfDataClearCoat,
     }
 #endif // _SPECULARHIGHLIGHTS_OFF
 
-    return brdf * radiance;
+    return half4( brdf * radiance, attenuation);
 }
 
-half3 LightingPhysicallyBased(BRDFData brdfData, BRDFData brdfDataClearCoat, Light light, half3 normalWS, half3 viewDirectionWS, half clearCoatMask, bool specularHighlightsOff)
+half4 LightingPhysicallyBased(BRDFData brdfData, BRDFData brdfDataClearCoat, Light light, half3 normalWS, half3 viewDirectionWS, half clearCoatMask, bool specularHighlightsOff)
 {
     return LightingPhysicallyBased(brdfData, brdfDataClearCoat, light.color, light.direction, light.distanceAttenuation * light.shadowAttenuation, normalWS, viewDirectionWS, clearCoatMask, specularHighlightsOff);
 }
 
 // Backwards compatibility
-half3 LightingPhysicallyBased(BRDFData brdfData, Light light, half3 normalWS, half3 viewDirectionWS)
+half4 LightingPhysicallyBased(BRDFData brdfData, Light light, half3 normalWS, half3 viewDirectionWS)
 {
     #ifdef _SPECULARHIGHLIGHTS_OFF
     bool specularHighlightsOff = true;
@@ -88,7 +93,7 @@ half3 LightingPhysicallyBased(BRDFData brdfData, Light light, half3 normalWS, ha
     return LightingPhysicallyBased(brdfData, noClearCoat, light, normalWS, viewDirectionWS, 0.0, specularHighlightsOff);
 }
 
-half3 LightingPhysicallyBased(BRDFData brdfData, half3 lightColor, half3 lightDirectionWS, half lightAttenuation, half3 normalWS, half3 viewDirectionWS)
+half4 LightingPhysicallyBased(BRDFData brdfData, half4 lightColor, half3 lightDirectionWS, half lightAttenuation, half3 normalWS, half3 viewDirectionWS)
 {
     Light light;
     light.color = lightColor;
@@ -98,13 +103,18 @@ half3 LightingPhysicallyBased(BRDFData brdfData, half3 lightColor, half3 lightDi
     return LightingPhysicallyBased(brdfData, light, normalWS, viewDirectionWS);
 }
 
-half3 LightingPhysicallyBased(BRDFData brdfData, Light light, half3 normalWS, half3 viewDirectionWS, bool specularHighlightsOff)
+half4 LightingPhysicallyBased(BRDFData brdfData, half3 lightColor, half3 lightDirectionWS, half lightAttenuation, half3 normalWS, half3 viewDirectionWS)
+{
+    return LightingPhysicallyBased(brdfData, half4 (lightColor, lightAttenuation), lightDirectionWS, lightAttenuation, normalWS, viewDirectionWS);
+}
+
+half4 LightingPhysicallyBased(BRDFData brdfData, Light light, half3 normalWS, half3 viewDirectionWS, bool specularHighlightsOff)
 {
     const BRDFData noClearCoat = (BRDFData)0;
     return LightingPhysicallyBased(brdfData, noClearCoat, light, normalWS, viewDirectionWS, 0.0, specularHighlightsOff);
 }
 
-half3 LightingPhysicallyBased(BRDFData brdfData, half3 lightColor, half3 lightDirectionWS, half lightAttenuation, half3 normalWS, half3 viewDirectionWS, bool specularHighlightsOff)
+half4 LightingPhysicallyBased(BRDFData brdfData, half4 lightColor, half3 lightDirectionWS, half lightAttenuation, half3 normalWS, half3 viewDirectionWS, bool specularHighlightsOff)
 {
     Light light;
     light.color = lightColor;
@@ -114,45 +124,51 @@ half3 LightingPhysicallyBased(BRDFData brdfData, half3 lightColor, half3 lightDi
     return LightingPhysicallyBased(brdfData, light, viewDirectionWS, specularHighlightsOff, specularHighlightsOff);
 }
 
-half3 VertexLighting(float3 positionWS, half3 normalWS)
+half4 LightingPhysicallyBased(BRDFData brdfData, half3 lightColor, half3 lightDirectionWS, half lightAttenuation, half3 normalWS, half3 viewDirectionWS, bool specularHighlightsOff)
+{
+    return LightingPhysicallyBased(brdfData, half4 (lightColor,1), lightDirectionWS, lightAttenuation, normalWS, viewDirectionWS, specularHighlightsOff);
+}
+
+half4 VertexLighting(float3 positionWS, half3 normalWS)
 {
     half3 vertexLightColor = half3(0.0, 0.0, 0.0);
-
+    half attenuation = 0;
 #ifdef _ADDITIONAL_LIGHTS_VERTEX
     uint lightsCount = GetAdditionalLightsCount();
     LIGHT_LOOP_BEGIN(lightsCount)
         Light light = GetAdditionalLight(lightIndex, positionWS);
-        half3 lightColor = light.color * light.distanceAttenuation;
+        half3 lightColor = light.color.rgb * light.distanceAttenuation;
         vertexLightColor += LightingLambert(lightColor, light.direction, normalWS);
+        attenuation += light.color.a * light.distanceAttenuation;
     LIGHT_LOOP_END
 #endif
 
-    return vertexLightColor;
+    return half4(vertexLightColor, attenuation);
 }
 
 struct LightingData
 {
     half3 giColor;
-    half3 mainLightColor;
-    half3 additionalLightsColor;
-    half3 vertexLightingColor;
-    half3 emissionColor;
+    half4 mainLightColor;
+    half4 additionalLightsColor;
+    half4 vertexLightingColor;
+    half4 emissionColor;
     half  giAdditive;   //added for custom
     half  giMultiplier;
 };
 
-half3 CalculateLightingColor(LightingData lightingData, half3 albedo)
+half4 CalculateLightingColor(LightingData lightingData, half3 albedo)
 {
-    half3 lightingColor = 0;
+    half4 lightingColor = 0;
 
     if (IsOnlyAOLightingFeatureEnabled())
     {
-        return lightingData.giColor; // Contains white + AO
+        return half4(lightingData.giColor,0); // Contains white + AO
     }
 
     if (IsLightingFeatureEnabled(DEBUGLIGHTINGFEATUREFLAGS_GLOBAL_ILLUMINATION))
     {
-        lightingColor += lightingData.giColor;
+        lightingColor += half4(lightingData.giColor,0);
     }
 
     if (IsLightingFeatureEnabled(DEBUGLIGHTINGFEATUREFLAGS_MAIN_LIGHT))
@@ -170,7 +186,7 @@ half3 CalculateLightingColor(LightingData lightingData, half3 albedo)
         lightingColor += lightingData.vertexLightingColor;
     }
 
-    lightingColor *= albedo;
+    lightingColor.rgb *= albedo;
 
     if (IsLightingFeatureEnabled(DEBUGLIGHTINGFEATUREFLAGS_EMISSION))
     {
@@ -182,9 +198,9 @@ half3 CalculateLightingColor(LightingData lightingData, half3 albedo)
 
 half4 CalculateFinalColor(LightingData lightingData, half alpha)
 {
-    half3 finalColor = CalculateLightingColor(lightingData, 1);
+    half4 finalColor = CalculateLightingColor(lightingData, 1);
 
-    return half4(finalColor, alpha);
+    return finalColor;//half4(finalColor, alpha);
 }
 
 half4 CalculateFinalColor(LightingData lightingData, half3 albedo, half alpha, float fogCoord)
@@ -200,10 +216,10 @@ half4 CalculateFinalColor(LightingData lightingData, half3 albedo, half alpha, f
     #else
     half fogFactor = fogCoord;
     #endif
-    half3 lightingColor = CalculateLightingColor(lightingData, albedo);
-    half3 finalColor = MixFog(lightingColor, fogFactor);
+    half4 lightingColor = CalculateLightingColor(lightingData, albedo);
+    half4 finalColor = half4(MixFog(lightingColor, fogFactor), lightingColor.a);
 
-    return half4(finalColor, alpha);
+    return finalColor;//half4(finalColor, alpha);
 }
 
 LightingData CreateLightingData(InputData inputData, SurfaceData surfaceData)
@@ -211,7 +227,7 @@ LightingData CreateLightingData(InputData inputData, SurfaceData surfaceData)
     LightingData lightingData;
 
     lightingData.giColor = inputData.bakedGI;
-    lightingData.emissionColor = surfaceData.emission;
+    lightingData.emissionColor = half4( surfaceData.emission, (surfaceData.emission.r+ surfaceData.emission.g+ surfaceData.emission.b)*0.3333);
     lightingData.vertexLightingColor = 0;
     lightingData.mainLightColor = 0;
     lightingData.additionalLightsColor = 0;
@@ -219,22 +235,22 @@ LightingData CreateLightingData(InputData inputData, SurfaceData surfaceData)
     return lightingData;
 }
 
-half3 CalculateBlinnPhong(Light light, InputData inputData, SurfaceData surfaceData)
+half4 CalculateBlinnPhong(Light light, InputData inputData, SurfaceData surfaceData)
 {
-    half3 attenuatedLightColor = light.color * (light.distanceAttenuation * light.shadowAttenuation);
-    half3 lightDiffuseColor = LightingLambert(attenuatedLightColor, light.direction, inputData.normalWS);
+    half4 attenuatedLightColor = light.color * (light.distanceAttenuation * light.shadowAttenuation);
+    half4 lightDiffuseColor = LightingLambert(attenuatedLightColor, light.direction, inputData.normalWS);
 
     half3 lightSpecularColor = half3(0,0,0);
     #if defined(_SPECGLOSSMAP) || defined(_SPECULAR_COLOR)
     half smoothness = exp2(10 * surfaceData.smoothness + 1);
 
-    lightSpecularColor += LightingSpecular(attenuatedLightColor, light.direction, inputData.normalWS, inputData.viewDirectionWS, half4(surfaceData.specular, 1), smoothness);
+    lightSpecularColor += LightingSpecular(attenuatedLightColor.rgb, light.direction, inputData.normalWS, inputData.viewDirectionWS, half4(surfaceData.specular, 1), smoothness);
     #endif
 
 #if _ALPHAPREMULTIPLY_ON
-    return lightDiffuseColor * surfaceData.albedo * surfaceData.alpha + lightSpecularColor;
+    return half4(lightDiffuseColor * surfaceData.albedo * surfaceData.alpha + lightSpecularColor, lightDiffuseColor.a * surfaceData.alpha);
 #else
-    return lightDiffuseColor * surfaceData.albedo + lightSpecularColor;
+    return half4(lightDiffuseColor * surfaceData.albedo + lightSpecularColor, lightDiffuseColor.a);
 #endif
 }
 
@@ -335,7 +351,7 @@ half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData)
     // Clamp any half.inf+ to HALF_MAX
     return min(CalculateFinalColor(lightingData, surfaceData.alpha), HALF_MAX);
 #else
-    return CalculateFinalColor(lightingData, surfaceData.alpha);
+    return CalculateFinalColor(lightingData, surfaceData.alpha  );
 #endif
 }
 

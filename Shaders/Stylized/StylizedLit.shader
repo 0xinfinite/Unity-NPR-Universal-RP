@@ -180,6 +180,7 @@ Shader "Universal Render Pipeline/Stylized Lit"
             #pragma multi_compile _ MAIN_CHARACTER_SHADOW_ON
             #pragma multi_compile _ CACHED_SHADOW_ON
             #pragma multi_compile _ WARPMAP_ATLAS
+            #pragma multi_compile _ DISTANCEATTENUATIONPMAP_ATLAS
 
             //--------------------------------------
             // GPU Instancing
@@ -314,8 +315,9 @@ Shader "Universal Render Pipeline/Stylized Lit"
 
             //-------------------------------------
             //  custom global keyword
-#pragma multi_compile _ CACHED_SHADOW_ON
-#pragma multi_compile _ WARPMAP_ATLAS
+            #pragma multi_compile _ CACHED_SHADOW_ON
+            #pragma multi_compile _ WARPMAP_ATLAS
+            #pragma multi_compile _ DISTANCEATTENUATIONPMAP_ATLAS
 
             //--------------------------------------
             // GPU Instancing

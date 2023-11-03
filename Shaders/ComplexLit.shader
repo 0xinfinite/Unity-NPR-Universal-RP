@@ -159,6 +159,7 @@ Shader "Universal Render Pipeline/Complex Lit"
             #pragma multi_compile_fog
             #pragma multi_compile_fragment _ DEBUG_DISPLAY
 
+            #pragma multi_compile _ DISTANCEATTENUATIONPMAP_ATLAS
             //--------------------------------------
             // GPU Instancing
             #pragma multi_compile_instancing

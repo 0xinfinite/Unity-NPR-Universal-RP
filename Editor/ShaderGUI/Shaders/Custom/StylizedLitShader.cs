@@ -1,6 +1,10 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
+using static Unity.Rendering.Universal.ShaderUtils;
+using RenderQueue = UnityEngine.Rendering.RenderQueue;
 
 namespace UnityEditor.Rendering.Universal.ShaderGUI
 {
@@ -28,6 +32,10 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
         public override void ValidateMaterial(Material material)
         {
             SetMaterialKeywords(material, StylizedLitGUI.SetMaterialKeywords/*, LitDetailGUI.SetMaterialKeywords*/);
+
+            //SetupMaterialBlendModeCustom(material, out int renderQueue);
+            //if (renderQueue != material.renderQueue)
+            //    material.renderQueue = renderQueue;
         }
 
         // material main surface options
@@ -124,5 +132,162 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
                     material.SetTexture("_MetallicSpecGlossMap", texture);
             }
         }
+
+
+        internal static void SetupMaterialBlendModeCustom(Material material, out int automaticRenderQueue)
+        {
+            if (material == null)
+                throw new ArgumentNullException("material");
+
+            bool alphaClip = false;
+            if (material.HasProperty(Property.AlphaClip))
+                alphaClip = material.GetFloat(Property.AlphaClip) >= 0.5;
+            CoreUtils.SetKeyword(material, ShaderKeywordStrings._ALPHATEST_ON, alphaClip);
+
+            // default is to use the shader render queue
+            int renderQueue = material.shader.renderQueue;
+            material.SetOverrideTag("RenderType", "");      // clear override tag
+            if (material.HasProperty(Property.SurfaceType))
+            {
+                SurfaceType surfaceType = (SurfaceType)material.GetFloat(Property.SurfaceType);
+                bool zwrite = false;
+                CoreUtils.SetKeyword(material, ShaderKeywordStrings._SURFACE_TYPE_TRANSPARENT, surfaceType == SurfaceType.Transparent);
+                bool alphaToMask = false;
+                if (surfaceType == SurfaceType.Opaque)
+                {
+                    if (alphaClip)
+                    {
+                        renderQueue = (int)RenderQueue.AlphaTest;
+                        material.SetOverrideTag("RenderType", "TransparentCutout");
+                        alphaToMask = true;
+                    }
+                    else
+                    {
+                        renderQueue = (int)RenderQueue.Geometry;
+                        material.SetOverrideTag("RenderType", "Opaque");
+                    }
+
+                    SetMaterialSrcDstBlendProperties(material, UnityEngine.Rendering.BlendMode.One, UnityEngine.Rendering.BlendMode.Zero);
+                    zwrite = true;
+                    material.DisableKeyword(ShaderKeywordStrings._ALPHAPREMULTIPLY_ON);
+                    material.DisableKeyword(ShaderKeywordStrings._SURFACE_TYPE_TRANSPARENT);
+                    material.DisableKeyword(ShaderKeywordStrings._ALPHAMODULATE_ON);
+                }
+                else // SurfaceType Transparent
+                {
+                    BlendMode blendMode = (BlendMode)material.GetFloat(Property.BlendMode);
+
+                    // Clear blend keyword state.
+                    material.DisableKeyword(ShaderKeywordStrings._ALPHAPREMULTIPLY_ON);
+                    material.DisableKeyword(ShaderKeywordStrings._ALPHAMODULATE_ON);
+
+                    var srcBlendRGB = UnityEngine.Rendering.BlendMode.One;
+                    var dstBlendRGB = UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha;
+                    var srcBlendA = UnityEngine.Rendering.BlendMode.One;
+                    var dstBlendA = UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha;
+
+                    // Specific Transparent Mode Settings
+                    switch (blendMode)
+                    {
+                        // srcRGB * srcAlpha + dstRGB * (1 - srcAlpha)
+                        // preserve spec:
+                        // srcRGB * (<in shader> ? 1 : srcAlpha) + dstRGB * (1 - srcAlpha)
+                        case BlendMode.Alpha:
+                            srcBlendRGB = UnityEngine.Rendering.BlendMode.SrcAlpha;
+                            dstBlendRGB = UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha;
+                            srcBlendA = UnityEngine.Rendering.BlendMode.SrcAlpha;
+                            dstBlendA = UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha;
+                            break;
+
+                        // srcRGB < srcAlpha, (alpha multiplied in asset)
+                        // srcRGB * 1 + dstRGB * (1 - srcAlpha)
+                        case BlendMode.Premultiply:
+                            srcBlendRGB = UnityEngine.Rendering.BlendMode.One;
+                            dstBlendRGB = UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha;
+                            srcBlendA = srcBlendRGB;
+                            dstBlendA = dstBlendRGB;
+                            break;
+
+                        // srcRGB * srcAlpha + dstRGB * 1, (alpha controls amount of addition)
+                        // preserve spec:
+                        // srcRGB * (<in shader> ? 1 : srcAlpha) + dstRGB * (1 - srcAlpha)
+                        case BlendMode.Additive:
+                            srcBlendRGB = UnityEngine.Rendering.BlendMode.SrcAlpha;
+                            dstBlendRGB = UnityEngine.Rendering.BlendMode.One;
+                            srcBlendA = UnityEngine.Rendering.BlendMode.One;
+                            dstBlendA = dstBlendRGB;
+                            break;
+
+                        // srcRGB * 0 + dstRGB * srcRGB
+                        // in shader alpha controls amount of multiplication, lerp(1, srcRGB, srcAlpha)
+                        // Multiply affects color only, keep existing alpha.
+                        case BlendMode.Multiply:
+                            srcBlendRGB = UnityEngine.Rendering.BlendMode.DstColor;
+                            dstBlendRGB = UnityEngine.Rendering.BlendMode.Zero;
+                            srcBlendA = UnityEngine.Rendering.BlendMode.Zero;
+                            dstBlendA = UnityEngine.Rendering.BlendMode.One;
+
+                            material.EnableKeyword(ShaderKeywordStrings._ALPHAMODULATE_ON);
+                            break;
+                    }
+
+                    // Lift alpha multiply from ROP to shader by setting pre-multiplied _SrcBlend mode.
+                    // The intent is to do different blending for diffuse and specular in shader.
+                    // ref: http://advances.realtimerendering.com/other/2016/naughty_dog/NaughtyDog_TechArt_Final.pdf
+                    bool preserveSpecular = (material.HasProperty(Property.BlendModePreserveSpecular) &&
+                                             material.GetFloat(Property.BlendModePreserveSpecular) > 0) &&
+                                            blendMode != BlendMode.Multiply && blendMode != BlendMode.Premultiply;
+                    if (preserveSpecular)
+                    {
+                        srcBlendRGB = UnityEngine.Rendering.BlendMode.One;
+                        material.EnableKeyword(ShaderKeywordStrings._ALPHAPREMULTIPLY_ON);
+                    }
+
+                    // When doing off-screen transparency accumulation, we change blend factors as described here: https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch23.html
+                    bool offScreenAccumulateAlpha = false;
+                    if (offScreenAccumulateAlpha)
+                        srcBlendA = UnityEngine.Rendering.BlendMode.Zero;
+
+                    SetMaterialSrcDstBlendProperties(material, srcBlendRGB, dstBlendRGB, // RGB
+                        srcBlendA, dstBlendA); // Alpha
+
+                    // General Transparent Material Settings
+                    material.SetOverrideTag("RenderType", "Transparent");
+                    zwrite = false;
+                    material.EnableKeyword(ShaderKeywordStrings._SURFACE_TYPE_TRANSPARENT);
+                    renderQueue = (int)RenderQueue.Transparent;
+                }
+
+                if (material.HasProperty(Property.AlphaToMask))
+                {
+                    material.SetFloat(Property.AlphaToMask, alphaToMask ? 1.0f : 0.0f);
+                }
+
+                // check for override enum
+                if (material.HasProperty(Property.ZWriteControl))
+                {
+                    var zwriteControl = (UnityEditor.Rendering.Universal.ShaderGraph.ZWriteControl)material.GetFloat(Property.ZWriteControl);
+                    if (zwriteControl == UnityEditor.Rendering.Universal.ShaderGraph.ZWriteControl.ForceEnabled)
+                        zwrite = true;
+                    else if (zwriteControl == UnityEditor.Rendering.Universal.ShaderGraph.ZWriteControl.ForceDisabled)
+                        zwrite = false;
+                }
+                SetMaterialZWriteProperty(material, zwrite);
+                material.SetShaderPassEnabled("DepthOnly", zwrite);
+            }
+            else
+            {
+                // no surface type property -- must be hard-coded by the shadergraph,
+                // so ensure the pass is enabled at the material level
+                material.SetShaderPassEnabled("DepthOnly", true);
+            }
+
+            // must always apply queue offset, even if not set to material control
+            if (material.HasProperty(Property.QueueOffset))
+                renderQueue += (int)material.GetFloat(Property.QueueOffset);
+
+            automaticRenderQueue = renderQueue;
+        }
+
     }
 }

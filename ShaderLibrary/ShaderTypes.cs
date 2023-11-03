@@ -40,6 +40,9 @@ namespace UnityEngine.Rendering.Universal
             /// The layer mask used.
             /// </summary>
             public uint layerMask;
+
+
+            public float distanceAttenuationOffset;
         }
     }
 }

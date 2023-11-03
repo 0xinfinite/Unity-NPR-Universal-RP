@@ -162,6 +162,7 @@ Shader "Universal Render Pipeline/Lit"
         //-------------------------------------
             //  custom global keyword
             #pragma multi_compile _ CACHED_SHADOW_ON
+            #pragma multi_compile _ DISTANCEATTENUATIONPMAP_ATLAS
 
             //--------------------------------------
             // GPU Instancing
@@ -294,6 +295,7 @@ Shader "Universal Render Pipeline/Lit"
             //-------------------------------------
             //  custom global keyword
             #pragma multi_compile _ CACHED_SHADOW_ON
+            #pragma multi_compile _ DISTANCEATTENUATIONPMAP_ATLAS
 
             //--------------------------------------
             // GPU Instancing

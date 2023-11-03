@@ -116,19 +116,19 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
     TEXTURE2D_X_HALF(_GBuffer0);
     TEXTURE2D_X_HALF(_GBuffer1);
     TEXTURE2D_X_HALF(_GBuffer2);
-    //TEXTURE2D_X_HALF(_GBuffer3);
+    TEXTURE2D_X_HALF(_GBuffer3);
 
 #if _RENDER_PASS_ENABLED
 
     #define GBUFFER0 0
     #define GBUFFER1 1
     #define GBUFFER2 2
-    //#define GBUFFER3 3
+    #define GBUFFER3 3
 
     FRAMEBUFFER_INPUT_HALF(GBUFFER0);
     FRAMEBUFFER_INPUT_HALF(GBUFFER1);
     FRAMEBUFFER_INPUT_HALF(GBUFFER2);
-    //FRAMEBUFFER_INPUT_FLOAT(GBUFFER3);
+    FRAMEBUFFER_INPUT_HALF(GBUFFER3);
     #if OUTPUT_SHADOWMASK
     #define GBUFFER4 4
     FRAMEBUFFER_INPUT_HALF(GBUFFER4);
@@ -166,13 +166,14 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
     int _ShadowLightIndex;
     uint _LightLayerMask;
     int _CookieLightIndex;
+    //half _LightDistanceAttenuationOffset;
 
     half4 FragWhite(Varyings input) : SV_Target
     {
         return half4(1.0, 1.0, 1.0, 1.0);
     }
 
-    Light GetStencilLight(float3 posWS, float2 screen_uv, half4 shadowMask, uint materialFlags)
+    Light GetStencilLight(float3 posWS, float2 screen_uv, half4 shadowMask, uint materialFlags, float depthBias)
     {
         Light unityLight;
 
@@ -191,9 +192,9 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
                     #if defined(_MAIN_LIGHT_SHADOWS_SCREEN) && !defined(_SURFACE_TYPE_TRANSPARENT)
                         float4 shadowCoord = float4(screen_uv, 0.0, 1.0);
                     #elif defined(MAIN_LIGHT_CALCULATE_SHADOWS)
-                        float4 shadowCoord = TransformWorldToShadowCoord(posWS.xyz);
+                    float4 shadowCoord = TransformWorldToShadowCoord(posWS.xyz + _LightDirection * depthBias);
                     #else
-                        float4 shadowCoord = float4(0, 0, 0, 0);
+                    float4 shadowCoord = float4(depthBias, depthBias, 0, 0); //float4(0, 0, 0, 0);
                     #endif
                     unityLight.shadowAttenuation = MainLightShadow(shadowCoord, posWS.xyz, shadowMask, _MainLightOcclusionProbes);
                 }
@@ -206,13 +207,13 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
                 unityLight.direction = _LightDirection;
                 unityLight.distanceAttenuation = 1.0;
                 unityLight.shadowAttenuation = 1.0;
-                unityLight.color = _LightColor.rgb;
+                unityLight.color = half4(_LightColor, max( max(_LightColor.r, _LightColor.g), _LightColor.b));
                 unityLight.layerMask = lightLayerMask;
 
                 if (!materialReceiveShadowsOff)
                 {
                     #if defined(_ADDITIONAL_LIGHT_SHADOWS)
-                        unityLight.shadowAttenuation = AdditionalLightShadow(_ShadowLightIndex, posWS.xyz, _LightDirection, shadowMask, _LightOcclusionProbInfo);
+                        unityLight.shadowAttenuation = AdditionalLightShadow(_ShadowLightIndex, posWS.xyz + _LightDirection * depthBias, _LightDirection, shadowMask, _LightOcclusionProbInfo);
                     #endif
                 }
             #endif
@@ -226,7 +227,7 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             light.occlusionProbeInfo = _LightOcclusionProbInfo;
             light.flags = _LightFlags;
             light.layerMask = lightLayerMask;
-            unityLight = UnityLightFromPunctualLightDataAndWorldSpacePosition(light, posWS.xyz, shadowMask, _ShadowLightIndex, materialReceiveShadowsOff);
+            unityLight = UnityLightFromPunctualLightDataAndWorldSpacePosition(light, posWS.xyz, shadowMask, _ShadowLightIndex, materialReceiveShadowsOff, depthBias, _BaseIndexOfDistanceAttenuationMap);
 
             #ifdef _LIGHT_COOKIES
                 // Enable/disable is done toggling the keyword _LIGHT_COOKIES, but we could do a "static if" instead if required.
@@ -267,9 +268,11 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
         half4 shadowMask = 1.0;
 
         #if _RENDER_PASS_ENABLED
-        //float d        = LOAD_FRAMEBUFFER_INPUT(GBUFFER3, input.positionCS.xy).x;
-        float4 gbuffer3 = LOAD_FRAMEBUFFER_INPUT(GBUFFER3, input.positionCS.xy);
-        float d = gbuffer3.x;
+        float d        = LOAD_FRAMEBUFFER_INPUT(GBUFFER3, input.positionCS.xy).x;
+//#if defined(_STYLIZEDLIT)
+//        float4 gbuffer3 = LOAD_FRAMEBUFFER_INPUT(GBUFFER3, input.positionCS.xy);
+//#endif
+        //float d = gbuffer3.x;
         half4 gbuffer0 = LOAD_FRAMEBUFFER_INPUT(GBUFFER0, input.positionCS.xy);
         half4 gbuffer1 = LOAD_FRAMEBUFFER_INPUT(GBUFFER1, input.positionCS.xy);
         half4 gbuffer2 = LOAD_FRAMEBUFFER_INPUT(GBUFFER2, input.positionCS.xy);
@@ -287,7 +290,9 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
         half4 gbuffer0 = SAMPLE_TEXTURE2D_X_LOD(_GBuffer0, my_point_clamp_sampler, screen_uv, 0);
         half4 gbuffer1 = SAMPLE_TEXTURE2D_X_LOD(_GBuffer1, my_point_clamp_sampler, screen_uv, 0);
         half4 gbuffer2 = SAMPLE_TEXTURE2D_X_LOD(_GBuffer2, my_point_clamp_sampler, screen_uv, 0);
-        //half4 gbuffer3 = SAMPLE_TEXTURE2D_X_LOD(_GBuffer3, my_point_clamp_sampler, screen_uv, 0);
+//#if defined(_STYLIZEDLIT)
+//        half4 gbuffer3 = SAMPLE_TEXTURE2D_X_LOD(_GBuffer3, my_point_clamp_sampler, screen_uv, 0);
+//#endif
         #if defined(_DEFERRED_MIXED_LIGHTING)
         shadowMask = SAMPLE_TEXTURE2D_X_LOD(MERGE_NAME(_, GBUFFER_SHADOWMASK), my_point_clamp_sampler, screen_uv, 0);
         #endif
@@ -295,6 +300,7 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
         half warpMapOffset = gbuffer1.y;
         half surfaceDataOcclusion = gbuffer1.a;
         uint materialFlags = UnpackMaterialFlags(gbuffer0.a);
+        half shadowDepthBias = gbuffer1.z;
 
         half3 color = 0.0.xxx;
         half alpha = 1.0;
@@ -317,7 +323,7 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
         float4 posWS = mul(_ScreenToWorld[eyeIndex], float4(input.positionCS.xy, d, 1.0));
         posWS.xyz *= rcp(posWS.w);
 
-        Light unityLight = GetStencilLight(posWS.xyz, screen_uv, shadowMask, materialFlags);
+        Light unityLight = GetStencilLight(posWS.xyz, screen_uv, shadowMask, materialFlags, shadowDepthBias);
 
         #ifdef _LIGHT_LAYERS
         float4 renderingLayers = SAMPLE_TEXTURE2D_X_LOD(MERGE_NAME(_, GBUFFER_LIGHT_LAYERS), my_point_clamp_sampler, screen_uv, 0);
@@ -359,25 +365,190 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             // TODO: if !defined(_SPECGLOSSMAP) && !defined(_SPECULAR_COLOR), force specularColor to 0 in gbuffer code
             color = diffuseColor * surfaceData.albedo + specularColor;
         #elif defined(_STYLIZEDLIT)
-            #if SHADER_API_MOBILE || SHADER_API_SWITCH
-            // Specular highlights are still silenced by setting specular to 0.0 during gbuffer pass and GPU timing is still reduced.
-            bool materialSpecularHighlightsOff = false;
-            #else
-            bool materialSpecularHighlightsOff = (materialFlags & kMaterialFlagSpecularHighlightsOff);
-            #endif
-            BRDFData brdfData = BRDFDataFromGbuffer(gbuffer0, gbuffer1, gbuffer2);
-            half giLT = gbuffer2.w;
-      /*      half4 shadowed = half4(0,0,0,0);
-#if defined(_STYLIZEDLIT) && _RENDER_PASS_ENABLED
-            shadowed = gbuffer5;
-#endif*/
-            half4 lightColor = LightingStylizedBased(brdfData, unityLight, inputData.normalWS, inputData.viewDirectionWS, materialSpecularHighlightsOff, warpMapOffset);
-            color = (color,0, lightColor.a) * lightColor.rgb; /*lerp(
-                lerp(shadowed.rgb, lightColor.rgb, giLT)
-                ,lightColor.rgb, lightColor.a);*/
+//            #if SHADER_API_MOBILE || SHADER_API_SWITCH
+//            // Specular highlights are still silenced by setting specular to 0.0 during gbuffer pass and GPU timing is still reduced.
+//        bool materialSpecularHighlightsOff = false;
+//            #else
+//            bool materialSpecularHighlightsOff = (materialFlags & kMaterialFlagSpecularHighlightsOff);
+//            #endif
+//            SurfaceData surfaceData = SurfaceDataFromGbuffer(gbuffer0, gbuffer1, gbuffer2, kLightingSimpleLit);
+//            BRDFData brdfData = BRDFDataFromGbuffer(gbuffer0, half4(gbuffer1.x, gbuffer1.x, gbuffer1.x, gbuffer1.w), gbuffer2);
+//            half giLT = gbuffer2.w;
+//      /*      half4 shadowed = half4(0,0,0,0);
+//#if defined(_STYLIZEDLIT) && _RENDER_PASS_ENABLED
+//            shadowed = gbuffer5;
+//#endif*/
+//            half4 lightColor = LightingStylizedBased(brdfData, unityLight, inputData.normalWS, inputData.viewDirectionWS,surfaceData.clearCoatMask,materialSpecularHighlightsOff, //_LightDistanceAttenuationOffset,
+//                warpMapOffset);
+//            color = //lerp(color, brdfData.diffuse, lightColor.a) * lightColor.rgb;
+//                lerp(
+//                lerp(color, brdfData.diffuse, giLT)
+//                ,(lightColor.rgb * gbuffer0.rgb), lightColor.a);
+#if SHADER_API_MOBILE || SHADER_API_SWITCH
+  // Specular highlights are still silenced by setting specular to 0.0 during gbuffer pass and GPU timing is still reduced.
+        bool materialSpecularHighlightsOff = false;
+#else
+        bool materialSpecularHighlightsOff = (materialFlags & kMaterialFlagSpecularHighlightsOff);
+#endif
+        BRDFData brdfData = BRDFDataFromGbuffer(gbuffer0, gbuffer1, gbuffer2);
+        //SurfaceData surfaceData = SurfaceDataFromGbuffer(gbuffer0, gbuffer1, gbuffer2, kLightingSimpleLit);
+
+        half4 lightColor = LightingStylizedBasedDeferred(brdfData, unityLight, inputData.normalWS, inputData.viewDirectionWS, materialSpecularHighlightsOff, warpMapOffset);
+        
+        color = lightColor.rgb;//lerp(gbuffer3.rgb,lightColor.rgb,lightColor.a);//lerp(color.rgb,lightColor.rgb, lightColor.a); // -lerp(0, gbuffer3.rgb, lightColor.a);
+        alpha = lerp(alpha,1-lightColor.a, lightColor.a);// min(alpha, lightColor.a);
+        //return half4(gbuffer3.rgb, alpha);
+
         #endif
 
         return half4(color, alpha);
+    }
+
+    half4 DeferredPunctualLightShading(Varyings input) : SV_Target
+    {
+        UNITY_SETUP_INSTANCE_ID(input);
+        UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+
+        float2 screen_uv = (input.screenUV.xy / input.screenUV.z);
+
+#if defined(_FOVEATED_RENDERING_NON_UNIFORM_RASTER)
+        float2 undistorted_screen_uv = screen_uv;
+        screen_uv = input.positionCS.xy * _ScreenSize.zw;
+#endif
+
+        half4 shadowMask = 1.0;
+
+        #if _RENDER_PASS_ENABLED
+        float d = LOAD_FRAMEBUFFER_INPUT(GBUFFER3/*GBUFFER4*/, input.positionCS.xy).x;
+//#if defined(_STYLIZEDLIT)
+//        float4 gbuffer3 = LOAD_FRAMEBUFFER_INPUT(GBUFFER3, input.positionCS.xy);
+//#endif
+        //float d = gbuffer3.x;
+        half4 gbuffer0 = LOAD_FRAMEBUFFER_INPUT(GBUFFER0, input.positionCS.xy);
+        half4 gbuffer1 = LOAD_FRAMEBUFFER_INPUT(GBUFFER1, input.positionCS.xy);
+        half4 gbuffer2 = LOAD_FRAMEBUFFER_INPUT(GBUFFER2, input.positionCS.xy);
+        /*half4 gbuffer5 = half4(0, 0, 0, 0);
+#if defined(_STYLIZEDLIT)
+            gbuffer5 = LOAD_FRAMEBUFFER_INPUT(GBUFFER5, input.positionCS.xy);
+#endif*/
+        #if defined(_DEFERRED_MIXED_LIGHTING)
+        shadowMask = LOAD_FRAMEBUFFER_INPUT(GBUFFER4, input.positionCS.xy);
+        #endif
+        #else
+        // Using SAMPLE_TEXTURE2D is faster than using LOAD_TEXTURE2D on iOS platforms (5% faster shader).
+        // Possible reason: HLSLcc upcasts Load() operation to float, which doesn't happen for Sample()?
+        float d = SAMPLE_TEXTURE2D_X_LOD(_CameraDepthTexture, my_point_clamp_sampler, screen_uv, 0).x; // raw depth value has UNITY_REVERSED_Z applied on most platforms.
+        half4 gbuffer0 = SAMPLE_TEXTURE2D_X_LOD(_GBuffer0, my_point_clamp_sampler, screen_uv, 0);
+        half4 gbuffer1 = SAMPLE_TEXTURE2D_X_LOD(_GBuffer1, my_point_clamp_sampler, screen_uv, 0);
+        half4 gbuffer2 = SAMPLE_TEXTURE2D_X_LOD(_GBuffer2, my_point_clamp_sampler, screen_uv, 0);
+//#if defined(_STYLIZEDLIT)
+//        half4 gbuffer3 = SAMPLE_TEXTURE2D_X_LOD(_GBuffer3, my_point_clamp_sampler, screen_uv, 0);
+//#endif
+        #if defined(_DEFERRED_MIXED_LIGHTING)
+        shadowMask = SAMPLE_TEXTURE2D_X_LOD(MERGE_NAME(_, GBUFFER_SHADOWMASK), my_point_clamp_sampler, screen_uv, 0);
+        #endif
+        #endif
+        half warpMapOffset = gbuffer1.y;
+        half surfaceDataOcclusion = gbuffer1.a;
+        uint materialFlags = UnpackMaterialFlags(gbuffer0.a);
+        half shadowDepthBias = gbuffer1.z;
+
+        half3 color = 0.0.xxx;
+        half alpha = 1.0;
+
+        #if defined(_DEFERRED_MIXED_LIGHTING)
+        // If both lights and geometry are static, then no realtime lighting to perform for this combination.
+        [branch] if ((_LightFlags & materialFlags) == kMaterialFlagSubtractiveMixedLighting)
+            return half4(color, alpha); // Cannot discard because stencil must be updated.
+        #endif
+
+        #if defined(_FOVEATED_RENDERING_NON_UNIFORM_RASTER)
+        input.positionCS.xy = undistorted_screen_uv * _ScreenSize.xy;
+        #endif
+
+        #if defined(USING_STEREO_MATRICES)
+        int eyeIndex = unity_StereoEyeIndex;
+        #else
+        int eyeIndex = 0;
+        #endif
+        float4 posWS = mul(_ScreenToWorld[eyeIndex], float4(input.positionCS.xy, d, 1.0));
+        posWS.xyz *= rcp(posWS.w);
+
+        Light unityLight = GetStencilLight(posWS.xyz, screen_uv, shadowMask, materialFlags, shadowDepthBias);
+
+        #ifdef _LIGHT_LAYERS
+        float4 renderingLayers = SAMPLE_TEXTURE2D_X_LOD(MERGE_NAME(_, GBUFFER_LIGHT_LAYERS), my_point_clamp_sampler, screen_uv, 0);
+        uint meshRenderingLayers = DecodeMeshRenderingLayer(renderingLayers.r);
+        [branch] if (!IsMatchingLightLayer(unityLight.layerMask, meshRenderingLayers))
+            return half4(color, alpha); // Cannot discard because stencil must be updated.
+        #endif
+
+        #if defined(_SCREEN_SPACE_OCCLUSION) && !defined(_SURFACE_TYPE_TRANSPARENT)
+            AmbientOcclusionFactor aoFactor = GetScreenSpaceAmbientOcclusion(screen_uv);
+            unityLight.color *= aoFactor.directAmbientOcclusion;
+            #if defined(_DIRECTIONAL) && defined(_DEFERRED_FIRST_LIGHT)
+            // What we want is really to apply the mininum occlusion value between the baked occlusion from surfaceDataOcclusion and real-time occlusion from SSAO.
+            // But we already applied the baked occlusion during gbuffer pass, so we have to cancel it out here.
+            // We must also avoid divide-by-0 that the reciprocal can generate.
+            half occlusion = aoFactor.indirectAmbientOcclusion < surfaceDataOcclusion ? aoFactor.indirectAmbientOcclusion * rcp(surfaceDataOcclusion) : 1.0;
+            alpha = occlusion;
+            #endif
+        #endif
+
+        InputData inputData = InputDataFromGbufferAndWorldPosition(gbuffer2, posWS.xyz);
+
+        #if defined(_LIT)
+            #if SHADER_API_MOBILE || SHADER_API_SWITCH
+        // Specular highlights are still silenced by setting specular to 0.0 during gbuffer pass and GPU timing is still reduced.
+        bool materialSpecularHighlightsOff = false;
+        #else
+        bool materialSpecularHighlightsOff = (materialFlags & kMaterialFlagSpecularHighlightsOff);
+        #endif
+        BRDFData brdfData = BRDFDataFromGbuffer(gbuffer0, gbuffer1, gbuffer2);
+        color = LightingPhysicallyBased(brdfData, unityLight, inputData.normalWS, inputData.viewDirectionWS, materialSpecularHighlightsOff);
+    #elif defined(_SIMPLELIT)
+        SurfaceData surfaceData = SurfaceDataFromGbuffer(gbuffer0, gbuffer1, gbuffer2, kLightingSimpleLit);
+        half3 attenuatedLightColor = unityLight.color * (unityLight.distanceAttenuation * unityLight.shadowAttenuation);
+        half3 diffuseColor = LightingLambert(attenuatedLightColor, unityLight.direction, inputData.normalWS);
+        half smoothness = exp2(10 * surfaceData.smoothness + 1);
+        half3 specularColor = LightingSpecular(attenuatedLightColor, unityLight.direction, inputData.normalWS, inputData.viewDirectionWS, half4(surfaceData.specular, 1), smoothness);
+
+        // TODO: if !defined(_SPECGLOSSMAP) && !defined(_SPECULAR_COLOR), force specularColor to 0 in gbuffer code
+        color = diffuseColor * surfaceData.albedo + specularColor;
+    #elif defined(_STYLIZEDLIT)
+       
+        #if SHADER_API_MOBILE || SHADER_API_SWITCH
+          // Specular highlights are still silenced by setting specular to 0.0 during gbuffer pass and GPU timing is still reduced.
+                bool materialSpecularHighlightsOff = false;
+        #else
+                bool materialSpecularHighlightsOff = (materialFlags & kMaterialFlagSpecularHighlightsOff);
+        #endif
+                BRDFData brdfData = BRDFDataFromGbuffer(gbuffer0, gbuffer1, gbuffer2);
+                //SurfaceData surfaceData = SurfaceDataFromGbuffer(gbuffer0, gbuffer1, gbuffer2, kLightingSimpleLit);
+
+
+                half4 lightingColor = LightingStylizedBasedDeferred(brdfData, unityLight, inputData.normalWS, inputData.viewDirectionWS, materialSpecularHighlightsOff, warpMapOffset);
+
+               
+
+                color = lerp( 0, lightingColor.rgb, lightingColor.a)-(brdfData.diffuse*.4*lightingColor.a)+ (unityLight.color*.015*lightingColor.a);//lerp(0, gi, lightingColor.a);//lerp(gbuffer3.rgb,lightingColor.rgb,lightingColor.a);//lerp(color.rgb,lightingColor.rgb, lightingColor.a); // -lerp(0, gbuffer3.rgb, lightingColor.a);
+                //if (lightingColor.a < 1.000001)
+                //{
+                //    alpha = lerp(alpha, lightingColor.a, lightingColor.a);
+                //}
+                //else {
+                //    alpha = lightingColor.a;
+                //}// min(alpha, lightingColor.a);
+                ////return half4(gbuffer3.rgb, alpha);
+                ////alpha *= .5;
+                //color *= lightingColor.a;
+                //color *= gbuffer3.rgb;
+                //color += gbuffer3.rgb;
+                //color = gbuffer3.rgb+0.75;
+                alpha *= lightingColor.a;
+                #endif
+
+                return half4(color, alpha);
     }
 
     half4 FragFog(Varyings input) : SV_Target
@@ -493,7 +664,8 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             #pragma multi_compile_fragment _ _FOVEATED_RENDERING_NON_UNIFORM_RASTER
 
             #pragma multi_compile _ CACHED_SHADOW_ON
-            #pragma multi_compile _ WARPMAP_ATLAS
+            //#pragma multi_compile _ WARPMAP_ATLAS
+            #pragma multi_compile _ DISTANCEATTENUATIONPMAP_ATLAS
 
             #pragma multi_compile_fragment _SHADOWCOLOR
             #pragma multi_compile_fragment _SHADOWCOLORMAP
@@ -547,7 +719,8 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             #pragma multi_compile_fragment _ _FOVEATED_RENDERING_NON_UNIFORM_RASTER
 
             #pragma multi_compile _ CACHED_SHADOW_ON
-            #pragma multi_compile _ WARPMAP_ATLAS
+            //#pragma multi_compile _ WARPMAP_ATLAS
+            #pragma multi_compile _ DISTANCEATTENUATIONPMAP_ATLAS
 
             #pragma vertex Vertex
             #pragma fragment DeferredShading
@@ -565,8 +738,8 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             ZWrite Off
             ZClip false
             Cull Front
-            Blend One One, Zero One
-            BlendOp Add, Add
+            Blend SrcAlpha One//DstColor One
+            BlendOp Add
 
             Stencil {
                 Ref[_StylizedLitPunctualStencilRef]
@@ -598,9 +771,10 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
 
             #pragma multi_compile _ CACHED_SHADOW_ON
             #pragma multi_compile _ WARPMAP_ATLAS
+            #pragma multi_compile _ DISTANCEATTENUATIONPMAP_ATLAS
 
             #pragma vertex Vertex
-            #pragma fragment DeferredShading
+            #pragma fragment DeferredPunctualLightShading
             //#pragma enable_d3d11_debug_symbols
 
             ENDHLSL
@@ -745,6 +919,8 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             #pragma multi_compile_fragment _ _RENDER_PASS_ENABLED
             #pragma multi_compile_fragment _ _LIGHT_COOKIES
             #pragma multi_compile_fragment _ _FOVEATED_RENDERING_NON_UNIFORM_RASTER
+
+            #pragma multi_compile _ WARPMAP_ATLAS
 
             #pragma vertex Vertex
             #pragma fragment DeferredShading

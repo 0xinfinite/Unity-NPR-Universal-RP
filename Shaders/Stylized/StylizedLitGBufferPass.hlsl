@@ -87,13 +87,13 @@ void InitializeInputData(Varyings input, half3 normalTS, out InputData inputData
     inputData.normalWS = NormalizeNormalPerPixel(inputData.normalWS);
     inputData.viewDirectionWS = viewDirWS;
 
-    #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
-        inputData.shadowCoord = input.shadowCoord;
-    #elif defined(MAIN_LIGHT_CALCULATE_SHADOWS)
-        inputData.shadowCoord = float4(0, 0, 0, 0); // TransformWorldToShadowCoord(inputData.positionWS);
-    #else
-        inputData.shadowCoord = float4(0, 0, 0, 0);
-    #endif
+    //#if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
+    //    inputData.shadowCoord = input.shadowCoord;
+    //#elif defined(MAIN_LIGHT_CALCULATE_SHADOWS)
+    //    inputData.shadowCoord = float4(0, 0, 0, 0); // TransformWorldToShadowCoord(inputData.positionWS);
+    //#else
+    inputData.shadowCoord = float4(_ShadowCastOffset, _AdditionalShadowCastOffset, _GIMultiplier, (half)_WarpMapIndex / (half)_WarpMapCount);//float4(0, 0, 0, 0);
+    //#endif
 
     inputData.fogCoord = 0.0; // we don't apply fog in the guffer pass
 
@@ -218,11 +218,12 @@ FragmentOutput LitGBufferPassFragment(Varyings input)
 
     //float4 offsets = float4(_ShadowCastOffset, _AdditionalShadowCastOffset, _GIAdditive, _GIMultiplier);
     AmbientOcclusionFactor aoFactor = CreateAmbientOcclusionFactor(inputData, surfaceData);
-    Light mainLight = GetMainLight(inputData, inputData.shadowMask, aoFactor, _ShadowCastOffset);//(inputData.shadowCoord, inputData.positionWS, inputData.shadowMask, _ShadowCastOffset);
+    Light mainLight = GetMainLight(inputData, inputData.shadowMask, aoFactor);//(inputData.shadowCoord, inputData.positionWS, inputData.shadowMask, _ShadowCastOffset);
     MixRealtimeAndBakedGI(mainLight, inputData.normalWS, inputData.bakedGI, inputData.shadowMask);
-    half3 color = lerp(additionalData.shadowed * _ShadowColor, GlobalIllumination(brdfData, inputData.bakedGI, surfaceData.occlusion, inputData.positionWS, inputData.normalWS, inputData.viewDirectionWS) , _GIMultiplier);
+    half3 color = lerp(additionalData.shadowed , GlobalIllumination(brdfData, inputData.bakedGI, surfaceData.occlusion, inputData.positionWS, inputData.normalWS, inputData.viewDirectionWS) , _GIMultiplier);
 
-    return BRDFDataToGbufferStylized(brdfData, inputData, surfaceData.smoothness, surfaceData.emission + color, surfaceData.occlusion, (half)_WarpMapIndex / (half)_WarpMapCount);
+    return BRDFDataToGbufferStylized(brdfData, inputData, surfaceData.smoothness, surfaceData.emission + color,
+        max(max(surfaceData.emission.r, surfaceData.emission.g), surfaceData.emission.b), surfaceData.occlusion, (half)_WarpMapIndex / (half)_WarpMapCount);
 }
 
 #endif

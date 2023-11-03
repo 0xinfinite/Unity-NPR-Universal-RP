@@ -90,13 +90,13 @@ void InitializeInputData(Varyings input, half3 normalTS, out InputData inputData
     inputData.normalWS = NormalizeNormalPerPixel(inputData.normalWS);
     inputData.viewDirectionWS = viewDirWS;
 
-#if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
-    inputData.shadowCoord = input.shadowCoord;
-#elif defined(MAIN_LIGHT_CALCULATE_SHADOWS)
-    inputData.shadowCoord = float4(0, 0, 0, 0); // TransformWorldToShadowCoord(inputData.positionWS);
-#else
-    inputData.shadowCoord = float4(0, 0, 0, 0);
-#endif
+//#if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
+//    inputData.shadowCoord = input.shadowCoord;
+//#elif defined(MAIN_LIGHT_CALCULATE_SHADOWS)
+//    inputData.shadowCoord = float4(0, 0, 0, 0); // TransformWorldToShadowCoord(inputData.positionWS);
+//#else
+    inputData.shadowCoord = float4(_ShadowCastOffset, _AdditionalShadowCastOffset, _GIMultiplier, (half)_WarpMapIndex / (half)_WarpMapCount);
+//#endif
 #ifdef _ADDITIONAL_LIGHTS_VERTEX
     inputData.fogCoord = InitializeInputDataFog(float4(input.positionWS, 1.0), input.fogFactorAndVertexLight.x);
     inputData.vertexLighting = input.fogFactorAndVertexLight.yzw;
@@ -166,7 +166,7 @@ Varyings LitPassVertex(Attributes input)
     // also required for per-vertex lighting and SH evaluation
     VertexNormalInputs normalInput = GetVertexNormalInputs(input.normalOS, input.tangentOS);
 
-    half3 vertexLight = VertexLighting(vertexInput.positionWS, normalInput.normalWS, _ShadowCastOffset);
+    half3 vertexLight = VertexLighting(vertexInput.positionWS, normalInput.normalWS);
 
     half fogFactor = 0;
     #if !defined(_FOG_FRAGMENT)
@@ -254,10 +254,24 @@ void LitPassFragment(
 #endif
     //outColor = half4(surfaceData.albedo,1);
 
-    float4 offsets = float4(_ShadowCastOffset, _AdditionalShadowCastOffset, _GIAdditive, _GIMultiplier);
-    half4 color = UniversalFragmentPBR(inputData, surfaceData, additionalData.shadowed, offsets, _ShadowColor, (half)_WarpMapIndex / (half)_WarpMapCount);
-    color.rgb = MixFog(color.rgb, inputData.fogCoord);
-    color.a = OutputAlpha(color.a, IsSurfaceTypeTransparent(_Surface));
+    //float4 offsets = float4(_ShadowCastOffset, _AdditionalShadowCastOffset, _GIAdditive, _GIMultiplier);
+    half4 lightColor = UniversalFragmentNPR(inputData, surfaceData);// , additionalData.shadowed, offsets, _ShadowColor, (half)_WarpMapIndex / (half)_WarpMapCount);
+    //outColor = color.a;
+    //return;
+    half4 color = 0;
+    color.rgb = MixFog(lightColor.rgb, inputData.fogCoord);
+    color.a = OutputAlpha(surfaceData.alpha, IsSurfaceTypeTransparent(_Surface));
+    //outColor.rgb = color.rgb;
+    //outColor.a = 1;
+    //return;
+    color.rgb = lerp(
+        lerp(additionalData.shadowed.rgb, color.rgb, saturate(_GIMultiplier))
+        , surfaceData.albedo * color.rgb, max(0, lightColor.a));
+    color.a = lerp(
+        lerp(additionalData.shadowed.a, color.a, saturate(_GIMultiplier))
+        , color.a * color.a, max(0, lightColor.a));
+    //color.rgb = lerp(color.rgb, color.rgb*color.a, saturate( lightColor.a));
+    //color.a *= lightColor.a;
 
     outColor = color;
 

@@ -4,6 +4,7 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonMaterial.hlsl"
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Stylized/StylizedSurfaceInput.hlsl"
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/SurfaceInput.hlsl"
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Stylized/StylizedSurfaceData.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/ParallaxMapping.hlsl"
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DBuffer.hlsl"
@@ -228,7 +229,7 @@ half3 ApplyDetailNormal(float2 detailUv, half3 normalTS, half detailMask)
 inline void InitializeStandardLitSurfaceData(float2 uv, out SurfaceData outSurfaceData)
 {
     half4 albedoAlpha = SampleAlbedoAlpha(uv, TEXTURE2D_ARGS(_BaseMap, sampler_BaseMap));
-    outSurfaceData.alpha = Alpha(albedoAlpha.a, _BaseColor, _Cutoff);
+    outSurfaceData.alpha = Alpha(albedoAlpha.a, _BaseColor.a, _Cutoff);
 
     half4 specGloss = SampleMetallicSpecGloss(uv, albedoAlpha.a);
     outSurfaceData.albedo = albedoAlpha.rgb * _BaseColor.rgb;
@@ -267,15 +268,17 @@ inline void InitializeStandardLitSurfaceData(float2 uv, out SurfaceData outSurfa
 inline void InitializeStandardLitSurfaceData(float2 uv, out SurfaceData outSurfaceData, out AdditionalSurfaceData outAdditionalData)
 {
     half4 albedoAlpha = SampleAlbedoAlpha(uv, TEXTURE2D_ARGS(_BaseMap, sampler_BaseMap));
-    outSurfaceData.alpha = Alpha(albedoAlpha.a, _BaseColor, _Cutoff);
+    outSurfaceData.alpha = Alpha(albedoAlpha.a, _BaseColor.a, _Cutoff);
 
     half4 specGloss = SampleMetallicSpecGloss(uv, albedoAlpha.a);
     outSurfaceData.albedo = albedoAlpha.rgb * _BaseColor.rgb;
     outSurfaceData.albedo = AlphaModulate(outSurfaceData.albedo, outSurfaceData.alpha);
 #if defined (_SHADOWCOLORMAP)
-    outAdditionalData.shadowed = SampleAlbedoAlpha(uv, TEXTURE2D_ARGS(_ShadowColorMap, sampler_BaseMap)).rgb;
+    outAdditionalData.shadowed = SampleAlbedoAlpha(uv, TEXTURE2D_ARGS(_ShadowColorMap, sampler_BaseMap));
+    outAdditionalData.shadowed.rgb *= _ShadowColor;
 #else
-    outAdditionalData.shadowed = outSurfaceData.albedo;
+    outAdditionalData.shadowed = half4(outSurfaceData.albedo, outSurfaceData.alpha);
+    outAdditionalData.shadowed.rgb *= _ShadowColor; // *albedoAlpha.a* _BaseColor.a;
 #endif
 
 #if _SPECULAR_SETUP

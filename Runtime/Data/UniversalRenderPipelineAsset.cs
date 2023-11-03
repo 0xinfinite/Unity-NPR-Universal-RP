@@ -1281,11 +1281,11 @@ namespace UnityEngine.Rendering.Universal
         /// <summary>
         /// 
         /// </summary>
-        public float punctualLightFalloffStart
-        {
-            get { return m_PunctualLightFalloffStart; }
-            internal set { m_PunctualLightFalloffStart = value; }
-        }
+        //public float punctualLightFalloffStart
+        //{
+        //    get { return m_PunctualLightFalloffStart; }
+        //    internal set { m_PunctualLightFalloffStart = value; }
+        //}
 
         /// <summary>
         /// Controls the maximum distance at which shadows are visible.

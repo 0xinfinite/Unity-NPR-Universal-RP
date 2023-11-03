@@ -176,7 +176,7 @@ SurfaceData SurfaceDataFromGbuffer(half4 gbuffer0, half4 gbuffer1, half4 gbuffer
     return surfaceData;
 }
 
-FragmentOutput BRDFDataToGbufferStylized(BRDFData brdfData, InputData inputData, half smoothness, half3 globalIllumination, half occlusion = 1.0, half warpMapOffset = 0)
+FragmentOutput BRDFDataToGbufferStylized(BRDFData brdfData, InputData inputData, half smoothness, half3 globalIllumination, half emissionPower = 0, half occlusion = 1.0, half warpMapOffset = 0)
 {
     half3 packedNormalWS = PackNormal(inputData.normalWS);
 
@@ -190,7 +190,7 @@ FragmentOutput BRDFDataToGbufferStylized(BRDFData brdfData, InputData inputData,
 
 #ifdef _SPECULAR_SETUP
     materialFlags |= kMaterialFlagSpecularSetup;
-    packedSpecular = (brdfData.specular.r+ brdfData.specular.g+ brdfData.specular.b)*0.3333;
+    packedSpecular =max( max(brdfData.specular.r, brdfData.specular.g), brdfData.specular.b);
 #else
     packedSpecular.r = brdfData.reflectivity;
     packedSpecular.gb = 0.0;
@@ -210,9 +210,9 @@ FragmentOutput BRDFDataToGbufferStylized(BRDFData brdfData, InputData inputData,
 
     FragmentOutput output;
     output.GBuffer0 = half4(brdfData.albedo.rgb, PackMaterialFlags(materialFlags));  // diffuse           diffuse         diffuse         materialFlags   (sRGB rendertarget)
-    output.GBuffer1 = half4(packedSpecular.x, warpMapOffset, 0, occlusion);           // metallic/specular warpmap-index   unused-yet      occlusion
+    output.GBuffer1 = half4(packedSpecular.x, warpMapOffset, inputData.shadowCoord.x, occlusion);           // metallic/specular warpmap-index  shadow-depthbias      occlusion
     output.GBuffer2 = half4(packedNormalWS, smoothness);                             // encoded-normal    encoded-normal  encoded-normal  smoothness
-    output.GBuffer3 = half4(globalIllumination, 1);                                  // GI                GI              GI              unused          (lighting buffer)
+    output.GBuffer3 = half4(globalIllumination, emissionPower);       // GI                GI              GI              emission-power          (lighting buffer)
 #if _RENDER_PASS_ENABLED
     output.GBuffer4 = inputData.positionCS.z;
     //output.GBuffer5 = half4(shadowed, warpMapOffset);// half4(additional.shadowed, 1);
