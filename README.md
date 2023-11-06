@@ -80,4 +80,4 @@ Light probes that can be manually placed and modified
 
 
 
-The 3D model was created by myself. If you are interested in the model, please visit here. [https://twitter.com/Mootonashi(https://twitter.com/Mootonashi)]
+The 3D model was created by myself. If you are interested in the model, please visit here. [https://twitter.com/Mootonashi](https://twitter.com/Mootonashi)
