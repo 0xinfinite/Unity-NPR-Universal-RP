@@ -97,6 +97,8 @@ namespace UnityEngine.Rendering.Universal
         /// Display the reflection probe atlas used for the Forward+ rendering path.
         /// </summary>
         ReflectionProbeAtlas,
+
+        AdditionalCustomShadowMap,
     }
 
     /// <summary>

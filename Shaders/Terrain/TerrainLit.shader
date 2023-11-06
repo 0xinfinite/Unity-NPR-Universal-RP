@@ -79,6 +79,13 @@ Shader "Universal Render Pipeline/Terrain/Lit"
             #pragma multi_compile _ _FORWARD_PLUS
             #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RenderingLayers.hlsl"
 
+            //-------------------------------------
+            //  custom global keyword
+            #pragma multi_compile _ CACHED_SHADOW_ON
+            #pragma multi_compile _ DISTANCEATTENUATIONPMAP_ATLAS
+            #pragma multi_compile _ CUSTOM_SHADOW_ON
+#pragma multi_compile _ CUSTOM_SHADOW_ONLY_MAIN_LIGHT
+
             // -------------------------------------
             // Unity defined keywords
             #pragma multi_compile _ DIRLIGHTMAP_COMBINED
@@ -166,6 +173,13 @@ Shader "Universal Render Pipeline/Terrain/Lit"
             #pragma multi_compile _ DYNAMICLIGHTMAP_ON
             #pragma multi_compile_fragment _ _GBUFFER_NORMALS_OCT
             #pragma multi_compile_fragment _ _RENDER_PASS_ENABLED
+
+            //-------------------------------------
+            //  custom global keyword
+            #pragma multi_compile _ CACHED_SHADOW_ON
+            #pragma multi_compile _ DISTANCEATTENUATIONPMAP_ATLAS
+            #pragma multi_compile _ CUSTOM_SHADOW_ON
+#pragma multi_compile _ CUSTOM_SHADOW_ONLY_MAIN_LIGHT
 
             //#pragma multi_compile_fog
             #pragma multi_compile_instancing

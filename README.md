@@ -36,25 +36,34 @@ In the image above, the shadow casters for static objects are turned off.
 
 <img src="https://github.com/0xinfinite/0xinfinite.github.io/blob/master/img/facial%20normal%20compare.gif?raw=true">
 
+left is original skinned mesh renderer and right is customized one.
 
+## freely-placeable Custom Shadow 
+
+<img src="https://github.com/0xinfinite/0xinfinite.github.io/blob/master/img/how%20to%20render%20main%20character%20shadow.png?raw=true">
+
+usage
+
+### Main Character Focused Light Shadow
+
+<img src="https://github.com/0xinfinite/0xinfinite.github.io/blob/master/img/main%20character%20shadow.gif?raw=true">
+Increases the shadow resolution of the main character or increase performance by focusing the shadow frustum on the main character.
+
+### Face Focused Hair Shadow
+
+<img src = "https://github.com/0xinfinite/0xinfinite.github.io/blob/master/img/2d-hair-shadow.png?raw=true">
+Confine the additional shadow frustum to the face to apply natural cartoon hair shadows. (It's difficult to archive this with built-in shadow)
 
 
 # WIP or Planned in future
 
 
-## Main Character Focused Light Shadow
 
-<img src="https://github.com/0xinfinite/0xinfinite.github.io/blob/master/img/how%20to%20render%20main%20character%20shadow.png?raw=true">
-<img src="https://github.com/0xinfinite/0xinfinite.github.io/blob/master/img/main%20character%20shadow.gif?raw=true">
-An optional feature that increases the shadow resolution of the main character or increase performance by focusing the shadow frustum on the main character.
 
 ## Screen-space Shadow caster
 
 Screen-space-aware shadow caster feature for easier shadow placement.
 
-## Face Focused Hair Shadow
-
-The feature to confine the additional shadow frustum to the face to apply natural cartoon hair shadows.
 
 ## Global Shade Color Control
 
@@ -71,3 +80,4 @@ Light probes that can be manually placed and modified
 
 
 
+The 3D model was created by myself. If you are interested in the model, please visit here. [https://twitter.com/Mootonashi(https://twitter.com/Mootonashi)]

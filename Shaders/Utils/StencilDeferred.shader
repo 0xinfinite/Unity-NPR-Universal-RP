@@ -217,6 +217,9 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
                     #endif
                 }
             #endif
+#if defined(CUSTOM_SHADOW_ON)
+                unityLight.shadowAttenuation = min(unityLight.shadowAttenuation, CustomShadows(posWS.xyz));
+#endif
         #else
             PunctualLightData light;
             light.posWS = _LightPosWS;
@@ -666,6 +669,8 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             #pragma multi_compile _ CACHED_SHADOW_ON
             //#pragma multi_compile _ WARPMAP_ATLAS
             #pragma multi_compile _ DISTANCEATTENUATIONPMAP_ATLAS
+            #pragma multi_compile _ CUSTOM_SHADOW_ON
+            #pragma multi_compile _ CUSTOM_SHADOW_ONLY_MAIN_LIGHT
 
             #pragma multi_compile_fragment _SHADOWCOLOR
             #pragma multi_compile_fragment _SHADOWCOLORMAP
@@ -721,6 +726,8 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             #pragma multi_compile _ CACHED_SHADOW_ON
             //#pragma multi_compile _ WARPMAP_ATLAS
             #pragma multi_compile _ DISTANCEATTENUATIONPMAP_ATLAS
+            #pragma multi_compile _ CUSTOM_SHADOW_ON
+            #pragma multi_compile _ CUSTOM_SHADOW_ONLY_MAIN_LIGHT
 
             #pragma vertex Vertex
             #pragma fragment DeferredShading
@@ -772,6 +779,8 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             #pragma multi_compile _ CACHED_SHADOW_ON
             #pragma multi_compile _ WARPMAP_ATLAS
             #pragma multi_compile _ DISTANCEATTENUATIONPMAP_ATLAS
+            #pragma multi_compile _ CUSTOM_SHADOW_ON
+            #pragma multi_compile _ CUSTOM_SHADOW_ONLY_MAIN_LIGHT
 
             #pragma vertex Vertex
             #pragma fragment DeferredPunctualLightShading
@@ -822,6 +831,9 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             #pragma multi_compile_fragment _ _LIGHT_COOKIES
             #pragma multi_compile_fragment _ _FOVEATED_RENDERING_NON_UNIFORM_RASTER
 
+            #pragma multi_compile _ CUSTOM_SHADOW_ON
+                #pragma multi_compile _ CUSTOM_SHADOW_ONLY_MAIN_LIGHT
+
             #pragma vertex Vertex
             #pragma fragment DeferredShading
             //#pragma enable_d3d11_debug_symbols
@@ -870,6 +882,9 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             #pragma multi_compile_fragment _ _RENDER_PASS_ENABLED
             #pragma multi_compile_fragment _ _LIGHT_COOKIES
             #pragma multi_compile_fragment _ _FOVEATED_RENDERING_NON_UNIFORM_RASTER
+
+            #pragma multi_compile _ CUSTOM_SHADOW_ON
+            #pragma multi_compile _ CUSTOM_SHADOW_ONLY_MAIN_LIGHT
 
             #pragma vertex Vertex
             #pragma fragment DeferredShading
@@ -921,6 +936,8 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             #pragma multi_compile_fragment _ _FOVEATED_RENDERING_NON_UNIFORM_RASTER
 
             #pragma multi_compile _ WARPMAP_ATLAS
+            #pragma multi_compile _ CUSTOM_SHADOW_ON
+            #pragma multi_compile _ CUSTOM_SHADOW_ONLY_MAIN_LIGHT
 
             #pragma vertex Vertex
             #pragma fragment DeferredShading

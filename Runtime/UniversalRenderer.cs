@@ -542,7 +542,8 @@ namespace UnityEngine.Rendering.Universal
             {
                 ConfigureCameraTarget(k_CameraTarget, k_CameraTarget);
                 SetupRenderPasses(in renderingData);
-                EnqueuePass(m_RenderOpaqueForwardPass);
+                if (m_DrawOpaque)
+                { EnqueuePass(m_RenderOpaqueForwardPass); }
 
                 // TODO: Do we need to inject transparents and skybox when rendering depth only camera? They don't write to depth.
                 EnqueuePass(m_DrawSkyboxPass);
@@ -550,7 +551,8 @@ namespace UnityEngine.Rendering.Universal
                 if (!needTransparencyPass)
                     return;
 #endif
-                EnqueuePass(m_RenderTransparentForwardPass);
+                if (m_DrawTransparent)
+                { EnqueuePass(m_RenderTransparentForwardPass); }
                 return;
             }
 

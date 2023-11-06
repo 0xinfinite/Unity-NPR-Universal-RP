@@ -160,6 +160,7 @@ struct LightingData
 half4 CalculateLightingColor(LightingData lightingData, half3 albedo)
 {
     half4 lightingColor = 0;
+    half3 giColor = 0;
 
     if (IsOnlyAOLightingFeatureEnabled())
     {
@@ -169,6 +170,7 @@ half4 CalculateLightingColor(LightingData lightingData, half3 albedo)
     if (IsLightingFeatureEnabled(DEBUGLIGHTINGFEATUREFLAGS_GLOBAL_ILLUMINATION))
     {
         lightingColor += half4(lightingData.giColor,0);
+        giColor = lightingData.giColor;
     }
 
     if (IsLightingFeatureEnabled(DEBUGLIGHTINGFEATUREFLAGS_MAIN_LIGHT))
@@ -185,6 +187,10 @@ half4 CalculateLightingColor(LightingData lightingData, half3 albedo)
     {
         lightingColor += lightingData.vertexLightingColor;
     }
+
+    half attenuation = lightingColor.a;
+
+    lightingColor = half4(lerp(giColor, lightingColor.rgb, attenuation), attenuation);
 
     lightingColor.rgb *= albedo;
 
@@ -298,6 +304,7 @@ half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData)
     lightingData.giColor = GlobalIllumination(brdfData, brdfDataClearCoat, surfaceData.clearCoatMask,
                                               inputData.bakedGI, aoFactor.indirectAmbientOcclusion, inputData.positionWS,
                                               inputData.normalWS, inputData.viewDirectionWS, inputData.normalizedScreenSpaceUV);
+
 #ifdef _LIGHT_LAYERS
     if (IsMatchingLightLayer(mainLight.layerMask, meshRenderingLayers))
 #endif
@@ -343,9 +350,22 @@ half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData)
     LIGHT_LOOP_END
     #endif
 
+
     #if defined(_ADDITIONAL_LIGHTS_VERTEX)
     lightingData.vertexLightingColor += inputData.vertexLighting * brdfData.diffuse;
     #endif
+
+
+#if defined(CUSTOM_SHADOW_ON)
+    half customAttenuation = CustomShadows(inputData.positionWS);
+#if defined(CUSTOM_SHADOW_ONLY_MAIN_LIGHT)
+    lightingData.mainLightColor.a = min(lightingData.mainLightColor.a, customAttenuation);
+#else
+    lightingData.mainLightColor.a = min(lightingData.mainLightColor.a, customAttenuation);
+    lightingData.additionalLightsColor.a = min(lightingData.additionalLightsColor.a, customAttenuation);
+    lightingData.vertexLightingColor.a = min(lightingData.vertexLightingColor.a, customAttenuation);
+#endif
+#endif
 
 #if REAL_IS_HALF
     // Clamp any half.inf+ to HALF_MAX

@@ -8,6 +8,7 @@
 #include "Shadows.deprecated.hlsl"
 
 #define MAX_SHADOW_CASCADES 4
+#define MAX_MAIN_CHARACTERS 1
 
 #if !defined(_RECEIVE_SHADOWS_OFF)
     #if defined(_MAIN_LIGHT_SHADOWS) || defined(_MAIN_LIGHT_SHADOWS_CASCADE) || defined(_MAIN_LIGHT_SHADOWS_SCREEN)
@@ -53,12 +54,40 @@ TEXTURE2D_SHADOW(_MainLightShadowmapTexture);
 TEXTURE2D_SHADOW(_AdditionalLightsShadowmapTexture);
 SAMPLER_CMP(sampler_LinearClampCompare);
 
-TEXTURE2D_SHADOW(_CachedShadowmap);  //added temporary
+//TEXTURE2D_SHADOW(_CachedShadowmap);  //added temporary
 TEXTURE2D_SHADOW(_CachedShadowmapAtlas);
 float4x4    _CachedAdditionalLightsWorldToShadow[MAX_VISIBLE_LIGHTS];
 float4      _CachedAdditionalShadowParams[MAX_VISIBLE_LIGHTS];         // Per-light data
+TEXTURE2D_SHADOW(_MainCharacterLightShadowmapTexture);
 //float4x4    _CachedShadow;
 //float4 _CachedShadowOffset;
+TEXTURE2D_SHADOW(_CustomShadowmapAtlas);
+float4x4    _CustomShadowMatrices[MAX_VISIBLE_LIGHTS];
+float4      _CustomShadowParams[MAX_VISIBLE_LIGHTS];         // Per-custom shadow data
+float4      _CustomShadowPositions[MAX_VISIBLE_LIGHTS];
+float4      _CustomShadowmapSize; // (xy: 1/width and 1/height, zw: width and height)
+int         _CustomShadowCount;
+
+#if  defined(UNITY_PLATFORM_WEBGL) && !defined(SHADER_API_GLES3)
+#define _USE_WEBGL 1
+#define _WEBGL1_MAX_SHADOWS 8
+#else
+#define _USE_WEBGL 0
+#endif
+
+#if !_USE_WEBGL
+#define CUSTOM_SHADOW_LOOP_BEGIN(shadowCount) \
+    for (uint shadowIndex = 0u; shadowIndex < shadowCount; ++shadowIndex) {
+
+#define CUSTOM_SHADOW_LOOP_END }
+#else
+// WebGL 1 doesn't support variable for loop conditions
+#define CUSTOM_SHADOW_LOOP_BEGIN(shadowCount) \
+    for (int shadowIndex = 0; shadowIndex < _WEBGL1_MAX_SHADOWS; ++shadowIndex) { \
+        if (shadowIndex >= (int)shadowCount) break;
+
+#define CUSTOM_SHADOW_LOOP_END }
+#endif
 
 // GLES3 causes a performance regression in some devices when using CBUFFER.
 #ifndef SHADER_API_GLES3
@@ -84,6 +113,12 @@ float4      _AdditionalShadowOffset0; // xy: offset0, zw: offset1
 float4      _AdditionalShadowOffset1; // xy: offset2, zw: offset3
 float4      _AdditionalShadowFadeParams; // x: additional light fade scale, y: additional light fade bias, z: 0.0, w: 0.0)
 float4      _AdditionalShadowmapSize; // (xy: 1/width and 1/height, zw: width and height)
+
+float4x4    _MainCharacterLightWorldToShadow[MAX_MAIN_CHARACTERS + 1];
+float4      _MainCharacterLightShadowOffset0; // xy: offset0, zw: offset1
+float4      _MainCharacterLightShadowOffset1; // xy: offset2, zw: offset3
+float4      _MainCharacterLightShadowParams;   // (x: shadowStrength, y: >= 1.0 if soft shadows, 0.0 otherwise, z: main light fade scale, w: main light fade bias)
+float4      _MainCharacterLightShadowmapSize;  // (xy: 1/width and 1/height, zw: width and height)
 
 #if defined(ADDITIONAL_LIGHT_CALCULATE_SHADOWS)
 #if !USE_STRUCTURED_BUFFER_FOR_LIGHT_DATA
@@ -140,6 +175,38 @@ ShadowSamplingData GetMainLightShadowSamplingData()
     return shadowSamplingData;
 }
 
+ShadowSamplingData GetMainCharacterLightShadowSamplingData()
+{
+    ShadowSamplingData shadowSamplingData;
+
+    // shadowOffsets are used in SampleShadowmapFiltered for low quality soft shadows.
+    shadowSamplingData.shadowOffset0 = _MainCharacterLightShadowOffset0;
+    shadowSamplingData.shadowOffset1 = _MainCharacterLightShadowOffset1;
+
+    // shadowmapSize is used in SampleShadowmapFiltered otherwise
+    shadowSamplingData.shadowmapSize = _MainCharacterLightShadowmapSize;
+    shadowSamplingData.softShadowQuality = _MainCharacterLightShadowParams.y;
+
+    return shadowSamplingData;
+}
+
+ShadowSamplingData GetCustomShadowSamplingData(int index)
+{
+    ShadowSamplingData shadowSamplingData = (ShadowSamplingData)0;
+
+#if defined(ADDITIONAL_LIGHT_CALCULATE_SHADOWS)
+    // shadowOffsets are used in SampleShadowmapFiltered for low quality soft shadows.
+    shadowSamplingData.shadowOffset0 = _AdditionalShadowOffset0;
+    shadowSamplingData.shadowOffset1 = _AdditionalShadowOffset1;
+
+    // shadowmapSize is used in SampleShadowmapFiltered otherwise.
+    shadowSamplingData.shadowmapSize = _CustomShadowmapSize;
+    shadowSamplingData.softShadowQuality = _CustomShadowParams[index].y;
+#endif
+
+    return shadowSamplingData;
+}
+
 ShadowSamplingData GetAdditionalLightShadowSamplingData(int index)
 {
     ShadowSamplingData shadowSamplingData = (ShadowSamplingData)0;
@@ -165,6 +232,10 @@ half4 GetMainLightShadowParams()
     return _MainLightShadowParams;
 }
 
+half4 GetMainCharacterLightShadowParams()
+{
+    return _MainCharacterLightShadowParams;
+}
 
 // ShadowParams
 // x: ShadowStrength
@@ -184,6 +255,19 @@ half4 GetAdditionalLightShadowParams(int lightIndex)
         return half4(0, 0, 0, -1);
     #endif
 }
+
+half4 GetCustomShadowParams(int index)
+{
+#if defined(CUSTOM_SHADOW_ON)
+
+    return _CustomShadowParams[index];
+
+#else
+    // Same defaults as set in AdditionalLightsShadowCasterPass.cs
+    return half4(0, 0, 0, -1);
+#endif
+}
+
 
 half4 GetCachedAdditionalLightShadowParams(int lightIndex)
 {
@@ -338,6 +422,20 @@ half MainLightRealtimeShadow(float4 shadowCoord)
     #endif
 }
 
+half MainCharacterLightRealtimeShadow(float4 shadowCoord)
+{
+#if !defined(MAIN_CHARACTER_LIGHT_CALCULATE_SHADOWS)
+    return half(1.0);
+//#elif defined(_MAIN_CHARACTER_LIGHT_SHADOWS_SCREEN) && !defined(_SURFACE_TYPE_TRANSPARENT)
+//    return SampleScreenSpaceShadowmap(shadowCoord);
+#else
+    ShadowSamplingData shadowSamplingData = GetMainCharacterLightShadowSamplingData();
+    half4 shadowParams = GetMainCharacterLightShadowParams();
+    return SampleShadowmap(TEXTURE2D_ARGS(_MainCharacterLightShadowmapTexture, sampler_LinearClampCompare), shadowCoord, shadowSamplingData, shadowParams, false);
+#endif
+}
+
+
 // returns 0.0 if position is in light's shadow
 // returns 1.0 if position is in light
 half AdditionalLightRealtimeShadow(int lightIndex, float3 positionWS, half3 lightDirection)
@@ -373,6 +471,48 @@ half AdditionalLightRealtimeShadow(int lightIndex, float3 positionWS, half3 ligh
     #endif
 }
 
+float4 GetCustomShadowPosition(int index)
+{
+    return _CustomShadowPositions[index];
+}
+
+half remap(half x, half in_min, half in_max, half out_min, half out_max) {
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+half CustomShadow(int index, float3 positionWS) {
+    ShadowSamplingData shadowSamplingData = GetCustomShadowSamplingData(index);
+
+    half4 shadowParams = GetCustomShadowParams(index);
+
+    float4 lightPos = GetCustomShadowPosition(index);
+    float3 lightVector = lightPos.xyz - positionWS * lightPos.w;
+
+    float distanceSqr = max(dot(lightVector, lightVector), HALF_MIN);
+    half3 lightDirection = half3(lightVector * rsqrt(distanceSqr));
+
+    float4 shadowCoord = mul(_CustomShadowMatrices[index], float4(positionWS + lightDirection * shadowParams.z, 1.0));
+
+    float falloff = min( min( saturate(remap(shadowCoord.x/ shadowCoord.w, 1-shadowParams.w, 1, 1, 0)) , saturate( remap(shadowCoord.x/ shadowCoord.w, 0, shadowParams.w, 0, 1)))
+        ,min(saturate(remap(shadowCoord.y/ shadowCoord.w, 1 - shadowParams.w, 1, 1, 0)), saturate(remap(shadowCoord.y/ shadowCoord.w, 0, shadowParams.w, 0, 1)))
+    );
+
+    return lerp(1, SampleShadowmap(TEXTURE2D_ARGS(_CustomShadowmapAtlas, sampler_LinearClampCompare), shadowCoord, shadowSamplingData, shadowParams, true),falloff);
+}
+
+int GetCustomShadowCount() {
+    return _CustomShadowCount;
+}
+
+half CustomShadows(float3 positionWS)
+{
+    int shadowsCount = GetCustomShadowCount();
+    half attenuation = 1;
+    CUSTOM_SHADOW_LOOP_BEGIN(shadowsCount)
+        attenuation = min(attenuation, CustomShadow(shadowIndex, positionWS));
+        CUSTOM_SHADOW_LOOP_END
+        return attenuation;
+}
 half CachedAdditionalLightShadow(int lightIndex, float3 positionWS, half3 lightDirection) {
 //#if defined(ADDITIONAL_LIGHT_CALCULATE_SHADOWS)
     ShadowSamplingData shadowSamplingData = GetAdditionalLightShadowSamplingData(lightIndex);
@@ -483,6 +623,25 @@ half MainLightShadow(float4 shadowCoord, float3 positionWS, half4 shadowMask, ha
 #endif
 
     return MixRealtimeAndBakedShadows(realtimeShadow, bakedShadow, shadowFade);
+}
+
+half MainCharacterLightShadow(float4 shadowCoord)//, float3 positionWS, half4 shadowMask, half4 occlusionProbeChannels)
+{
+    half realtimeShadow = MainCharacterLightRealtimeShadow(shadowCoord);
+
+//#ifdef CALCULATE_BAKED_SHADOWS
+//    half bakedShadow = BakedShadow(shadowMask, occlusionProbeChannels);
+//#else
+//    half bakedShadow = half(1.0);
+//#endif
+//
+//#ifdef MAIN_LIGHT_CALCULATE_SHADOWS
+//    half shadowFade = GetMainLightShadowFade(positionWS);
+//#else
+//    half shadowFade = half(1.0);
+//#endif
+
+    return realtimeShadow;//MixRealtimeAndBakedShadows(realtimeShadow, bakedShadow, shadowFade);
 }
 
 half AdditionalLightShadow(int lightIndex, float3 positionWS, half3 lightDirection, half4 shadowMask, half4 occlusionProbeChannels)

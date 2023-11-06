@@ -312,7 +312,19 @@ half4 UniversalFragmentNPR(InputData inputData, SurfaceData surfaceData)
 #if defined(_ADDITIONAL_LIGHTS_VERTEX)
         lightingData.vertexLightingColor +=half4( inputData.vertexLighting.rgb * brdfData.diffuse, inputData.vertexLighting.a);
 #endif
-    
+
+
+#if defined(CUSTOM_SHADOW_ON)
+    half customAttenuation = CustomShadows(inputData.positionWS);
+#if defined(CUSTOM_SHADOW_ONLY_MAIN_LIGHT)
+    lightingData.mainLightColor.a = min(lightingData.mainLightColor.a, customAttenuation);
+#else
+    lightingData.mainLightColor.a = min(lightingData.mainLightColor.a, customAttenuation);
+    lightingData.additionalLightsColor.a = min(lightingData.additionalLightsColor.a, customAttenuation);
+    lightingData.vertexLightingColor.a = min(lightingData.vertexLightingColor.a, customAttenuation);
+#endif
+#endif
+
 #if REAL_IS_HALF
     // Clamp any half.inf+ to HALF_MAX
     return min(CalculateFinalColor(lightingData, surfaceData.alpha), HALF_MAX);
