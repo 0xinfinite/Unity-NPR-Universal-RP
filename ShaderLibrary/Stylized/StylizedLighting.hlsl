@@ -315,7 +315,7 @@ half4 UniversalFragmentNPR(InputData inputData, SurfaceData surfaceData)
 
 
 #if defined(CUSTOM_SHADOW_ON)
-    half customAttenuation = CustomShadows(inputData.positionWS);
+    half customAttenuation = CustomShadows(inputData.shadowCoord.y, inputData.positionWS);
 #if defined(CUSTOM_SHADOW_ONLY_MAIN_LIGHT)
     lightingData.mainLightColor.a = min(lightingData.mainLightColor.a, customAttenuation);
 #else

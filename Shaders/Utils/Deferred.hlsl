@@ -20,7 +20,7 @@ struct PunctualLightData
 };
 
 
-Light UnityLightFromPunctualLightDataAndWorldSpacePosition(PunctualLightData punctualLightData, float3 positionWS, half4 shadowMask, int shadowLightIndex, bool materialFlagReceiveShadowsOff, float depthBias = 0, int distAttenOffset = 0)
+Light UnityLightFromPunctualLightDataAndWorldSpacePosition(PunctualLightData punctualLightData, float3 positionWS, half4 shadowMask, int shadowLightIndex, bool materialFlagReceiveShadowsOff, float depthBias = 0, float customShadowDepthBias = 0,int distAttenOffset = 0)
 {
     // Keep in sync with GetAdditionalPerObjectLight in Lighting.hlsl
 
@@ -58,7 +58,7 @@ Light UnityLightFromPunctualLightDataAndWorldSpacePosition(PunctualLightData pun
 
 #if defined(CUSTOM_SHADOW_ON)
 #if !defined(CUSTOM_SHADOW_ONLY_MAIN_LIGHT)
-    light.shadowAttenuation = min(light.shadowAttenuation, CustomShadows(positionWS));
+    light.shadowAttenuation = min(light.shadowAttenuation, CustomShadows(customShadowDepthBias, positionWS));
 #endif
 #endif
 

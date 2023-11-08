@@ -3,7 +3,10 @@ guid: f17a5361b778fad488a85f660db351ac
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - captureCamera: {instanceID: 0}
+  - depthMap: {instanceID: 0}
+  - depthDecoder: {fileID: -6465566751694194690, guid: b9e4ff316238ec243bba8126aa225b85, type: 3}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

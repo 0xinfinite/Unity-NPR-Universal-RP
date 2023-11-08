@@ -173,7 +173,7 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
         return half4(1.0, 1.0, 1.0, 1.0);
     }
 
-    Light GetStencilLight(float3 posWS, float2 screen_uv, half4 shadowMask, uint materialFlags, float depthBias)
+    Light GetStencilLight(float3 posWS, float2 screen_uv, half4 shadowMask, uint materialFlags, float depthBias, float customShadowDepthBias)
     {
         Light unityLight;
 
@@ -218,7 +218,7 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
                 }
             #endif
 #if defined(CUSTOM_SHADOW_ON)
-                unityLight.shadowAttenuation = min(unityLight.shadowAttenuation, CustomShadows(posWS.xyz));
+                unityLight.shadowAttenuation = min(unityLight.shadowAttenuation, CustomShadows(customShadowDepthBias, posWS.xyz));
 #endif
         #else
             PunctualLightData light;
@@ -230,7 +230,7 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             light.occlusionProbeInfo = _LightOcclusionProbInfo;
             light.flags = _LightFlags;
             light.layerMask = lightLayerMask;
-            unityLight = UnityLightFromPunctualLightDataAndWorldSpacePosition(light, posWS.xyz, shadowMask, _ShadowLightIndex, materialReceiveShadowsOff, depthBias, _BaseIndexOfDistanceAttenuationMap);
+            unityLight = UnityLightFromPunctualLightDataAndWorldSpacePosition(light, posWS.xyz, shadowMask, _ShadowLightIndex, materialReceiveShadowsOff, depthBias, customShadowDepthBias, _BaseIndexOfDistanceAttenuationMap);
 
             #ifdef _LIGHT_COOKIES
                 // Enable/disable is done toggling the keyword _LIGHT_COOKIES, but we could do a "static if" instead if required.
@@ -302,8 +302,16 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
         #endif
         half warpMapOffset = gbuffer1.y;
         half surfaceDataOcclusion = gbuffer1.a;
+//#if defined(_STYLIZEDLIT)
+//        half surfaceDataOcclusion = 1;
+//#endif
         uint materialFlags = UnpackMaterialFlags(gbuffer0.a);
-        half shadowDepthBias = gbuffer1.z;
+        half shadowDepthBias = 0;
+        half customShadowDepthBias = 0;
+#if defined(_STYLIZEDLIT)
+        shadowDepthBias = gbuffer1.z;
+        customShadowDepthBias = gbuffer1.w;
+#endif
 
         half3 color = 0.0.xxx;
         half alpha = 1.0;
@@ -326,7 +334,7 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
         float4 posWS = mul(_ScreenToWorld[eyeIndex], float4(input.positionCS.xy, d, 1.0));
         posWS.xyz *= rcp(posWS.w);
 
-        Light unityLight = GetStencilLight(posWS.xyz, screen_uv, shadowMask, materialFlags, shadowDepthBias);
+        Light unityLight = GetStencilLight(posWS.xyz, screen_uv, shadowMask, materialFlags, shadowDepthBias, customShadowDepthBias);
 
         #ifdef _LIGHT_LAYERS
         float4 renderingLayers = SAMPLE_TEXTURE2D_X_LOD(MERGE_NAME(_, GBUFFER_LIGHT_LAYERS), my_point_clamp_sampler, screen_uv, 0);
@@ -393,7 +401,7 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
 #else
         bool materialSpecularHighlightsOff = (materialFlags & kMaterialFlagSpecularHighlightsOff);
 #endif
-        BRDFData brdfData = BRDFDataFromGbuffer(gbuffer0, gbuffer1, gbuffer2);
+        BRDFData brdfData = BRDFDataFromGbuffer(gbuffer0, half4(gbuffer1.r, gbuffer1.r, gbuffer1.r, 1), gbuffer2);
         //SurfaceData surfaceData = SurfaceDataFromGbuffer(gbuffer0, gbuffer1, gbuffer2, kLightingSimpleLit);
 
         half4 lightColor = LightingStylizedBasedDeferred(brdfData, unityLight, inputData.normalWS, inputData.viewDirectionWS, materialSpecularHighlightsOff, warpMapOffset);
@@ -403,7 +411,7 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
         //return half4(gbuffer3.rgb, alpha);
 
         #endif
-
+        
         return half4(color, alpha);
     }
 
@@ -453,8 +461,16 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
         #endif
         half warpMapOffset = gbuffer1.y;
         half surfaceDataOcclusion = gbuffer1.a;
+//#if defined(_STYLIZEDLIT)
+//        half surfaceDataOcclusion = 1;
+//#endif
         uint materialFlags = UnpackMaterialFlags(gbuffer0.a);
-        half shadowDepthBias = gbuffer1.z;
+        half shadowDepthBias = 0;
+        half customShadowDepthBias = 0;
+#if defined(_STYLIZEDLIT)
+        shadowDepthBias = gbuffer1.z;
+        customShadowDepthBias = gbuffer1.w;
+#endif
 
         half3 color = 0.0.xxx;
         half alpha = 1.0;
@@ -477,7 +493,7 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
         float4 posWS = mul(_ScreenToWorld[eyeIndex], float4(input.positionCS.xy, d, 1.0));
         posWS.xyz *= rcp(posWS.w);
 
-        Light unityLight = GetStencilLight(posWS.xyz, screen_uv, shadowMask, materialFlags, shadowDepthBias);
+        Light unityLight = GetStencilLight(posWS.xyz, screen_uv, shadowMask, materialFlags, shadowDepthBias, customShadowDepthBias);
 
         #ifdef _LIGHT_LAYERS
         float4 renderingLayers = SAMPLE_TEXTURE2D_X_LOD(MERGE_NAME(_, GBUFFER_LIGHT_LAYERS), my_point_clamp_sampler, screen_uv, 0);

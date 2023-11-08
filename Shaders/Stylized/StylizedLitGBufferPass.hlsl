@@ -168,9 +168,9 @@ Varyings LitGBufferPassVertex(Attributes input)
         output.positionWS = vertexInput.positionWS;
     #endif
 
-    #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
+ /*   #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
         output.shadowCoord = GetShadowCoord(vertexInput);
-    #endif
+    #endif*/
 
     output.positionCS = vertexInput.positionCS;
 

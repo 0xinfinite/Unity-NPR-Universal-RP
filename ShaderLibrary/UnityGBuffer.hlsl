@@ -210,7 +210,7 @@ FragmentOutput BRDFDataToGbufferStylized(BRDFData brdfData, InputData inputData,
 
     FragmentOutput output;
     output.GBuffer0 = half4(brdfData.albedo.rgb, PackMaterialFlags(materialFlags));  // diffuse           diffuse         diffuse         materialFlags   (sRGB rendertarget)
-    output.GBuffer1 = half4(packedSpecular.x, warpMapOffset, inputData.shadowCoord.x, occlusion);           // metallic/specular warpmap-index  shadow-depthbias      occlusion
+    output.GBuffer1 = half4(packedSpecular.x, warpMapOffset, inputData.shadowCoord.x, inputData.shadowCoord.y);           // metallic/specular warpmap-index  shadow-depthbias      custom-shadow-depthbias
     output.GBuffer2 = half4(packedNormalWS, smoothness);                             // encoded-normal    encoded-normal  encoded-normal  smoothness
     output.GBuffer3 = half4(globalIllumination, emissionPower);       // GI                GI              GI              emission-power          (lighting buffer)
 #if _RENDER_PASS_ENABLED
