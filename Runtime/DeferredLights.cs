@@ -217,9 +217,9 @@ namespace UnityEngine.Rendering.Universal.Internal
             set { m_DistanceAttenuationMapAtlas = value; }
         }
 
-        private int m_BaseIndexOfDistanceAttenuation;
+        private float m_BaseIndexOfDistanceAttenuation;
 
-        internal int BaseIndexOfDistanceAttenuation
+        internal float BaseIndexOfDistanceAttenuation
         {
             get => m_BaseIndexOfDistanceAttenuation;
             set { m_BaseIndexOfDistanceAttenuation = value; }
@@ -790,20 +790,20 @@ namespace UnityEngine.Rendering.Universal.Internal
         {
             if(m_WarpMapAtlas)
             {
-                //CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.WarpMapAtlas, true);
+                CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.UseWarpMapAtlasOnDeferred, true);
                 cmd.SetGlobalTexture(ShaderConstants._WarpMapAtlas, m_WarpMapAtlas);
                 cmd.SetGlobalInteger(ShaderConstants._WarpMapCount, m_WarpMapCount);
             }
             else
             {
-                //CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.WarpMapAtlas, false);
+                CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.UseWarpMapAtlasOnDeferred, false);
             }
             if (m_DistanceAttenuationMapAtlas)
             {
                 CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.DistanceAttenuationMapAtlas, true);
                 cmd.SetGlobalTexture(ShaderConstants._DistanceAttenuationMapAtlas, m_DistanceAttenuationMapAtlas);
                 cmd.SetGlobalInteger(ShaderConstants._DistanceAttenuationMapCount, m_DistanceAttenuationMapCount);
-                cmd.SetGlobalInteger(ShaderConstants._BaseIndexOfDistanceAttenuation, m_BaseIndexOfDistanceAttenuation);
+                cmd.SetGlobalFloat(ShaderConstants._BaseIndexOfDistanceAttenuation, m_BaseIndexOfDistanceAttenuation);
             }
             else
             {
@@ -974,7 +974,7 @@ namespace UnityEngine.Rendering.Universal.Internal
                 cmd.SetGlobalInt(ShaderConstants._LightFlags, lightFlags);
                 cmd.SetGlobalInt(ShaderConstants._ShadowLightIndex, shadowLightIndex);
                 cmd.SetGlobalInt(ShaderConstants._LightLayerMask, (int)lightLayerMask);
-				cmd.SetGlobalInt(ShaderConstants._LightDistanceAttenuationOffset, m_BaseIndexOfDistanceAttenuation);
+				cmd.SetGlobalFloat(ShaderConstants._LightDistanceAttenuationOffset, m_BaseIndexOfDistanceAttenuation);
 
                 // Stencil pass.
                 cmd.DrawMesh(m_SphereMesh, transformMatrix, m_StencilDeferredMaterial, 0, m_StencilDeferredPasses[(int)StencilDeferredPasses.StencilVolume]);

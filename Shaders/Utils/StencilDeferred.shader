@@ -150,7 +150,7 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
     int _ShadowLightIndex;
     uint _LightLayerMask;
     int _CookieLightIndex;
-	half _BaseIndexOfDistanceAttenuationMap;
+	//half _BaseIndexOfDistanceAttenuationMap;
 
     half4 FragWhite(Varyings input) : SV_Target
     {
@@ -340,6 +340,7 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
 			{
 				BRDFData brdfData = BRDFDataFromGbuffer(gbuffer0, gbuffer1.xxxw, gbuffer2);
 				color = LightingPhysicallyBased(brdfData, unityLight, inputData.normalWS, inputData.viewDirectionWS, materialSpecularHighlightsOff, warpMapOffset);
+                //color = half3(warpMapOffset, 0, 0);
 			}
 			else
             {
@@ -458,6 +459,7 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             #pragma exclude_renderers gles gles3 glcore
             #pragma target 4.5
 
+            #pragma shader_feature_local _WARPMAP_ATLAS
             #pragma multi_compile _POINT _SPOT
             #pragma multi_compile_fragment _LIT
             #pragma multi_compile_fragment _ _ADDITIONAL_LIGHT_SHADOWS
@@ -471,6 +473,7 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             #pragma multi_compile_fragment _ _RENDER_PASS_ENABLED
             #pragma multi_compile_fragment _ _LIGHT_COOKIES
             #pragma multi_compile_fragment _ _FOVEATED_RENDERING_NON_UNIFORM_RASTER
+            #pragma multi_compile_fragment _ _USE_WARPMAP_ON_DEFERRED
 
             #pragma vertex Vertex
             #pragma fragment DeferredShading
@@ -567,6 +570,7 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             #pragma multi_compile_fragment _ _RENDER_PASS_ENABLED
             #pragma multi_compile_fragment _ _LIGHT_COOKIES
             #pragma multi_compile_fragment _ _FOVEATED_RENDERING_NON_UNIFORM_RASTER
+            #pragma multi_compile_fragment _ _USE_WARPMAP_ON_DEFERRED
 
             #pragma vertex Vertex
             #pragma fragment DeferredShading

@@ -1223,7 +1223,8 @@ namespace UnityEngine.Rendering.Universal
         public const string UseDrawProcedural = "_USE_DRAW_PROCEDURAL";
 			//Custom keywords below
         public const string CachedShadow = "CACHED_SHADOW_ON";
-        public const string DistanceAttenuationMapAtlas = "DISTANCEATTENUATIONPMAP_ATLAS";																			  
+        public const string DistanceAttenuationMapAtlas = "DISTANCEATTENUATIONPMAP_ATLAS";
+        public const string UseWarpMapAtlasOnDeferred = "_USE_WARPMAP_ON_DEFERRED";
     }
 
     public sealed partial class UniversalRenderPipeline

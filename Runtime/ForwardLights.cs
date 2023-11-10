@@ -105,9 +105,9 @@ namespace UnityEngine.Rendering.Universal.Internal
             }
         }
 
-        int m_BaseIndexOfDistanceAttenuationOffset;
+        float m_BaseIndexOfDistanceAttenuationOffset;
 
-        public int baseIndexOfDistanceAttenuationOffset
+        public float baseIndexOfDistanceAttenuationOffset
         {
             get => m_BaseIndexOfDistanceAttenuationOffset;
 
@@ -519,7 +519,7 @@ namespace UnityEngine.Rendering.Universal.Internal
             out float distanceAttenuationOffset,
             float punctualLightFalloffStart = 0.8f)
         {
-            UniversalRenderPipeline.InitializeLightConstants_Common(lights, lightIndex, out lightPos, out lightColor, out lightAttenuation, out lightSpotDir, out lightOcclusionProbeChannel);
+            UniversalRenderPipeline.InitializeLightConstants_Common(lights, lightIndex, out lightPos, out lightColor, out lightAttenuation, out lightSpotDir, out lightOcclusionProbeChannel, m_PunctionalLightFallOffStart);
             lightLayerMask = 0;
             isSubtractive = false;
             distanceAttenuationOffset = m_BaseIndexOfDistanceAttenuationOffset;
@@ -582,7 +582,7 @@ namespace UnityEngine.Rendering.Universal.Internal
                 CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.DistanceAttenuationMapAtlas, true);
                 cmd.SetGlobalTexture(LightConstantBuffer._DistanceAttenuationMapAtlas, m_DistanceAttenuationMapAtlas);
                 cmd.SetGlobalInteger(LightConstantBuffer._DistanceAttenuationMapCount, m_DistanceAttenuationMapCount);
-                cmd.SetGlobalInteger(LightConstantBuffer._BaseIndexOfDistanceAttenuationOffset, m_BaseIndexOfDistanceAttenuationOffset);
+                cmd.SetGlobalFloat(LightConstantBuffer._BaseIndexOfDistanceAttenuationOffset, m_BaseIndexOfDistanceAttenuationOffset);
             }
             else
             {
@@ -668,7 +668,7 @@ namespace UnityEngine.Rendering.Universal.Internal
                                 ); 
 
                             m_AdditionalLightsLayerMasks[lightIter] = math.asfloat(lightLayerMask);
-							m_AdditionalLightDistanceAttenuationOffset[lightIter] = math.asfloat(m_BaseIndexOfDistanceAttenuationOffset);
+							m_AdditionalLightDistanceAttenuationOffset[lightIter] = m_BaseIndexOfDistanceAttenuationOffset;
                             m_AdditionalLightColors[lightIter].w = isSubtractive ? 1f : 0f;
                             lightIter++;
                         }

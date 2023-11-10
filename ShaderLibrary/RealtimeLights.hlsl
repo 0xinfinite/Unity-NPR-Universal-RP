@@ -183,7 +183,7 @@ Light GetAdditionalPerObjectLight(int perObjectLightIndex, float3 positionWS)
     float3 lightVector = lightPositionWS.xyz - positionWS * lightPositionWS.w;
     float distanceSqr = max(dot(lightVector, lightVector), HALF_MIN);
 
-	float distance = length(lightPositionWS.xyz - positionWS);
+	float distance = length(lightVector);
     half3 lightDirection = half3(lightVector * rsqrt(distanceSqr));
     // full-float precision required on some platforms
     float attenuation = DistanceAttenuation(distance/*Sqr*/, distanceAndSpotAttenuation.xy) * AngleAttenuation(spotDirection.xyz, lightDirection, distanceAndSpotAttenuation.zw);

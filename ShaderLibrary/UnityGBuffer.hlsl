@@ -254,16 +254,19 @@ FragmentOutput BRDFDataToGbuffer(BRDFData brdfData, InputData inputData, half sm
     packedSpecular = 0.0.xxx;
     #endif
 
-#if defined(_PER_MATERIAL_SHADOW_BIAS)
-    packedSpecular = float4(packedSpecular.r, warpMapIndex, inputData.shadowCoord.x, inputData.shadowCoord.y);
-#endif
 
     #if defined(LIGHTMAP_ON) && defined(_MIXED_LIGHTING_SUBTRACTIVE)
     materialFlags |= kMaterialFlagSubtractiveMixedLighting;
     #endif
 
-    #if defined(_WARPMAP_ATLAS) || defined(_SHADOWCOLORMAP)
+    #if defined(_WARPMAP_ATLAS) || defined(_SHADOWCOLORMAP) || defined(_PER_MATERIAL_SHADOW_BIAS)
+
     materialFlags |= kMaterialFlagStylizedShade;
+    packedSpecular = float4(packedSpecular.r, warpMapIndex, 0, 0); 
+#endif
+
+    #if defined(_PER_MATERIAL_SHADOW_BIAS)
+    packedSpecular.zw = float2(inputData.shadowCoord.x, inputData.shadowCoord.y);
 #endif
 
     FragmentOutput output;

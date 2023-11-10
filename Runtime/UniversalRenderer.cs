@@ -144,7 +144,7 @@ namespace UnityEngine.Rendering.Universal
         Texture2D m_WarpMapAtlas;
         int m_WarpMapCount;
         Texture2D m_DistanceAttenuationMapAtlas;
-        int m_BaseIndexOfDistanceAttenuationMap;
+        float m_BaseIndexOfDistanceAttenuationMap;
         int m_DistanceAttenuationMapCount;
         float m_PunctionalLightFallOffStart;
         bool m_DepthPrimingRecommended;
