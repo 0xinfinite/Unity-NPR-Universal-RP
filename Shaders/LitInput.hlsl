@@ -3,7 +3,9 @@
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonMaterial.hlsl"
+																										 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/SurfaceInput.hlsl"
+																										
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/ParallaxMapping.hlsl"
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DBuffer.hlsl"
 
@@ -15,10 +17,18 @@
 CBUFFER_START(UnityPerMaterial)
 float4 _BaseMap_ST;
 float4 _DetailAlbedoMap_ST;
+//float4 _WarpMap_ST;
 half4 _BaseColor;
+half _WarpMapIndex;
+half4 _ShadowTint;
 half4 _SpecColor;
 half4 _EmissionColor;
+half _ShadowCastOffset;
+half _AdditionalShadowCastOffset;
+					 
+				   
 half _Cutoff;
+half _DepthForward;
 half _Smoothness;
 half _Metallic;
 half _BumpScale;
@@ -38,9 +48,17 @@ CBUFFER_END
 
 UNITY_DOTS_INSTANCING_START(MaterialPropertyMetadata)
     UNITY_DOTS_INSTANCED_PROP(float4, _BaseColor)
+    UNITY_DOTS_INSTANCED_PROP(float4, _ShadowTint)
     UNITY_DOTS_INSTANCED_PROP(float4, _SpecColor)
     UNITY_DOTS_INSTANCED_PROP(float4, _EmissionColor)
+    UNITY_DOTS_INSTANCED_PROP(float , _ShadowCastOffset)
+    UNITY_DOTS_INSTANCED_PROP(float, _AdditionalShadowCastOffset)
     UNITY_DOTS_INSTANCED_PROP(float , _Cutoff)
+    UNITY_DOTS_INSTANCED_PROP(float,  _DepthForward)
+    UNITY_DOTS_INSTANCED_PROP(float, _WarpMapIndex)
+												 
+													  
+													
     UNITY_DOTS_INSTANCED_PROP(float , _Smoothness)
     UNITY_DOTS_INSTANCED_PROP(float , _Metallic)
     UNITY_DOTS_INSTANCED_PROP(float , _BumpScale)
@@ -54,9 +72,17 @@ UNITY_DOTS_INSTANCING_START(MaterialPropertyMetadata)
 UNITY_DOTS_INSTANCING_END(MaterialPropertyMetadata)
 
 #define _BaseColor              UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float4 , _BaseColor)
+#define _WarpMapIndex      UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float  , _WarpMapIndex)
+																							
+#define _ShadowTint            UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float4 , _ShadowTint)
 #define _SpecColor              UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float4 , _SpecColor)
 #define _EmissionColor          UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float4 , _EmissionColor)
+#define _ShadowCastOffset       UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float  , _ShadowCastOffset)
+#define _AdditionalShadowCastOffset       UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float  , _AdditionalShadowCastOffset)
 #define _Cutoff                 UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float  , _Cutoff)
+#define _DepthForward           UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float  , _DepthForward)
+																									   
+																									 
 #define _Smoothness             UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float  , _Smoothness)
 #define _Metallic               UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float  , _Metallic)
 #define _BumpScale              UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float  , _BumpScale)
@@ -223,6 +249,52 @@ inline void InitializeStandardLitSurfaceData(float2 uv, out SurfaceData outSurfa
 
 #if defined(_CLEARCOAT) || defined(_CLEARCOATMAP)
     half2 clearCoat = SampleClearCoat(uv);
+											   
+													 
+	 
+											 
+												   
+	  
+
+					
+																			  
+																		   
+																						   
+																							   
+	  
+ 
+
+																																	
+ 
+																						 
+																	   
+
+																 
+															 
+																					   
+							 
+																										 
+												   
+	 
+																					
+																					
+	  
+
+				   
+										
+											
+	 
+										  
+												   
+	  
+
+											
+																									  
+												   
+																														
+
+												 
+										  
     outSurfaceData.clearCoatMask       = clearCoat.r;
     outSurfaceData.clearCoatSmoothness = clearCoat.g;
 #else

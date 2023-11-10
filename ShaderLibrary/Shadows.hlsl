@@ -53,6 +53,38 @@ TEXTURE2D_SHADOW(_MainLightShadowmapTexture);
 TEXTURE2D_SHADOW(_AdditionalLightsShadowmapTexture);
 SAMPLER_CMP(sampler_LinearClampCompare);
 
+TEXTURE2D_SHADOW(_CachedShadowmapAtlas);
+float4x4    _CachedAdditionalLightsWorldToShadow[MAX_VISIBLE_LIGHTS];
+float4      _CachedAdditionalShadowParams[MAX_VISIBLE_LIGHTS];         // Per-light data
+TEXTURE2D_SHADOW(_CustomShadowmapAtlas);
+float4x4    _CustomShadowMatrices[MAX_VISIBLE_LIGHTS];
+float4      _CustomShadowParams[MAX_VISIBLE_LIGHTS];         // Per-custom shadow data
+float4      _CustomShadowParams2[MAX_VISIBLE_LIGHTS];
+float4      _CustomShadowPositions[MAX_VISIBLE_LIGHTS];
+float4      _CustomShadowmapSize; // (xy: 1/width and 1/height, zw: width and height)
+int         _CustomShadowCount;
+float4      _CustomShadowOffset0; // xy: offset0, zw: offset1
+float4      _CustomShadowOffset1; // xy: offset2, zw: offset3
+#if  defined(UNITY_PLATFORM_WEBGL) && !defined(SHADER_API_GLES3)
+#define _USE_WEBGL 1
+#define _WEBGL1_MAX_SHADOWS 8
+#else
+#define _USE_WEBGL 0
+#endif
+
+#if !_USE_WEBGL
+#define CUSTOM_SHADOW_LOOP_BEGIN(shadowCount) \
+    for (uint shadowIndex = 0u; shadowIndex < shadowCount; ++shadowIndex) {
+
+#define CUSTOM_SHADOW_LOOP_END }
+#else
+// WebGL 1 doesn't support variable for loop conditions
+#define CUSTOM_SHADOW_LOOP_BEGIN(shadowCount) \
+    for (int shadowIndex = 0; shadowIndex < _WEBGL1_MAX_SHADOWS; ++shadowIndex) { \
+        if (shadowIndex >= (int)shadowCount) break;
+
+#define CUSTOM_SHADOW_LOOP_END }
+#endif
 // GLES3 causes a performance regression in some devices when using CBUFFER.
 #ifndef SHADER_API_GLES3
 CBUFFER_START(LightShadows)
@@ -132,6 +164,21 @@ ShadowSamplingData GetMainLightShadowSamplingData()
 
     return shadowSamplingData;
 }
+ShadowSamplingData GetCustomShadowSamplingData(int index)
+{
+    ShadowSamplingData shadowSamplingData = (ShadowSamplingData)0;
+
+#if defined(CUSTOM_SHADOW_ON)|| defined(CUSTOM_SHADOW_ONLY_MAIN_LIGHT)
+    // shadowOffsets are used in SampleShadowmapFiltered for low quality soft shadows.
+    shadowSamplingData.shadowOffset0 = _CustomShadowOffset0;
+    shadowSamplingData.shadowOffset1 = _CustomShadowOffset1;
+
+    // shadowmapSize is used in SampleShadowmapFiltered otherwise.
+    shadowSamplingData.shadowmapSize = _CustomShadowmapSize;
+    shadowSamplingData.softShadowQuality = _CustomShadowParams[index].y;
+#endif
+    return shadowSamplingData;
+}
 
 ShadowSamplingData GetAdditionalLightShadowSamplingData(int index)
 {
@@ -178,6 +225,41 @@ half4 GetAdditionalLightShadowParams(int lightIndex)
     #endif
 }
 
+half4 GetCustomShadowParams(int index)
+{
+#if defined(CUSTOM_SHADOW_ON) || defined(CUSTOM_SHADOW_ONLY_MAIN_LIGHT)
+
+    return _CustomShadowParams[index];
+
+#else
+    // Same defaults as set in AdditionalLightsShadowCasterPass.cs
+    return half4(0, 0, 0, -1);
+#endif
+}
+
+half4 GetCustomShadowParams2(int index)
+{
+#if defined(CUSTOM_SHADOW_ON)|| defined(CUSTOM_SHADOW_ONLY_MAIN_LIGHT)
+
+    return _CustomShadowParams2[index];
+
+#else
+    // Same defaults as set in AdditionalLightsShadowCasterPass.cs
+    return half4(0, 0, 0, -1);
+#endif
+}
+
+half4 GetCachedAdditionalLightShadowParams(int lightIndex)
+{
+#if defined(ADDITIONAL_LIGHT_CALCULATE_SHADOWS)
+
+    return _CachedAdditionalShadowParams[lightIndex];
+
+#else
+    // Same defaults as set in AdditionalLightsShadowCasterPass.cs
+    return half4(0, 0, 0, -1);
+#endif
+}
 half SampleScreenSpaceShadowmap(float4 shadowCoord)
 {
     shadowCoord.xy /= shadowCoord.w;
@@ -306,8 +388,13 @@ float4 TransformWorldToShadowCoord(float3 positionWS)
     return float4(shadowCoord.xyz, 0);
 }
 
-half MainLightRealtimeShadow(float4 shadowCoord)
+half MainLightRealtimeShadow(float4 shadowCoord, float3 positionWS = 0)
 {
+
+#if defined(_PER_MATERIAL_SHADOW_BIAS)
+    shadowCoord = TransformWorldToShadowCoord(positionWS + shadowCoord.yzw * shadowCoord.x);
+#endif
+
     #if !defined(MAIN_LIGHT_CALCULATE_SHADOWS)
         return half(1.0);
     #elif defined(_MAIN_LIGHT_SHADOWS_SCREEN) && !defined(_SURFACE_TYPE_TRANSPARENT)
@@ -321,7 +408,7 @@ half MainLightRealtimeShadow(float4 shadowCoord)
 
 // returns 0.0 if position is in light's shadow
 // returns 1.0 if position is in light
-half AdditionalLightRealtimeShadow(int lightIndex, float3 positionWS, half3 lightDirection)
+half AdditionalLightRealtimeShadow(int lightIndex, float3 positionWS, half3 lightDirection, float shadowBias = 0)
 {
     #if defined(ADDITIONAL_LIGHT_CALCULATE_SHADOWS)
         ShadowSamplingData shadowSamplingData = GetAdditionalLightShadowSamplingData(lightIndex);
@@ -342,6 +429,11 @@ half AdditionalLightRealtimeShadow(int lightIndex, float3 positionWS, half3 ligh
             shadowSliceIndex += cubemapFaceId;
         }
 
+
+#if defined(_PER_MATERIAL_SHADOW_BIAS)
+        positionWS += lightDirection * shadowBias;
+#endif
+
         #if USE_STRUCTURED_BUFFER_FOR_LIGHT_DATA
             float4 shadowCoord = mul(_AdditionalLightsWorldToShadow_SSBO[shadowSliceIndex], float4(positionWS, 1.0));
         #else
@@ -352,6 +444,156 @@ half AdditionalLightRealtimeShadow(int lightIndex, float3 positionWS, half3 ligh
     #else
         return half(1.0);
     #endif
+}
+
+float4 GetCustomShadowPosition(int index)
+{
+    return _CustomShadowPositions[index];
+}
+
+half remap(half x, half in_min, half in_max, half out_min, half out_max) {
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+int GetCustomShadowCount() {
+    return _CustomShadowCount;
+}
+
+half GetCustomLightFalloff(half2 shadowCoord,
+    half2 areaX, half2 areaY,
+    half threshold) {
+    return min(
+        min(saturate(remap(shadowCoord.x, areaX.x, areaX.x + threshold, 0, 1)),
+        saturate(remap(shadowCoord.x, areaX.y-threshold, areaX.y, 1, 0)))
+        ,
+        min(saturate(remap(shadowCoord.y, areaY.x, areaY.x + threshold, 0, 1)),
+            saturate(remap(shadowCoord.y, areaY.y-threshold, areaY.y, 1, 0)))
+    );
+}
+half GetCustomLightFalloff(half3 shadowCoord,
+    half2 areaX, half2 areaY,
+    half threshold) {
+    return min(
+        min(
+        min(saturate(remap(shadowCoord.x, areaX.x, areaX.x + threshold, 0, 1)),
+            saturate(remap(shadowCoord.x, areaX.y - threshold, areaX.y, 1, 0)))
+        ,
+        min(saturate(remap(shadowCoord.y, areaY.x, areaY.x + threshold, 0, 1)),
+            saturate(remap(shadowCoord.y, areaY.y - threshold, areaY.y, 1, 0)))
+    )
+        ,
+        min(saturate(remap(shadowCoord.z, 0, threshold, 0, 1)),
+            saturate(remap(shadowCoord.z, 1, 1-threshold, 0, 1)))
+        );
+}
+
+half CustomShadow(int index, float3 positionWS, float depthBias = 0) {
+    ShadowSamplingData shadowSamplingData = GetCustomShadowSamplingData(index);
+
+    half4 shadowParams = GetCustomShadowParams(index);
+    half4 shadowParams2 = GetCustomShadowParams2(index);
+
+    float4 lightPos = GetCustomShadowPosition(index);
+    float3 lightVector = lightPos.xyz - positionWS * lightPos.w;
+
+    float distanceSqr = max(dot(lightVector, lightVector), HALF_MIN);
+    half3 lightDirection = half3(lightVector * rsqrt(distanceSqr));
+
+    float4 shadowCoord = mul(_CustomShadowMatrices[index], float4(positionWS + lightDirection * shadowParams.z + lightDirection * depthBias, 1.0));
+
+    //shadowCoord.x += shadowParams2.x/ shadowCoord.w;
+    //shadowCoord.y += shadowParams2.y/ shadowCoord.w;
+
+    half shadowTileScale = 1.0 / (half)GetCustomShadowCount();
+
+    float falloff = GetCustomLightFalloff(half3(shadowCoord.x / shadowCoord.w,shadowCoord.y / shadowCoord.w, shadowCoord.z ), half2(shadowParams2.x, shadowParams2.x+shadowTileScale /*shadowParams2.y*/),
+        half2(shadowParams2.z, shadowParams2.z+shadowTileScale /*shadowParams2.w*/),
+        shadowParams.w * shadowTileScale * 0.25);
+
+    //return falloff;
+    
+    return lerp(1,
+        SampleShadowmap(TEXTURE2D_ARGS(_CustomShadowmapAtlas, sampler_LinearClampCompare), shadowCoord, shadowSamplingData, shadowParams, true)
+        , falloff);
+}
+
+half CustomShadows(float depthBias, float3 positionWS)
+{
+    int shadowsCount = GetCustomShadowCount();
+    half attenuation = 1;
+    CUSTOM_SHADOW_LOOP_BEGIN(shadowsCount)
+        attenuation *= CustomShadow((int)shadowIndex, positionWS, depthBias);
+        CUSTOM_SHADOW_LOOP_END
+   /* for (int shadowIndex = 0; shadowIndex < shadowsCount; ++shadowIndex) {
+        attenuation *= CustomShadow(shadowIndex, positionWS);
+    }*/
+        return attenuation;
+}
+
+
+half CustomShadows(float3 positionWS)
+{
+    int shadowsCount = GetCustomShadowCount();
+    half attenuation = 1;
+    CUSTOM_SHADOW_LOOP_BEGIN(shadowsCount)
+        attenuation *= CustomShadow((int)shadowIndex, positionWS);
+    CUSTOM_SHADOW_LOOP_END
+        /* for (int shadowIndex = 0; shadowIndex < shadowsCount; ++shadowIndex) {
+             attenuation *= CustomShadow(shadowIndex, positionWS);
+         }*/
+        return attenuation;
+}
+
+half CachedAdditionalLightShadow(int lightIndex, float3 positionWS, half3 lightDirection) {
+//#if defined(ADDITIONAL_LIGHT_CALCULATE_SHADOWS)
+    ShadowSamplingData shadowSamplingData = GetAdditionalLightShadowSamplingData(lightIndex);
+
+    half4 shadowParams = //half4(1, 1, 0, _CachedShadowOffset.z);//
+        GetCachedAdditionalLightShadowParams(lightIndex);
+
+    int shadowSliceIndex = shadowParams.w;
+    if (shadowSliceIndex < 0)
+        return 1.0;
+
+    half isPointLight = shadowParams.z;
+
+    UNITY_BRANCH
+        if (isPointLight)
+        {
+            // This is a point light, we have to find out which shadow slice to sample from
+            float cubemapFaceId = CubeMapFaceID(-lightDirection);
+            shadowSliceIndex += cubemapFaceId;
+        }
+
+//#if USE_STRUCTURED_BUFFER_FOR_LIGHT_DATA
+  //  float4 shadowCoord = mul(_AdditionalLightsWorldToShadow_SSBO[shadowSliceIndex], float4(positionWS, 1.0));
+//#else
+    float4 shadowCoord = mul(_CachedAdditionalLightsWorldToShadow[shadowSliceIndex], float4(positionWS, 1.0));
+//#endif
+    //float4 shadowCoord = mul(_CachedShadow, float4(positionWS+(lightDirection * _CachedShadowOffset.x), 1.0));
+//
+//    real attenuation = 1;
+//
+//    // Compiler will optimize this branch away as long as isPerspectiveProjection is known at compile time
+//
+//#if (_SHADOWS_SOFT)
+//    if (shadowParams.y > SOFT_SHADOW_QUALITY_OFF)
+//    {
+//        attenuation = SampleShadowmapFiltered(TEXTURE2D_SHADOW_ARGS(_CachedShadowmap, sampler_LinearClampCompare), shadowCoord, shadowSamplingData);
+//    }
+//    else
+//#endif
+//    {
+//        // 1-tap hardware comparison
+//        attenuation = real(SAMPLE_TEXTURE2D_SHADOW(_CachedShadowmap, sampler_LinearClampCompare, shadowCoord.xyz));
+//    }
+
+
+    return //attenuation;//
+    SampleShadowmap(TEXTURE2D_ARGS(_CachedShadowmapAtlas, sampler_LinearClampCompare), shadowCoord, shadowSamplingData, shadowParams, true);
+//#else
+//    return half(1.0);
+//#endif
 }
 
 half GetMainLightShadowFade(float3 positionWS)
@@ -397,7 +639,7 @@ half BakedShadow(half4 shadowMask, half4 occlusionProbeChannels)
 
 half MainLightShadow(float4 shadowCoord, float3 positionWS, half4 shadowMask, half4 occlusionProbeChannels)
 {
-    half realtimeShadow = MainLightRealtimeShadow(shadowCoord);
+    half realtimeShadow = MainLightRealtimeShadow(shadowCoord, positionWS);
 
 #ifdef CALCULATE_BAKED_SHADOWS
     half bakedShadow = BakedShadow(shadowMask, occlusionProbeChannels);
@@ -414,10 +656,13 @@ half MainLightShadow(float4 shadowCoord, float3 positionWS, half4 shadowMask, ha
     return MixRealtimeAndBakedShadows(realtimeShadow, bakedShadow, shadowFade);
 }
 
-half AdditionalLightShadow(int lightIndex, float3 positionWS, half3 lightDirection, half4 shadowMask, half4 occlusionProbeChannels)
+half AdditionalLightShadow(int lightIndex, float3 positionWS, half3 lightDirection, half4 shadowMask, half4 occlusionProbeChannels, float shadowBias = 0)
 {
-    half realtimeShadow = AdditionalLightRealtimeShadow(lightIndex, positionWS, lightDirection);
-
+#if defined(CACHED_SHADOW_ON)
+    half realtimeShadow = min( AdditionalLightRealtimeShadow(lightIndex, positionWS, lightDirection, shadowBias), CachedAdditionalLightShadow(lightIndex, positionWS, lightDirection));
+#else
+    half realtimeShadow = AdditionalLightRealtimeShadow(lightIndex, positionWS, lightDirection, shadowBias);
+#endif
 #ifdef CALCULATE_BAKED_SHADOWS
     half bakedShadow = BakedShadow(shadowMask, occlusionProbeChannels);
 #else

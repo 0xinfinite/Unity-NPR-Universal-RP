@@ -156,6 +156,16 @@ namespace UnityEngine.Rendering.Universal
         [SerializeField] RenderingMode m_RenderingMode = RenderingMode.Forward;
         [SerializeField] DepthPrimingMode m_DepthPrimingMode = DepthPrimingMode.Disabled; // Default disabled because there are some outstanding issues with Text Mesh rendering.
         [SerializeField] CopyDepthMode m_CopyDepthMode = CopyDepthMode.AfterTransparents;
+
+//added for custom
+        [SerializeField] bool m_DrawOpaque = true;
+        [SerializeField] bool m_DrawTransparent = true;
+        [SerializeField] Texture2D m_WarpMapAtlas;
+        [SerializeField] int m_WarpMapCount = 1;
+        [SerializeField] Texture2D m_DistanceAttenuationMapAtlas;
+        [SerializeField] int m_BaseIndexOfDistanceAttenuationMap;
+        [SerializeField] int m_DistanceAttenuationMapCount;
+        [SerializeField, Range(0,1)] float m_PunctionalLightFallOffStart;
 #if UNITY_EDITOR
         // Do not strip accurateGbufferNormals on Mobile Vulkan as some GPUs do not support R8G8B8A8_SNorm, which then force us to use accurateGbufferNormals
         [ShaderKeywordFilter.ApplyRulesIfNotGraphicsAPI(GraphicsDeviceType.Vulkan)]
@@ -264,7 +274,72 @@ namespace UnityEngine.Rendering.Universal
                 m_CopyDepthMode = value;
             }
         }
+			//added for custom start
+        public bool drawOpaque
+        {
+            get => m_DrawOpaque;
+            set
+            {
+                SetDirty();
+                m_DrawOpaque = value;
+            }
+        }
 
+        public bool drawTransparent
+        {
+            get => m_DrawTransparent;
+            set
+            {
+                SetDirty();
+                m_DrawTransparent = value;
+            }
+        }
+
+        public Texture2D warpMapAtlas
+        {
+            get => m_WarpMapAtlas;
+            set
+            {
+                SetDirty();
+                m_WarpMapAtlas = value;
+            }
+        }
+
+        public int warpMapCount
+        {
+            get => m_WarpMapCount;
+            set
+            {
+                SetDirty();
+                m_WarpMapCount = value;
+            }
+        }
+
+        public Texture2D distanceAttenuationMapAtlas
+        {
+            get => m_DistanceAttenuationMapAtlas;
+            set { m_DistanceAttenuationMapAtlas = value; }
+        }
+
+        public int baseIndexOfDistanceAttenuationMap
+        {
+            get => m_BaseIndexOfDistanceAttenuationMap;
+            set { m_BaseIndexOfDistanceAttenuationMap = value; }
+        }
+
+
+        public int distanceAttenuationMapCount
+        {
+            get => m_DistanceAttenuationMapCount;
+            set { m_DistanceAttenuationMapCount = value; }
+        }
+
+        public float punctionalLightFallOffStart
+        {
+            get => m_PunctionalLightFallOffStart;
+            set { m_PunctionalLightFallOffStart = value; }
+        }
+			//added for custom end
         /// <summary>
         /// Use Octaedron Octahedron normal vector encoding for gbuffer normals.
         /// The overhead is negligible from desktop GPUs, while it should be avoided for mobile GPUs.

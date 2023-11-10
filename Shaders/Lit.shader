@@ -10,6 +10,13 @@ Shader "Universal Render Pipeline/Lit"
 
         _Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
 
+            _DepthForward("Depth Forward Distance", Float) = 0.0
+            _ShadowColorMap("Shadow Color Map", 2D) = "white" {}
+        _ShadowTint("Shadow Tint", Color) = (1,1,1,0)
+        _ShadowCastOffset("Shadow Cast offset", Float) = 0.0
+        _AdditionalShadowCastOffset("Additional Shadow Cast offset", Float) = 0.0
+        _WarpMapIndex("Warp Map Index From Atlas", Float) = 0
+		
         _Smoothness("Smoothness", Range(0.0, 1.0)) = 0.5
         _SmoothnessTextureChannel("Smoothness texture channel", Float) = 0
 
@@ -116,6 +123,9 @@ Shader "Universal Render Pipeline/Lit"
 
             // -------------------------------------
             // Material Keywords
+            #pragma shader_feature_local _SHADOWCOLOR
+            #pragma shader_feature_local _SHADOWCOLORMAP
+            #pragma shader_feature_local _WARPMAP_ATLAS
             #pragma shader_feature_local _NORMALMAP
             #pragma shader_feature_local _PARALLAXMAP
             #pragma shader_feature_local _RECEIVE_SHADOWS_OFF
@@ -158,6 +168,13 @@ Shader "Universal Render Pipeline/Lit"
             #pragma multi_compile_fragment _ LOD_FADE_CROSSFADE
             #pragma multi_compile_fog
             #pragma multi_compile_fragment _ DEBUG_DISPLAY
+//        //-------------------------------------
+//            //  custom global keyword
+            #pragma shader_feature_local _PER_MATERIAL_SHADOW_BIAS
+            #pragma multi_compile_fragment _ CACHED_SHADOW_ON
+            #pragma shader_feature_local_fragment _ DISTANCEATTENUATIONPMAP_ATLAS
+            #pragma multi_compile_fragment _ CUSTOM_SHADOW_ON CUSTOM_SHADOW_ONLY_MAIN_LIGHT
+
 
             //--------------------------------------
             // GPU Instancing
@@ -166,6 +183,7 @@ Shader "Universal Render Pipeline/Lit"
             #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
 
             #include "Packages/com.unity.render-pipelines.universal/Shaders/LitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/AdditionalSurfaceInput.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/Shaders/LitForwardPass.hlsl"
             ENDHLSL
         }
@@ -250,6 +268,9 @@ Shader "Universal Render Pipeline/Lit"
 
             // -------------------------------------
             // Material Keywords
+            #pragma shader_feature_local _SHADOWCOLOR
+            #pragma shader_feature_local _SHADOWCOLORMAP
+            #pragma shader_feature_local _WARPMAP_ATLAS
             #pragma shader_feature_local _NORMALMAP
             #pragma shader_feature_local_fragment _ALPHATEST_ON
             //#pragma shader_feature_local_fragment _ALPHAPREMULTIPLY_ON
@@ -287,6 +308,12 @@ Shader "Universal Render Pipeline/Lit"
             #pragma multi_compile_fragment _ LOD_FADE_CROSSFADE
             #pragma multi_compile_fragment _ _GBUFFER_NORMALS_OCT
 
+//        //-------------------------------------
+//            //  custom global keyword
+            #pragma shader_feature_local _PER_MATERIAL_SHADOW_BIAS
+            #pragma multi_compile_fragment _ CACHED_SHADOW_ON
+            #pragma shader_feature_local_fragment _ DISTANCEATTENUATIONPMAP_ATLAS
+            #pragma multi_compile_fragment _ CUSTOM_SHADOW_ON CUSTOM_SHADOW_ONLY_MAIN_LIGHT
             //--------------------------------------
             // GPU Instancing
             #pragma multi_compile_instancing
@@ -296,6 +323,7 @@ Shader "Universal Render Pipeline/Lit"
             // -------------------------------------
             // Includes
             #include "Packages/com.unity.render-pipelines.universal/Shaders/LitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/AdditionalSurfaceInput.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/Shaders/LitGBufferPass.hlsl"
             ENDHLSL
         }

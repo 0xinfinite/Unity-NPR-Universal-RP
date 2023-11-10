@@ -19,7 +19,7 @@ struct PunctualLightData
     uint layerMask;             // Optional light layer mask
 };
 
-Light UnityLightFromPunctualLightDataAndWorldSpacePosition(PunctualLightData punctualLightData, float3 positionWS, half4 shadowMask, int shadowLightIndex, bool materialFlagReceiveShadowsOff)
+Light UnityLightFromPunctualLightDataAndWorldSpacePosition(PunctualLightData punctualLightData, float3 positionWS, half4 shadowMask, int shadowLightIndex, bool materialFlagReceiveShadowsOff, float depthBias = 0)
 {
     // Keep in sync with GetAdditionalPerObjectLight in Lighting.hlsl
 
@@ -32,8 +32,9 @@ Light UnityLightFromPunctualLightDataAndWorldSpacePosition(PunctualLightData pun
 
     half3 lightDirection = half3(lightVector * rsqrt(distanceSqr));
 
+    float distance = length(punctualLightData.posWS - positionWS.xyz);
     // full-float precision required on some platforms
-    float attenuation = DistanceAttenuation(distanceSqr, punctualLightData.attenuation.xy) * AngleAttenuation(punctualLightData.spotDirection.xyz, lightDirection, punctualLightData.attenuation.zw);
+    float attenuation = DistanceAttenuation(distance, punctualLightData.attenuation.xy) * AngleAttenuation(punctualLightData.spotDirection.xyz, lightDirection, punctualLightData.attenuation.zw);
 
     light.direction = lightDirection;
     light.color = punctualLightData.color.rgb;
@@ -44,7 +45,7 @@ Light UnityLightFromPunctualLightDataAndWorldSpacePosition(PunctualLightData pun
         light.shadowAttenuation = 1.0;
     else
     {
-        light.shadowAttenuation = AdditionalLightShadow(shadowLightIndex, positionWS, lightDirection, shadowMask, punctualLightData.occlusionProbeInfo);
+        light.shadowAttenuation = AdditionalLightShadow(shadowLightIndex, positionWS + lightDirection * depthBias, lightDirection, shadowMask, punctualLightData.occlusionProbeInfo);
     }
 
     light.layerMask = punctualLightData.layerMask;

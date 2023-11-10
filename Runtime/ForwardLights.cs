@@ -28,6 +28,14 @@ namespace UnityEngine.Rendering.Universal.Internal
             public static int _AdditionalLightsSpotDir;
             public static int _AdditionalLightOcclusionProbeChannel;
             public static int _AdditionalLightsLayerMasks;
+
+		//Custom buffers below
+            public static int _WarpMapAtlas;
+            public static int _WarpMapCount;
+            public static int _AdditionalLightDistanceAttenuationOffset;
+            public static int _DistanceAttenuationMapAtlas;
+            public static int _DistanceAttenuationMapCount;
+            public static int _BaseIndexOfDistanceAttenuationOffset;
         }
 
         int m_AdditionalLightsBufferId;
@@ -46,6 +54,7 @@ namespace UnityEngine.Rendering.Universal.Internal
         Vector4[] m_AdditionalLightSpotDirections;
         Vector4[] m_AdditionalLightOcclusionProbeChannels;
         float[] m_AdditionalLightsLayerMasks;  // Unity has no support for binding uint arrays. We will use asuint() in the shader instead.
+		float[] m_AdditionalLightDistanceAttenuationOffset;		//independent light offsets. not implement yet
 
         bool m_UseStructuredBuffer;
 
@@ -68,6 +77,59 @@ namespace UnityEngine.Rendering.Universal.Internal
         int m_LightCount;
         int m_BinCount;
 
+		//added for custom below
+        Texture2D m_WarpMapAtlas;
+
+        public Texture2D warpMapAtlas
+        {
+            get { return m_WarpMapAtlas; }
+            set { m_WarpMapAtlas = value; }
+        }
+
+        int m_WarpMapCount;
+
+        public int warpMapCount
+        {
+            get => m_WarpMapCount;
+            set { m_WarpMapCount = value; }
+        }
+
+        private Texture2D m_DistanceAttenuationMapAtlas;
+
+        public Texture2D distanceAttenuationMapAtlas
+        {
+            get => m_DistanceAttenuationMapAtlas;
+            set
+            {
+                m_DistanceAttenuationMapAtlas = value;
+            }
+        }
+
+        int m_BaseIndexOfDistanceAttenuationOffset;
+
+        public int baseIndexOfDistanceAttenuationOffset
+        {
+            get => m_BaseIndexOfDistanceAttenuationOffset;
+
+            set { m_BaseIndexOfDistanceAttenuationOffset = value; }
+        }
+
+
+        private int m_DistanceAttenuationMapCount;
+
+        internal int DistanceAttenuationMapCount
+        {
+            get => m_DistanceAttenuationMapCount;
+            set { m_DistanceAttenuationMapCount = value; }
+        }
+
+        private float m_PunctionalLightFallOffStart;
+
+        internal float PunctionalLightFallOffStart
+        {
+            get => m_PunctionalLightFallOffStart;
+            set { m_PunctionalLightFallOffStart = value; }
+        }
         internal struct InitParams
         {
             public LightCookieManager lightCookieManager;
@@ -108,6 +170,12 @@ namespace UnityEngine.Rendering.Universal.Internal
             LightConstantBuffer._MainLightLayerMask = Shader.PropertyToID("_MainLightLayerMask");
             LightConstantBuffer._AdditionalLightsCount = Shader.PropertyToID("_AdditionalLightsCount");
 
+            LightConstantBuffer._WarpMapAtlas = Shader.PropertyToID("_WarpMapAtlas");
+            LightConstantBuffer._WarpMapCount = Shader.PropertyToID("_WarpMapCount");
+
+            LightConstantBuffer._DistanceAttenuationMapAtlas = Shader.PropertyToID("_DistanceAttenuationMapAtlas");
+            LightConstantBuffer._DistanceAttenuationMapCount = Shader.PropertyToID("_DistanceAttenuationMapCount");
+            LightConstantBuffer._BaseIndexOfDistanceAttenuationOffset = Shader.PropertyToID("_BaseIndexOfDistanceAttenuationOffset");
             if (m_UseStructuredBuffer)
             {
                 m_AdditionalLightsBufferId = Shader.PropertyToID("_AdditionalLightsBuffer");
@@ -121,7 +189,7 @@ namespace UnityEngine.Rendering.Universal.Internal
                 LightConstantBuffer._AdditionalLightsSpotDir = Shader.PropertyToID("_AdditionalLightsSpotDir");
                 LightConstantBuffer._AdditionalLightOcclusionProbeChannel = Shader.PropertyToID("_AdditionalLightsOcclusionProbes");
                 LightConstantBuffer._AdditionalLightsLayerMasks = Shader.PropertyToID("_AdditionalLightsLayerMasks");
-
+                LightConstantBuffer._AdditionalLightDistanceAttenuationOffset = Shader.PropertyToID("_AdditionalLightDistanceAttenuationOffset");
                 int maxLights = UniversalRenderPipeline.maxVisibleAdditionalLights;
                 m_AdditionalLightPositions = new Vector4[maxLights];
                 m_AdditionalLightColors = new Vector4[maxLights];
@@ -129,6 +197,7 @@ namespace UnityEngine.Rendering.Universal.Internal
                 m_AdditionalLightSpotDirections = new Vector4[maxLights];
                 m_AdditionalLightOcclusionProbeChannels = new Vector4[maxLights];
                 m_AdditionalLightsLayerMasks = new float[maxLights];
+                m_AdditionalLightDistanceAttenuationOffset = new float[maxLights];
             }
 
             if (m_UseForwardPlus)
@@ -372,6 +441,7 @@ namespace UnityEngine.Rendering.Universal.Internal
                 }
 
                 SetupShaderLightConstants(cmd, ref renderingData);
+                SetAtlasForStylized(cmd, ref renderingData);
 
                 bool lightCountCheck = (renderingData.cameraData.renderer.stripAdditionalLightOffVariants && renderingData.lightData.supportsAdditionalLights) || additionalLightsCount > 0;
                 CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.AdditionalLightsVertex,
@@ -445,12 +515,14 @@ namespace UnityEngine.Rendering.Universal.Internal
             }
         }
 
-        void InitializeLightConstants(NativeArray<VisibleLight> lights, int lightIndex, out Vector4 lightPos, out Vector4 lightColor, out Vector4 lightAttenuation, out Vector4 lightSpotDir, out Vector4 lightOcclusionProbeChannel, out uint lightLayerMask, out bool isSubtractive)
+        void InitializeLightConstants(NativeArray<VisibleLight> lights, int lightIndex, out Vector4 lightPos, out Vector4 lightColor, out Vector4 lightAttenuation, out Vector4 lightSpotDir, out Vector4 lightOcclusionProbeChannel, out uint lightLayerMask, out bool isSubtractive,
+            out float distanceAttenuationOffset,
+            float punctualLightFalloffStart = 0.8f)
         {
             UniversalRenderPipeline.InitializeLightConstants_Common(lights, lightIndex, out lightPos, out lightColor, out lightAttenuation, out lightSpotDir, out lightOcclusionProbeChannel);
             lightLayerMask = 0;
             isSubtractive = false;
-
+            distanceAttenuationOffset = m_BaseIndexOfDistanceAttenuationOffset;
             // When no lights are visible, main light will be set to -1.
             // In this case we initialize it to default values and return
             if (lightIndex < 0)
@@ -493,12 +565,40 @@ namespace UnityEngine.Rendering.Universal.Internal
             SetupAdditionalLightConstants(cmd, ref renderingData);
         }
 
+        void SetAtlasForStylized(CommandBuffer cmd, ref RenderingData renderingData)
+        {
+            if (m_WarpMapAtlas)
+            {
+                //CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.WarpMapAtlas, true);
+                cmd.SetGlobalTexture(LightConstantBuffer._WarpMapAtlas, m_WarpMapAtlas);
+                cmd.SetGlobalInteger(LightConstantBuffer._WarpMapCount, m_WarpMapCount);
+            }
+            else
+            {
+                //CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.WarpMapAtlas, false);
+            }
+            if (m_DistanceAttenuationMapAtlas)
+            {
+                CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.DistanceAttenuationMapAtlas, true);
+                cmd.SetGlobalTexture(LightConstantBuffer._DistanceAttenuationMapAtlas, m_DistanceAttenuationMapAtlas);
+                cmd.SetGlobalInteger(LightConstantBuffer._DistanceAttenuationMapCount, m_DistanceAttenuationMapCount);
+                cmd.SetGlobalInteger(LightConstantBuffer._BaseIndexOfDistanceAttenuationOffset, m_BaseIndexOfDistanceAttenuationOffset);
+            }
+            else
+            {
+                CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.DistanceAttenuationMapAtlas, false);
+            }
+        }
+
         void SetupMainLightConstants(CommandBuffer cmd, ref LightData lightData)
         {
             Vector4 lightPos, lightColor, lightAttenuation, lightSpotDir, lightOcclusionChannel;
             uint lightLayerMask;
             bool isSubtractive;
-            InitializeLightConstants(lightData.visibleLights, lightData.mainLightIndex, out lightPos, out lightColor, out lightAttenuation, out lightSpotDir, out lightOcclusionChannel, out lightLayerMask, out isSubtractive);
+            InitializeLightConstants(lightData.visibleLights, lightData.mainLightIndex, out lightPos, out lightColor, out lightAttenuation, out lightSpotDir, out lightOcclusionChannel, out lightLayerMask, out isSubtractive,
+                out float _,
+                m_PunctionalLightFallOffStart //UniversalRenderPipeline.asset.punctualLightFalloffStart
+                ); 
             lightColor.w = isSubtractive ? 0f : 1f;
 
             cmd.SetGlobalVector(LightConstantBuffer._MainLightPosition, lightPos);
@@ -528,7 +628,9 @@ namespace UnityEngine.Rendering.Universal.Internal
                             InitializeLightConstants(lights, i,
                                 out data.position, out data.color, out data.attenuation,
                                 out data.spotDirection, out data.occlusionProbeChannels,
-                                out data.layerMask, out _);
+                                out data.layerMask, out _, out data.distanceAttenuationOffset,
+                                m_PunctionalLightFallOffStart   //UniversalRenderPipeline.asset.punctualLightFalloffStart
+                            );
                             additionalLightsData[lightIter] = data;
                             lightIter++;
                         }
@@ -560,9 +662,13 @@ namespace UnityEngine.Rendering.Universal.Internal
                                 out m_AdditionalLightSpotDirections[lightIter],
                                 out m_AdditionalLightOcclusionProbeChannels[lightIter],
                                 out uint lightLayerMask,
-                                out var isSubtractive);
+                                out var isSubtractive,
+                                out m_AdditionalLightDistanceAttenuationOffset[lightIter],
+                                m_PunctionalLightFallOffStart//UniversalRenderPipeline.asset.punctualLightFalloffStart
+                                ); 
 
                             m_AdditionalLightsLayerMasks[lightIter] = math.asfloat(lightLayerMask);
+							m_AdditionalLightDistanceAttenuationOffset[lightIter] = math.asfloat(m_BaseIndexOfDistanceAttenuationOffset);
                             m_AdditionalLightColors[lightIter].w = isSubtractive ? 1f : 0f;
                             lightIter++;
                         }
@@ -574,6 +680,7 @@ namespace UnityEngine.Rendering.Universal.Internal
                     cmd.SetGlobalVectorArray(LightConstantBuffer._AdditionalLightsSpotDir, m_AdditionalLightSpotDirections);
                     cmd.SetGlobalVectorArray(LightConstantBuffer._AdditionalLightOcclusionProbeChannel, m_AdditionalLightOcclusionProbeChannels);
                     cmd.SetGlobalFloatArray(LightConstantBuffer._AdditionalLightsLayerMasks, m_AdditionalLightsLayerMasks);
+                    cmd.SetGlobalFloatArray(LightConstantBuffer._AdditionalLightDistanceAttenuationOffset, m_AdditionalLightDistanceAttenuationOffset);
                 }
 
                 cmd.SetGlobalVector(LightConstantBuffer._AdditionalLightsCount, new Vector4(lightData.maxPerObjectAdditionalLightsCount,

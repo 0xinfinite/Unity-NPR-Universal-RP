@@ -138,6 +138,15 @@ namespace UnityEngine.Rendering.Universal
         RenderingMode m_RenderingMode;
         DepthPrimingMode m_DepthPrimingMode;
         CopyDepthMode m_CopyDepthMode;
+
+        bool m_DrawOpaque;
+        bool m_DrawTransparent;     //added for custom;
+        Texture2D m_WarpMapAtlas;
+        int m_WarpMapCount;
+        Texture2D m_DistanceAttenuationMapAtlas;
+        int m_BaseIndexOfDistanceAttenuationMap;
+        int m_DistanceAttenuationMapCount;
+        float m_PunctionalLightFallOffStart;
         bool m_DepthPrimingRecommended;
         StencilState m_DefaultStencilState;
         LightCookieManager m_LightCookieManager;
@@ -220,6 +229,20 @@ namespace UnityEngine.Rendering.Universal
             this.m_RenderingMode = data.renderingMode;
             this.m_DepthPrimingMode = data.depthPrimingMode;
             this.m_CopyDepthMode = data.copyDepthMode;
+            this.m_DrawOpaque = data.drawOpaque;
+            this.m_DrawTransparent = data.drawTransparent;
+            this.m_WarpMapAtlas = data.warpMapAtlas;
+            this.m_WarpMapCount = data.warpMapCount;
+            this.m_DistanceAttenuationMapAtlas = data.distanceAttenuationMapAtlas;
+            this.m_BaseIndexOfDistanceAttenuationMap = data.baseIndexOfDistanceAttenuationMap;
+            this.m_DistanceAttenuationMapCount = data.distanceAttenuationMapCount;
+            this.m_PunctionalLightFallOffStart = data.punctionalLightFallOffStart;
+            m_ForwardLights.warpMapAtlas = m_WarpMapAtlas;
+            m_ForwardLights.warpMapCount = m_WarpMapCount;
+            m_ForwardLights.distanceAttenuationMapAtlas = m_DistanceAttenuationMapAtlas;
+            m_ForwardLights.baseIndexOfDistanceAttenuationOffset = m_BaseIndexOfDistanceAttenuationMap;
+            m_ForwardLights.DistanceAttenuationMapCount = m_DistanceAttenuationMapCount;
+            m_ForwardLights.PunctionalLightFallOffStart = m_PunctionalLightFallOffStart;
             useRenderPassEnabled = data.useNativeRenderPass && SystemInfo.graphicsDeviceType != GraphicsDeviceType.OpenGLES2;
 
 #if UNITY_ANDROID || UNITY_IOS || UNITY_TVOS
@@ -254,6 +277,12 @@ namespace UnityEngine.Rendering.Universal
                 deferredInitParams.lightCookieManager = m_LightCookieManager;
                 m_DeferredLights = new DeferredLights(deferredInitParams, useRenderPassEnabled);
                 m_DeferredLights.AccurateGbufferNormals = data.accurateGbufferNormals;
+                m_DeferredLights.WarpMapAtlas = data.warpMapAtlas;
+                m_DeferredLights.WarpMapCount = data.warpMapCount;
+                m_DeferredLights.DistanceAttenuationMapAtlas = data.distanceAttenuationMapAtlas;
+                m_DeferredLights.BaseIndexOfDistanceAttenuation = data.baseIndexOfDistanceAttenuationMap;
+                m_DeferredLights.DistanceAttenuationMapCount = data.distanceAttenuationMapCount;
+                m_DeferredLights.PunctionalLightFallOffStart = data.punctionalLightFallOffStart;
 
                 m_GBufferPass = new GBufferPass(RenderPassEvent.BeforeRenderingGbuffer, RenderQueueRange.opaque, data.opaqueLayerMask, m_DefaultStencilState, stencilData.stencilReference, m_DeferredLights);
                 // Forward-only pass only runs if deferred renderer is enabled.
@@ -510,7 +539,8 @@ namespace UnityEngine.Rendering.Universal
             {
                 ConfigureCameraTarget(k_CameraTarget, k_CameraTarget);
                 SetupRenderPasses(in renderingData);
-                EnqueuePass(m_RenderOpaqueForwardPass);
+                if (m_DrawOpaque)
+                { EnqueuePass(m_RenderOpaqueForwardPass); }
 
                 // TODO: Do we need to inject transparents and skybox when rendering depth only camera? They don't write to depth.
                 EnqueuePass(m_DrawSkyboxPass);
@@ -518,7 +548,8 @@ namespace UnityEngine.Rendering.Universal
                 if (!needTransparencyPass)
                     return;
 #endif
-                EnqueuePass(m_RenderTransparentForwardPass);
+                if (m_DrawTransparent)
+                { EnqueuePass(m_RenderTransparentForwardPass); }
                 return;
             }
 
@@ -957,7 +988,7 @@ namespace UnityEngine.Rendering.Universal
 
             bool lastCameraInTheStack = cameraData.resolveFinalTarget;
 
-            if (this.renderingModeActual == RenderingMode.Deferred)
+            if (this.renderingModeActual == RenderingMode.Deferred&& m_DrawOpaque)
             {
                 if (m_DeferredLights.UseRenderPass && (RenderPassEvent.AfterRenderingGbuffer == renderPassInputs.requiresDepthNormalAtEvent || !useRenderPassEnabled))
                     m_DeferredLights.DisableFramebufferFetchInput();
@@ -999,32 +1030,35 @@ namespace UnityEngine.Rendering.Universal
                     }
                 }
 
-                DrawObjectsPass renderOpaqueForwardPass = null;
-                if (renderingLayerProvidesRenderObjectPass)
+                if (m_DrawOpaque)
                 {
-                    renderOpaqueForwardPass = m_RenderOpaqueForwardWithRenderingLayersPass;
-                    m_RenderOpaqueForwardWithRenderingLayersPass.Setup(m_ActiveCameraColorAttachment, m_DecalLayersTexture, m_ActiveCameraDepthAttachment);
-                }
-                else
-                    renderOpaqueForwardPass = m_RenderOpaqueForwardPass;
+                    DrawObjectsPass renderOpaqueForwardPass = null;
+                    if (renderingLayerProvidesRenderObjectPass)
+                    {
+                        renderOpaqueForwardPass = m_RenderOpaqueForwardWithRenderingLayersPass;
+                        m_RenderOpaqueForwardWithRenderingLayersPass.Setup(m_ActiveCameraColorAttachment, m_DecalLayersTexture, m_ActiveCameraDepthAttachment);
+                    }
+                    else
+                        renderOpaqueForwardPass = m_RenderOpaqueForwardPass;
 
-                renderOpaqueForwardPass.ConfigureColorStoreAction(opaquePassColorStoreAction);
-                renderOpaqueForwardPass.ConfigureDepthStoreAction(opaquePassDepthStoreAction);
+                    renderOpaqueForwardPass.ConfigureColorStoreAction(opaquePassColorStoreAction);
+                    renderOpaqueForwardPass.ConfigureDepthStoreAction(opaquePassDepthStoreAction);
 
-                // If there is any custom render pass renders to opaque pass' target before opaque pass,
-                // we can't clear color as it contains the valid rendering output.
-                bool hasPassesBeforeOpaque = activeRenderPassQueue.Find(x => (x.renderPassEvent <= RenderPassEvent.BeforeRenderingOpaques) && !x.overrideCameraTarget) != null;
-                ClearFlag opaqueForwardPassClearFlag = (hasPassesBeforeOpaque || cameraData.renderType != CameraRenderType.Base)
-                                                    ? ClearFlag.None
-                                                    : ClearFlag.Color;
+                    // If there is any custom render pass renders to opaque pass' target before opaque pass,
+                    // we can't clear color as it contains the valid rendering output.
+                    bool hasPassesBeforeOpaque = activeRenderPassQueue.Find(x => (x.renderPassEvent <= RenderPassEvent.BeforeRenderingOpaques) && !x.overrideCameraTarget) != null;
+                    ClearFlag opaqueForwardPassClearFlag = (hasPassesBeforeOpaque || cameraData.renderType != CameraRenderType.Base)
+                                                        ? ClearFlag.None
+                                                        : ClearFlag.Color;
 #if ENABLE_VR && ENABLE_XR_MODULE
-                // workaround for DX11 and DX12 XR test failures.
-                // XRTODO: investigate DX XR clear issues.
-                if (SystemInfo.usesLoadStoreActions)
+                    // workaround for DX11 and DX12 XR test failures.
+                    // XRTODO: investigate DX XR clear issues.
+                    if (SystemInfo.usesLoadStoreActions)
 #endif
-                renderOpaqueForwardPass.ConfigureClear(opaqueForwardPassClearFlag, Color.black);
+                        renderOpaqueForwardPass.ConfigureClear(opaqueForwardPassClearFlag, Color.black);
 
-                EnqueuePass(renderOpaqueForwardPass);
+                    EnqueuePass(renderOpaqueForwardPass);
+                }
             }
 
             if (camera.clearFlags == CameraClearFlags.Skybox && cameraData.renderType != CameraRenderType.Overlay)
@@ -1078,32 +1112,35 @@ namespace UnityEngine.Rendering.Universal
                 EnqueuePass(m_MotionVectorPass);
             }
 
+            if (m_DrawTransparent)
+            {
 #if ADAPTIVE_PERFORMANCE_2_1_0_OR_NEWER
             if (needTransparencyPass)
 #endif
-            {
-                if (transparentsNeedSettingsPass)
                 {
-                    EnqueuePass(m_TransparentSettingsPass);
+                    if (transparentsNeedSettingsPass)
+                    {
+                        EnqueuePass(m_TransparentSettingsPass);
+                    }
+
+                    // if this is not lastCameraInTheStack we still need to Store, since the MSAA buffer might be needed by the Overlay cameras
+                    RenderBufferStoreAction transparentPassColorStoreAction = cameraTargetDescriptor.msaaSamples > 1 && lastCameraInTheStack ? RenderBufferStoreAction.Resolve : RenderBufferStoreAction.Store;
+                    RenderBufferStoreAction transparentPassDepthStoreAction = lastCameraInTheStack ? RenderBufferStoreAction.DontCare : RenderBufferStoreAction.Store;
+
+                    // If CopyDepthPass pass event is scheduled on or after AfterRenderingTransparent, we will need to store the depth buffer or resolve (store for now until latest trunk has depth resolve support) it for MSAA case
+                    if (requiresDepthCopyPass && m_CopyDepthPass.renderPassEvent >= RenderPassEvent.AfterRenderingTransparents)
+                    {
+                        transparentPassDepthStoreAction = RenderBufferStoreAction.Store;
+
+                        // handle depth resolve on platforms supporting it
+                        if (cameraTargetDescriptor.msaaSamples > 1 && RenderingUtils.MultisampleDepthResolveSupported())
+                            transparentPassDepthStoreAction = RenderBufferStoreAction.Resolve;
+                    }
+
+                    m_RenderTransparentForwardPass.ConfigureColorStoreAction(transparentPassColorStoreAction);
+                    m_RenderTransparentForwardPass.ConfigureDepthStoreAction(transparentPassDepthStoreAction);
+                    EnqueuePass(m_RenderTransparentForwardPass);
                 }
-
-                // if this is not lastCameraInTheStack we still need to Store, since the MSAA buffer might be needed by the Overlay cameras
-                RenderBufferStoreAction transparentPassColorStoreAction = cameraTargetDescriptor.msaaSamples > 1 && lastCameraInTheStack ? RenderBufferStoreAction.Resolve : RenderBufferStoreAction.Store;
-                RenderBufferStoreAction transparentPassDepthStoreAction = lastCameraInTheStack ? RenderBufferStoreAction.DontCare : RenderBufferStoreAction.Store;
-
-                // If CopyDepthPass pass event is scheduled on or after AfterRenderingTransparent, we will need to store the depth buffer or resolve (store for now until latest trunk has depth resolve support) it for MSAA case
-                if (requiresDepthCopyPass && m_CopyDepthPass.renderPassEvent >= RenderPassEvent.AfterRenderingTransparents)
-                {
-                    transparentPassDepthStoreAction = RenderBufferStoreAction.Store;
-
-                    // handle depth resolve on platforms supporting it
-                    if (cameraTargetDescriptor.msaaSamples > 1 && RenderingUtils.MultisampleDepthResolveSupported())
-                        transparentPassDepthStoreAction = RenderBufferStoreAction.Resolve;
-                }
-
-                m_RenderTransparentForwardPass.ConfigureColorStoreAction(transparentPassColorStoreAction);
-                m_RenderTransparentForwardPass.ConfigureDepthStoreAction(transparentPassDepthStoreAction);
-                EnqueuePass(m_RenderTransparentForwardPass);
             }
             EnqueuePass(m_OnRenderObjectCallbackPass);
 

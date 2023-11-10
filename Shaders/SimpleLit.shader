@@ -121,6 +121,11 @@ Shader "Universal Render Pipeline/Simple Lit"
             #pragma multi_compile_fragment _ DEBUG_DISPLAY
             #pragma multi_compile_fragment _ LOD_FADE_CROSSFADE
 
+			//  custom global keyword
+            #pragma multi_compile_fragment _ CACHED_SHADOW_ON
+            #pragma shader_feature_local_fragment _ DISTANCEATTENUATIONPMAP_ATLAS
+            #pragma multi_compile_fragment _ CUSTOM_SHADOW_ON CUSTOM_SHADOW_ONLY_MAIN_LIGHT
+			
             //--------------------------------------
             // GPU Instancing
             #pragma multi_compile_instancing
@@ -241,6 +246,11 @@ Shader "Universal Render Pipeline/Simple Lit"
             #pragma multi_compile_fragment _ _RENDER_PASS_ENABLED
             #pragma multi_compile_fragment _ LOD_FADE_CROSSFADE
 
+			//  custom global keyword
+            #pragma multi_compile_fragment _ CACHED_SHADOW_ON
+            #pragma shader_feature_local_fragment _ DISTANCEATTENUATIONPMAP_ATLAS
+            #pragma multi_compile_fragment _ CUSTOM_SHADOW_ON CUSTOM_SHADOW_ONLY_MAIN_LIGHT
+			
             //--------------------------------------
             // GPU Instancing
             #pragma multi_compile_instancing

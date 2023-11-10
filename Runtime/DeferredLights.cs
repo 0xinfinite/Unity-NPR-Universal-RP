@@ -80,6 +80,12 @@ namespace UnityEngine.Rendering.Universal.Internal
             public static int _ShadowLightIndex = Shader.PropertyToID("_ShadowLightIndex");
             public static int _LightLayerMask = Shader.PropertyToID("_LightLayerMask");
             public static int _CookieLightIndex = Shader.PropertyToID("_CookieLightIndex");
+            public static int _WarpMapAtlas = Shader.PropertyToID("_WarpMapAtlas"); // ForwardLights.LightConstantBuffer also refers to the same ShaderPropertyID - TODO: move this definition to a common location shared by other UniversalRP classes
+            public static int _WarpMapCount = Shader.PropertyToID("_WarpMapCount"); // ForwardLights.LightConstantBuffer also refers to the same ShaderPropertyID - TODO: move this definition to a common location shared by other UniversalRP classes
+            public static int _DistanceAttenuationMapAtlas = Shader.PropertyToID("_DistanceAttenuationMapAtlas"); // ForwardLights.LightConstantBuffer also refers to the same ShaderPropertyID - TODO: move this definition to a common location shared by other UniversalRP classes
+            public static int _DistanceAttenuationMapCount = Shader.PropertyToID("_DistanceAttenuationMapCount"); // ForwardLights.LightConstantBuffer also refers to the same ShaderPropertyID - TODO: move this definition to a common location shared by other UniversalRP classes
+            public static int _LightDistanceAttenuationOffset = Shader.PropertyToID("_LightDistanceAttenuationOffset");
+            public static int _BaseIndexOfDistanceAttenuation = Shader.PropertyToID("_BaseIndexOfDistanceAttenuationMap");
         }
 
         internal static readonly string[] k_GBufferNames = new string[]
@@ -187,6 +193,53 @@ namespace UnityEngine.Rendering.Universal.Internal
             get { return m_AccurateGbufferNormals; }
             set { m_AccurateGbufferNormals = value || !RenderingUtils.SupportsGraphicsFormat(GraphicsFormat.R8G8B8A8_SNorm, FormatUsage.Render); }
         }
+        private Texture2D m_WarpMapAtlas;	//added for custom start
+
+        internal Texture2D WarpMapAtlas
+        {
+            get { return m_WarpMapAtlas; }
+            set { m_WarpMapAtlas = value; }
+        }
+
+        private int m_WarpMapCount;
+
+        internal int WarpMapCount
+        {
+            get => m_WarpMapCount; 
+            set { m_WarpMapCount = value; }
+        }
+
+        private Texture2D m_DistanceAttenuationMapAtlas;
+
+        internal Texture2D DistanceAttenuationMapAtlas
+        {
+            get { return m_DistanceAttenuationMapAtlas; }
+            set { m_DistanceAttenuationMapAtlas = value; }
+        }
+
+        private int m_BaseIndexOfDistanceAttenuation;
+
+        internal int BaseIndexOfDistanceAttenuation
+        {
+            get => m_BaseIndexOfDistanceAttenuation;
+            set { m_BaseIndexOfDistanceAttenuation = value; }
+        }
+
+        private int m_DistanceAttenuationMapCount;
+
+        internal int DistanceAttenuationMapCount
+        {
+            get => m_DistanceAttenuationMapCount;
+            set { m_DistanceAttenuationMapCount = value; }
+        }
+
+        private float m_PunctionalLightFallOffStart;
+
+        internal float PunctionalLightFallOffStart
+        {
+            get => m_PunctionalLightFallOffStart;
+            set { m_PunctionalLightFallOffStart = value; }
+        }		//added for custom end
         // We browse all visible lights and found the mixed lighting setup every frame.
         internal MixedLightingSetup MixedLightingSetup { get; set; }
         //
@@ -590,6 +643,7 @@ namespace UnityEngine.Rendering.Universal.Internal
                 if (!HasStencilLightsOfType(LightType.Directional))
                     RenderSSAOBeforeShading(cmd, ref renderingData);
 
+                SetAtlasForStylized(context, cmd, ref renderingData);
                 RenderStencilLights(context, cmd, ref renderingData);
 
                 CoreUtils.SetKeyword(cmd, ShaderKeywordStrings._DEFERRED_MIXED_LIGHTING, false);
@@ -619,7 +673,8 @@ namespace UnityEngine.Rendering.Universal.Internal
                 return;
 
             Vector4 lightPos, lightColor, lightAttenuation, lightSpotDir, lightOcclusionChannel;
-            UniversalRenderPipeline.InitializeLightConstants_Common(lightData.visibleLights, lightData.mainLightIndex, out lightPos, out lightColor, out lightAttenuation, out lightSpotDir, out lightOcclusionChannel);
+            UniversalRenderPipeline.InitializeLightConstants_Common(lightData.visibleLights, lightData.mainLightIndex, out lightPos, out lightColor, out lightAttenuation, out lightSpotDir, out lightOcclusionChannel,
+                m_PunctionalLightFallOffStart);
 
             var additionalLightData = lightData.visibleLights[lightData.mainLightIndex].light.GetUniversalAdditionalLightData();
             uint lightLayerMask = RenderingLayerUtils.ToValidRenderingLayers(additionalLightData.renderingLayers);
@@ -731,6 +786,30 @@ namespace UnityEngine.Rendering.Universal.Internal
         {
             return m_stencilVisLightOffsets[(int)type] != k_InvalidLightOffset;
         }
+		void SetAtlasForStylized(ScriptableRenderContext context, CommandBuffer cmd, ref RenderingData renderingData)
+        {
+            if(m_WarpMapAtlas)
+            {
+                //CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.WarpMapAtlas, true);
+                cmd.SetGlobalTexture(ShaderConstants._WarpMapAtlas, m_WarpMapAtlas);
+                cmd.SetGlobalInteger(ShaderConstants._WarpMapCount, m_WarpMapCount);
+            }
+            else
+            {
+                //CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.WarpMapAtlas, false);
+            }
+            if (m_DistanceAttenuationMapAtlas)
+            {
+                CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.DistanceAttenuationMapAtlas, true);
+                cmd.SetGlobalTexture(ShaderConstants._DistanceAttenuationMapAtlas, m_DistanceAttenuationMapAtlas);
+                cmd.SetGlobalInteger(ShaderConstants._DistanceAttenuationMapCount, m_DistanceAttenuationMapCount);
+                cmd.SetGlobalInteger(ShaderConstants._BaseIndexOfDistanceAttenuation, m_BaseIndexOfDistanceAttenuation);
+            }
+            else
+            {
+                CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.DistanceAttenuationMapAtlas, false);
+            }
+        }
 
         void RenderStencilLights(ScriptableRenderContext context, CommandBuffer cmd, ref RenderingData renderingData)
         {
@@ -791,7 +870,8 @@ namespace UnityEngine.Rendering.Universal.Internal
                 Light light = vl.light;
 
                 Vector4 lightDir, lightColor, lightAttenuation, lightSpotDir, lightOcclusionChannel;
-                UniversalRenderPipeline.InitializeLightConstants_Common(visibleLights, visLightIndex, out lightDir, out lightColor, out lightAttenuation, out lightSpotDir, out lightOcclusionChannel);
+                UniversalRenderPipeline.InitializeLightConstants_Common(visibleLights, visLightIndex, out lightDir, out lightColor, out lightAttenuation, out lightSpotDir, out lightOcclusionChannel,
+                    m_PunctionalLightFallOffStart);
 
                 int lightFlags = 0;
                 if (light.bakingOutput.lightmapBakeType == LightmapBakeType.Mixed)
@@ -862,7 +942,8 @@ namespace UnityEngine.Rendering.Universal.Internal
                 );
 
                 Vector4 lightPos, lightColor, lightAttenuation, lightSpotDir, lightOcclusionChannel;
-                UniversalRenderPipeline.InitializeLightConstants_Common(visibleLights, visLightIndex, out lightPos, out lightColor, out lightAttenuation, out lightSpotDir, out lightOcclusionChannel);
+                UniversalRenderPipeline.InitializeLightConstants_Common(visibleLights, visLightIndex, out lightPos, out lightColor, out lightAttenuation, out lightSpotDir, out lightOcclusionChannel,
+                    m_PunctionalLightFallOffStart);
 
                 var additionalLightData = light.GetUniversalAdditionalLightData();
                 uint lightLayerMask = RenderingLayerUtils.ToValidRenderingLayers(additionalLightData.renderingLayers);
@@ -893,6 +974,7 @@ namespace UnityEngine.Rendering.Universal.Internal
                 cmd.SetGlobalInt(ShaderConstants._LightFlags, lightFlags);
                 cmd.SetGlobalInt(ShaderConstants._ShadowLightIndex, shadowLightIndex);
                 cmd.SetGlobalInt(ShaderConstants._LightLayerMask, (int)lightLayerMask);
+				cmd.SetGlobalInt(ShaderConstants._LightDistanceAttenuationOffset, m_BaseIndexOfDistanceAttenuation);
 
                 // Stencil pass.
                 cmd.DrawMesh(m_SphereMesh, transformMatrix, m_StencilDeferredMaterial, 0, m_StencilDeferredPasses[(int)StencilDeferredPasses.StencilVolume]);
@@ -929,7 +1011,8 @@ namespace UnityEngine.Rendering.Universal.Internal
                 float guard = Mathf.Lerp(1.0f, kStencilShapeGuard, sinAlpha);
 
                 Vector4 lightPos, lightColor, lightAttenuation, lightSpotDir, lightOcclusionChannel;
-                UniversalRenderPipeline.InitializeLightConstants_Common(visibleLights, visLightIndex, out lightPos, out lightColor, out lightAttenuation, out lightSpotDir, out lightOcclusionChannel);
+                UniversalRenderPipeline.InitializeLightConstants_Common(visibleLights, visLightIndex, out lightPos, out lightColor, out lightAttenuation, out lightSpotDir, out lightOcclusionChannel,
+                    m_PunctionalLightFallOffStart);
 
                 var additionalLightData = light.GetUniversalAdditionalLightData();
                 uint lightLayerMask = RenderingLayerUtils.ToValidRenderingLayers(additionalLightData.renderingLayers);

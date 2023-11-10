@@ -1,3 +1,4 @@
+					   
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -147,6 +148,26 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
             public MaterialProperty workflowMode;
 
 
+            public MaterialProperty depthForward;
+
+											   
+
+            public MaterialProperty shadowColorMap;
+
+            public MaterialProperty shadowTint;
+
+            public MaterialProperty shadowCastOffset;
+
+            public MaterialProperty additionalShadowCastOffset;
+
+											
+
+            public MaterialProperty warpMapIndex;
+
+												   
+
+												 
+
             // Surface Input Props
 
             /// <summary>
@@ -251,6 +272,15 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
                 // Surface Option Props
                 workflowMode = BaseShaderGUI.FindProperty("_WorkflowMode", properties, false);
                 // Surface Input Props
+
+                  depthForward = BaseShaderGUI.FindProperty("_DepthForward", properties, false);
+                shadowColorMap = BaseShaderGUI.FindProperty("_ShadowColorMap", properties, false);
+             shadowTint = BaseShaderGUI.FindProperty("_ShadowTint", properties, false);
+             shadowCastOffset = BaseShaderGUI.FindProperty("_ShadowCastOffset", properties, false);
+             additionalShadowCastOffset = BaseShaderGUI.FindProperty("_AdditionalShadowCastOffset", properties, false);
+                warpMapIndex = BaseShaderGUI.FindProperty("_WarpMapIndex", properties, false);
+																				 
+																							  
                 metallic = BaseShaderGUI.FindProperty("_Metallic", properties);
                 specColor = BaseShaderGUI.FindProperty("_SpecColor", properties, false);
                 metallicGlossMap = BaseShaderGUI.FindProperty("_MetallicGlossMap", properties);
@@ -282,6 +312,8 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
         /// <param name="material"></param>
         public static void Inputs(LitProperties properties, MaterialEditor materialEditor, Material material)
         {
+			DrawStylizedArea(properties, materialEditor, material);
+																											 
             DoMetallicSpecularArea(properties, materialEditor, material);
             BaseShaderGUI.DrawNormalArea(materialEditor, properties.bumpMapProp, properties.bumpScaleProp);
 
@@ -349,6 +381,35 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
             EditorGUI.EndDisabledGroup();
         }
 
+        public static void DrawStylizedArea(LitProperties properties, MaterialEditor materialEditor, Material material)
+        {
+            //if (bumpMapScale != null)
+            //{
+            //    materialEditor.TexturePropertySingleLine(Styles.normalMapText, bumpMap,
+            //        bumpMap.textureValue != null ? bumpMapScale : null);
+            //    if (bumpMapScale.floatValue != 1 &&
+            //        UnityEditorInternal.InternalEditorUtility.IsMobilePlatform(
+            //            EditorUserBuildSettings.activeBuildTarget))
+            //        if (materialEditor.HelpBoxWithButton(Styles.bumpScaleNotSupported, Styles.fixNormalNow))
+            //            bumpMapScale.floatValue = 1;
+            //}
+            //else
+            {
+                //materialEditor.TexturePropertySingleLine(Styles.normalMapText, bumpMap);
+                materialEditor.FloatProperty(properties.depthForward, "Depth Forward Distance");
+
+                //materialEditor.Proper
+                
+                materialEditor.TextureProperty(properties.shadowColorMap, "Shadow Texture");
+                materialEditor.ColorProperty(properties.shadowTint, "Shadow Tint");
+                materialEditor.FloatProperty(properties.shadowCastOffset, "Shadowcast Offset");
+                materialEditor.FloatProperty(properties.additionalShadowCastOffset, "Additional Shadowcast Offset");
+                //materialEditor.TextureProperty(properties.warpMap, "Warp Texture");
+                
+                materialEditor.FloatProperty(properties.warpMapIndex, "Warp Map Index From Atlas");
+            }
+        }
+																									 
         /// <summary>
         /// Draws the metallic/specular area GUI.
         /// </summary>
@@ -457,6 +518,18 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
         {
             SetupSpecularWorkflowKeyword(material, out bool isSpecularWorkFlow);
 
+            var hasShadowColorMap = material.GetTexture("_ShadowColorMap");
+            var shadowTintAlpha = material.GetColor("_ShadowTint");
+            CoreUtils.SetKeyword(material, "_SHADOWCOLORMAP", hasShadowColorMap|| shadowTintAlpha.a>0);
+
+            //var hasWarpMap = material.GetTexture("_WarpMap");
+            var warpMapIndex = material.GetFloat("_WarpMapIndex");
+            CoreUtils.SetKeyword(material, "_WARPMAP_ATLAS", warpMapIndex>0);
+
+            var shadowBias = material.GetFloat("_ShadowCastOffset");
+            var customShadowBias = material.GetFloat("_AdditionalShadowCastOffset");
+            CoreUtils.SetKeyword(material, "_PER_MATERIAL_SHADOW_BIAS", Mathf.Abs(shadowBias)>0 || Mathf.Abs(customShadowBias)>0 );
+
             // Note: keywords must be based on Material value not on MaterialProperty due to multi-edit & material animation
             // (MaterialProperty value might come from renderer material property block)
             var specularGlossMap = isSpecularWorkFlow ? "_SpecGlossMap" : "_MetallicGlossMap";
@@ -505,4 +578,31 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
             }
         }
     }
+			 
+																	
+																	   
+			 
+		 
+	 
+						 
+	 
+																			 
+															   
+														   
+															   
+																   
+															 
+															 
+																	   
+																	   
+																							   
+														 
+														 
+																   
+																		 
+																   
+
+									   
+													   
+																	   
 }

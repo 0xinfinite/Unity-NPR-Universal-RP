@@ -87,7 +87,9 @@ void InitializeInputData(Varyings input, half3 normalTS, out InputData inputData
     inputData.normalWS = NormalizeNormalPerPixel(inputData.normalWS);
     inputData.viewDirectionWS = viewDirWS;
 
-    #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
+    #if defined(_PER_MATERIAL_SHADOW_BIAS)
+        inputData.shadowCoord = float4(_ShadowCastOffset, _AdditionalShadowCastOffset, 0, -1);
+    #elif defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
         inputData.shadowCoord = input.shadowCoord;
     #elif defined(MAIN_LIGHT_CALCULATE_SHADOWS)
         inputData.shadowCoord = TransformWorldToShadowCoord(inputData.positionWS);
@@ -217,9 +219,13 @@ FragmentOutput LitGBufferPassFragment(Varyings input)
 
     Light mainLight = GetMainLight(inputData.shadowCoord, inputData.positionWS, inputData.shadowMask);
     MixRealtimeAndBakedGI(mainLight, inputData.normalWS, inputData.bakedGI, inputData.shadowMask);
-    half3 color = GlobalIllumination(brdfData, inputData.bakedGI, surfaceData.occlusion, inputData.positionWS, inputData.normalWS, inputData.viewDirectionWS);
+    half3 _ShadowColor = 0;
+#if defined(_SHADOWCOLORMAP)
+    _ShadowColor = SampleAlbedoAlpha(input.uv, TEXTURE2D_ARGS(_ShadowColorMap, sampler_BaseMap)) * _ShadowTint.rgb;
+#endif
+    half3 color = lerp(GlobalIllumination(brdfData, inputData.bakedGI, surfaceData.occlusion, inputData.positionWS, inputData.normalWS, inputData.viewDirectionWS), _ShadowColor,_ShadowTint.a);
 
-    return BRDFDataToGbuffer(brdfData, inputData, surfaceData.smoothness, surfaceData.emission + color, surfaceData.occlusion);
+    return BRDFDataToGbuffer(brdfData, inputData, surfaceData.smoothness, surfaceData.emission + color, surfaceData.occlusion, _WarpMapIndex);
 }
 
 #endif

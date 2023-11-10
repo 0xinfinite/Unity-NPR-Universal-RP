@@ -58,6 +58,7 @@
 #define kMaterialFlagSpecularHighlightsOff    2 // Does not receivce specular
 #define kMaterialFlagSubtractiveMixedLighting 4 // The geometry uses subtractive mixed lighting
 #define kMaterialFlagSpecularSetup            8 // Lit material use specular setup instead of metallic setup
+#define kMaterialFlagStylizedShade            16 // Lit material use StylizedShade
 
 // Light flags.
 #define kLightFlagSubtractiveMixedLighting    4 // The light uses subtractive mixed lighting.
@@ -170,8 +171,62 @@ SurfaceData SurfaceDataFromGbuffer(half4 gbuffer0, half4 gbuffer1, half4 gbuffer
     return surfaceData;
 }
 
+
+
+FragmentOutput BRDFDataToGbufferStylized(BRDFData brdfData, InputData inputData, half smoothness, half3 globalIllumination, half emissionPower = 0, half occlusion = 1.0, half warpMapOffset = 0)
+{
+    half3 packedNormalWS = PackNormal(inputData.normalWS);
+
+    uint materialFlags = 0;
+
+#ifdef _RECEIVE_SHADOWS_OFF
+    materialFlags |= kMaterialFlagReceiveShadowsOff;
+#endif
+
+    half3 packedSpecular;
+
+#ifdef _SPECULAR_SETUP
+    materialFlags |= kMaterialFlagSpecularSetup;
+    packedSpecular =max( max(brdfData.specular.r, brdfData.specular.g), brdfData.specular.b);
+#else
+    packedSpecular.r = brdfData.reflectivity;
+    packedSpecular.gb = 0.0;
+#endif
+
+#ifdef _SPECULARHIGHLIGHTS_OFF
+    // During the next deferred shading pass, we don't use a shader variant to disable specular calculations.
+    // Instead, we can either silence specular contribution when writing the gbuffer, and/or reserve a bit in the gbuffer
+    // and use this during shading to skip computations via dynamic branching. Fastest option depends on platforms.
+    materialFlags |= kMaterialFlagSpecularHighlightsOff;
+    packedSpecular = 0.0.xxx;
+#endif
+
+#if defined(LIGHTMAP_ON) && defined(_MIXED_LIGHTING_SUBTRACTIVE)
+    materialFlags |= kMaterialFlagSubtractiveMixedLighting;
+#endif
+
+    FragmentOutput output;
+    output.GBuffer0 = half4(brdfData.albedo.rgb, PackMaterialFlags(materialFlags));  // diffuse           diffuse         diffuse         materialFlags   (sRGB rendertarget)
+    output.GBuffer1 = half4(packedSpecular.x, warpMapOffset, inputData.shadowCoord.x, inputData.shadowCoord.y);           // metallic/specular warpmap-index  shadow-depthbias      custom-shadow-depthbias
+    output.GBuffer2 = half4(packedNormalWS, smoothness);                             // encoded-normal    encoded-normal  encoded-normal  smoothness
+    output.GBuffer3 = half4(globalIllumination, emissionPower);       // GI                GI              GI              emission-power          (lighting buffer)
+#if _RENDER_PASS_ENABLED
+    output.GBuffer4 = inputData.positionCS.z;
+    //output.GBuffer5 = half4(shadowed, warpMapOffset);// half4(additional.shadowed, 1);
+#endif
+//#if OUTPUT_SHADOWMASK
+//    output.GBUFFER_SHADOWMASK = inputData.shadowMask; // will have unity_ProbesOcclusion value if subtractive lighting is used (baked)
+//#endif
+#ifdef _WRITE_RENDERING_LAYERS
+    uint renderingLayers = GetMeshRenderingLayer();
+    output.GBUFFER_LIGHT_LAYERS = float4(EncodeMeshRenderingLayer(renderingLayers), 0.0, 0.0, 0.0);
+#endif
+
+    return output;
+}
+
 // This will encode SurfaceData into GBuffer
-FragmentOutput BRDFDataToGbuffer(BRDFData brdfData, InputData inputData, half smoothness, half3 globalIllumination, half occlusion = 1.0)
+FragmentOutput BRDFDataToGbuffer(BRDFData brdfData, InputData inputData, half smoothness, half3 globalIllumination, half occlusion = 1.0, half warpMapIndex = 0)
 {
     half3 packedNormalWS = PackNormal(inputData.normalWS);
 
@@ -199,9 +254,17 @@ FragmentOutput BRDFDataToGbuffer(BRDFData brdfData, InputData inputData, half sm
     packedSpecular = 0.0.xxx;
     #endif
 
+#if defined(_PER_MATERIAL_SHADOW_BIAS)
+    packedSpecular = float4(packedSpecular.r, warpMapIndex, inputData.shadowCoord.x, inputData.shadowCoord.y);
+#endif
+
     #if defined(LIGHTMAP_ON) && defined(_MIXED_LIGHTING_SUBTRACTIVE)
     materialFlags |= kMaterialFlagSubtractiveMixedLighting;
     #endif
+
+    #if defined(_WARPMAP_ATLAS) || defined(_SHADOWCOLORMAP)
+    materialFlags |= kMaterialFlagStylizedShade;
+#endif
 
     FragmentOutput output;
     output.GBuffer0 = half4(brdfData.albedo.rgb, PackMaterialFlags(materialFlags));  // diffuse           diffuse         diffuse         materialFlags   (sRGB rendertarget)

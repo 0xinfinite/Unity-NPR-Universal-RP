@@ -90,7 +90,9 @@ void InitializeInputData(Varyings input, half3 normalTS, out InputData inputData
     inputData.normalWS = NormalizeNormalPerPixel(inputData.normalWS);
     inputData.viewDirectionWS = viewDirWS;
 
-#if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
+#if defined(_PER_MATERIAL_SHADOW_BIAS)
+    inputData.shadowCoord = float4(_ShadowCastOffset, _AdditionalShadowCastOffset, 0, 0);
+#elif defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
     inputData.shadowCoord = input.shadowCoord;
 #elif defined(MAIN_LIGHT_CALCULATE_SHADOWS)
     inputData.shadowCoord = TransformWorldToShadowCoord(inputData.positionWS);
@@ -230,13 +232,15 @@ void LitPassFragment(
 #ifdef _DBUFFER
     ApplyDecalToSurfaceData(input.positionCS, surfaceData, inputData);
 #endif
-
-    half4 color = UniversalFragmentPBR(inputData, surfaceData);
+    half3 _ShadowColor = 0;
+#if defined(_SHADOWCOLORMAP)
+    _ShadowColor = SampleAlbedoAlpha(input.uv, TEXTURE2D_ARGS(_ShadowColorMap, sampler_BaseMap));
+#endif
+    half4 color = UniversalFragmentPBR(inputData, surfaceData, half4(_ShadowColor *_ShadowTint.rgb,_ShadowTint.a), _WarpMapIndex);
     color.rgb = MixFog(color.rgb, inputData.fogCoord);
     color.a = OutputAlpha(color.a, IsSurfaceTypeTransparent(_Surface));
 
     outColor = color;
-
 #ifdef _WRITE_RENDERING_LAYERS
     uint renderingLayers = GetMeshRenderingLayer();
     outRenderingLayers = float4(EncodeMeshRenderingLayer(renderingLayers), 0, 0, 0);

@@ -58,21 +58,26 @@ struct Light
 //                        Attenuation Functions                               /
 ///////////////////////////////////////////////////////////////////////////////
 
+float remap(float In, float2 InMinMax, float2 OutMinMax)
+{
+    return OutMinMax.x + (In - InMinMax.x) * (OutMinMax.y - OutMinMax.x) / (InMinMax.y - InMinMax.x);
+}
 // Matches Unity Vanilla HINT_NICE_QUALITY attenuation
 // Attenuation smoothly decreases to light range.
-float DistanceAttenuation(float distanceSqr, half2 distanceAttenuation)
+float DistanceAttenuation(float distance/*Sqr*/, half2 distanceAttenuation)
 {
     // We use a shared distance attenuation for additional directional and puctual lights
     // for directional lights attenuation will be 1
-    float lightAtten = rcp(distanceSqr);
-    float2 distanceAttenuationFloat = float2(distanceAttenuation);
+    //float lightAtten = rcp(distanceSqr);
+    //float2 distanceAttenuationFloat = float2(distanceAttenuation);
 
     // Use the smoothing factor also used in the Unity lightmapper.
-    half factor = half(distanceSqr * distanceAttenuationFloat.x);
-    half smoothFactor = saturate(half(1.0) - factor * factor);
-    smoothFactor = smoothFactor * smoothFactor;
+    //half factor = half(distanceSqr * distanceAttenuationFloat.x);
+    //half smoothFactor = saturate(half(1.0) - factor * factor);
+    //smoothFactor = smoothFactor * smoothFactor;
 
-    return lightAtten * smoothFactor;
+    //return lightAtten * smoothFactor;
+	return saturate(remap(distance, float2(distanceAttenuation.x * distanceAttenuation.y, distanceAttenuation.x), float2(1, 0)) );      // distanceAttenuation = new Vector4(lightRange(0~), punctualLightFalloffStart(0.0f~1.0f), ... , ...);
 }
 
 half AngleAttenuation(half3 spotDirection, half3 lightDirection, half2 spotAttenuation)
@@ -118,6 +123,9 @@ Light GetMainLight()
 Light GetMainLight(float4 shadowCoord)
 {
     Light light = GetMainLight();
+#if defined(_PER_MATERIAL_SHADOW_BIAS)
+    shadowCoord.yzw = light.direction;
+#endif
     light.shadowAttenuation = MainLightRealtimeShadow(shadowCoord);
     return light;
 }
@@ -125,6 +133,9 @@ Light GetMainLight(float4 shadowCoord)
 Light GetMainLight(float4 shadowCoord, float3 positionWS, half4 shadowMask)
 {
     Light light = GetMainLight();
+#if defined(_PER_MATERIAL_SHADOW_BIAS)
+    shadowCoord.yzw = light.direction;
+#endif
     light.shadowAttenuation = MainLightShadow(shadowCoord, positionWS, shadowMask, _MainLightOcclusionProbes);
 
     #if defined(_LIGHT_COOKIES)
@@ -172,9 +183,10 @@ Light GetAdditionalPerObjectLight(int perObjectLightIndex, float3 positionWS)
     float3 lightVector = lightPositionWS.xyz - positionWS * lightPositionWS.w;
     float distanceSqr = max(dot(lightVector, lightVector), HALF_MIN);
 
+	float distance = length(lightPositionWS.xyz - positionWS);
     half3 lightDirection = half3(lightVector * rsqrt(distanceSqr));
     // full-float precision required on some platforms
-    float attenuation = DistanceAttenuation(distanceSqr, distanceAndSpotAttenuation.xy) * AngleAttenuation(spotDirection.xyz, lightDirection, distanceAndSpotAttenuation.zw);
+    float attenuation = DistanceAttenuation(distance/*Sqr*/, distanceAndSpotAttenuation.xy) * AngleAttenuation(spotDirection.xyz, lightDirection, distanceAndSpotAttenuation.zw);
 
     Light light;
     light.direction = lightDirection;
@@ -256,7 +268,7 @@ Light GetAdditionalLight(uint i, float3 positionWS)
     return GetAdditionalPerObjectLight(lightIndex, positionWS);
 }
 
-Light GetAdditionalLight(uint i, float3 positionWS, half4 shadowMask)
+Light GetAdditionalLight(uint i, float3 positionWS, half4 shadowMask, float shadowBias = 0)
 {
 #if USE_FORWARD_PLUS
     int lightIndex = i;
@@ -270,7 +282,7 @@ Light GetAdditionalLight(uint i, float3 positionWS, half4 shadowMask)
 #else
     half4 occlusionProbeChannels = _AdditionalLightsOcclusionProbes[lightIndex];
 #endif
-    light.shadowAttenuation = AdditionalLightShadow(lightIndex, positionWS, light.direction, shadowMask, occlusionProbeChannels);
+    light.shadowAttenuation = AdditionalLightShadow(lightIndex, positionWS, light.direction, shadowMask, occlusionProbeChannels, shadowBias);
 #if defined(_LIGHT_COOKIES)
     real3 cookieColor = SampleAdditionalLightCookie(lightIndex, positionWS);
     light.color *= cookieColor;
@@ -279,9 +291,9 @@ Light GetAdditionalLight(uint i, float3 positionWS, half4 shadowMask)
     return light;
 }
 
-Light GetAdditionalLight(uint i, InputData inputData, half4 shadowMask, AmbientOcclusionFactor aoFactor)
+Light GetAdditionalLight(uint i, InputData inputData, half4 shadowMask, AmbientOcclusionFactor aoFactor, float shadowBias = 0)
 {
-    Light light = GetAdditionalLight(i, inputData.positionWS, shadowMask);
+    Light light = GetAdditionalLight(i, inputData.positionWS, shadowMask, shadowBias);
 
     #if defined(_SCREEN_SPACE_OCCLUSION) && !defined(_SURFACE_TYPE_TRANSPARENT)
     if (IsLightingFeatureEnabled(DEBUGLIGHTINGFEATUREFLAGS_AMBIENT_OCCLUSION))

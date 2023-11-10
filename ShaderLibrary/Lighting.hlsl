@@ -18,6 +18,15 @@
     #define OUTPUT_SH(normalWS, OUT) OUT.xyz = SampleSHVertex(normalWS)
 #endif
 
+TEXTURE2D(_WarpMapAtlas);
+SAMPLER(sampler_WarpMapAtlas);
+int _WarpMapCount;
+
+half2 GetWarpMapUVFromAtlas(half NdotL, half warpMapOffset, int count) {
+    half y = (1.0 / (half)max(count, 1));
+    return half2(NdotL, warpMapOffset + (y * 0.5));
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 //                      Lighting Functions                                   //
 ///////////////////////////////////////////////////////////////////////////////
@@ -37,11 +46,16 @@ half3 LightingSpecular(half3 lightColor, half3 lightDir, half3 normal, half3 vie
 }
 
 half3 LightingPhysicallyBased(BRDFData brdfData, BRDFData brdfDataClearCoat,
-    half3 lightColor, half3 lightDirectionWS, half lightAttenuation,
+    half3 lightColor, half3 lightDirectionWS, half3 lightAttenuation,
     half3 normalWS, half3 viewDirectionWS,
-    half clearCoatMask, bool specularHighlightsOff)
+    half clearCoatMask, bool specularHighlightsOff, half warpMapOffset)
 {
-    half NdotL = saturate(dot(normalWS, lightDirectionWS));
+    half3 NdotL = saturate(dot(normalWS, lightDirectionWS).xxx);
+#if defined(_WARPMAP_ATLAS)
+    NdotL.r = saturate(SAMPLE_TEXTURE2D(_WarpMapAtlas, sampler_WarpMapAtlas, GetWarpMapUVFromAtlas(NdotL.r, warpMapOffset, _WarpMapCount)).r);
+    NdotL.g = saturate(SAMPLE_TEXTURE2D(_WarpMapAtlas, sampler_WarpMapAtlas, GetWarpMapUVFromAtlas(NdotL.g, warpMapOffset, _WarpMapCount)).g);
+    NdotL.b = saturate(SAMPLE_TEXTURE2D(_WarpMapAtlas, sampler_WarpMapAtlas, GetWarpMapUVFromAtlas(NdotL.b, warpMapOffset, _WarpMapCount)).b);
+#endif
     half3 radiance = lightColor * (lightAttenuation * NdotL);
 
     half3 brdf = brdfData.diffuse;
@@ -71,13 +85,23 @@ half3 LightingPhysicallyBased(BRDFData brdfData, BRDFData brdfDataClearCoat,
     return brdf * radiance;
 }
 
-half3 LightingPhysicallyBased(BRDFData brdfData, BRDFData brdfDataClearCoat, Light light, half3 normalWS, half3 viewDirectionWS, half clearCoatMask, bool specularHighlightsOff)
+half3 LightingPhysicallyBased(BRDFData brdfData, BRDFData brdfDataClearCoat, Light light, half3 normalWS, half3 viewDirectionWS, half clearCoatMask, bool specularHighlightsOff, half warpMapOffset = 0)
 {
-    return LightingPhysicallyBased(brdfData, brdfDataClearCoat, light.color, light.direction, light.distanceAttenuation * light.shadowAttenuation, normalWS, viewDirectionWS, clearCoatMask, specularHighlightsOff);
+	half3 shadowAttenuation = light.shadowAttenuation.xxx;
+	half3 distanceAttenuation = light.distanceAttenuation.xxx;
+	#if defined(_WARPMAP_ATLAS)
+    shadowAttenuation.r = saturate(SAMPLE_TEXTURE2D(_WarpMapAtlas, sampler_WarpMapAtlas, GetWarpMapUVFromAtlas(shadowAttenuation.r, warpMapOffset, _WarpMapCount)).r);
+    shadowAttenuation.g = saturate(SAMPLE_TEXTURE2D(_WarpMapAtlas, sampler_WarpMapAtlas, GetWarpMapUVFromAtlas(shadowAttenuation.g, warpMapOffset, _WarpMapCount)).g);
+    shadowAttenuation.b = saturate(SAMPLE_TEXTURE2D(_WarpMapAtlas, sampler_WarpMapAtlas, GetWarpMapUVFromAtlas(shadowAttenuation.b, warpMapOffset, _WarpMapCount)).b);
+	distanceAttenuation.r = saturate(SAMPLE_TEXTURE2D(_WarpMapAtlas, sampler_WarpMapAtlas, GetWarpMapUVFromAtlas(distanceAttenuation.r, warpMapOffset, _WarpMapCount)).r);
+    distanceAttenuation.g = saturate(SAMPLE_TEXTURE2D(_WarpMapAtlas, sampler_WarpMapAtlas, GetWarpMapUVFromAtlas(distanceAttenuation.g, warpMapOffset, _WarpMapCount)).g);
+    distanceAttenuation.b = saturate(SAMPLE_TEXTURE2D(_WarpMapAtlas, sampler_WarpMapAtlas, GetWarpMapUVFromAtlas(distanceAttenuation.b, warpMapOffset, _WarpMapCount)).b);
+#endif
+    return LightingPhysicallyBased(brdfData, brdfDataClearCoat, light.color, light.direction, light.distanceAttenuation * light.shadowAttenuation, normalWS, viewDirectionWS, clearCoatMask, specularHighlightsOff, warpMapOffset);
 }
 
 // Backwards compatibility
-half3 LightingPhysicallyBased(BRDFData brdfData, Light light, half3 normalWS, half3 viewDirectionWS)
+half3 LightingPhysicallyBased(BRDFData brdfData, Light light, half3 normalWS, half3 viewDirectionWS, half warpMapOffset = 0)
 {
     #ifdef _SPECULARHIGHLIGHTS_OFF
     bool specularHighlightsOff = true;
@@ -85,33 +109,33 @@ half3 LightingPhysicallyBased(BRDFData brdfData, Light light, half3 normalWS, ha
     bool specularHighlightsOff = false;
 #endif
     const BRDFData noClearCoat = (BRDFData)0;
-    return LightingPhysicallyBased(brdfData, noClearCoat, light, normalWS, viewDirectionWS, 0.0, specularHighlightsOff);
+    return LightingPhysicallyBased(brdfData, noClearCoat, light, normalWS, viewDirectionWS, 0.0, specularHighlightsOff, warpMapOffset);
 }
 
-half3 LightingPhysicallyBased(BRDFData brdfData, half3 lightColor, half3 lightDirectionWS, half lightAttenuation, half3 normalWS, half3 viewDirectionWS)
+half3 LightingPhysicallyBased(BRDFData brdfData, half3 lightColor, half3 lightDirectionWS, half lightAttenuation, half3 normalWS, half3 viewDirectionWS, half warpMapOffset = 0)
 {
     Light light;
     light.color = lightColor;
     light.direction = lightDirectionWS;
     light.distanceAttenuation = lightAttenuation;
     light.shadowAttenuation   = 1;
-    return LightingPhysicallyBased(brdfData, light, normalWS, viewDirectionWS);
+    return LightingPhysicallyBased(brdfData, light, normalWS, viewDirectionWS, warpMapOffset);
 }
 
-half3 LightingPhysicallyBased(BRDFData brdfData, Light light, half3 normalWS, half3 viewDirectionWS, bool specularHighlightsOff)
+half3 LightingPhysicallyBased(BRDFData brdfData, Light light, half3 normalWS, half3 viewDirectionWS, bool specularHighlightsOff, half warpMapOffset = 0)
 {
     const BRDFData noClearCoat = (BRDFData)0;
-    return LightingPhysicallyBased(brdfData, noClearCoat, light, normalWS, viewDirectionWS, 0.0, specularHighlightsOff);
+    return LightingPhysicallyBased(brdfData, noClearCoat, light, normalWS, viewDirectionWS, 0.0, specularHighlightsOff,warpMapOffset);
 }
 
-half3 LightingPhysicallyBased(BRDFData brdfData, half3 lightColor, half3 lightDirectionWS, half lightAttenuation, half3 normalWS, half3 viewDirectionWS, bool specularHighlightsOff)
+half3 LightingPhysicallyBased(BRDFData brdfData, half3 lightColor, half3 lightDirectionWS, half lightAttenuation, half3 normalWS, half3 viewDirectionWS, bool specularHighlightsOff, half warpMapOffset = 0)
 {
     Light light;
     light.color = lightColor;
     light.direction = lightDirectionWS;
     light.distanceAttenuation = lightAttenuation;
     light.shadowAttenuation   = 1;
-    return LightingPhysicallyBased(brdfData, light, viewDirectionWS, specularHighlightsOff, specularHighlightsOff);
+    return LightingPhysicallyBased(brdfData, light, viewDirectionWS, specularHighlightsOff, specularHighlightsOff, warpMapOffset);
 }
 
 half3 VertexLighting(float3 positionWS, half3 normalWS)
@@ -244,7 +268,7 @@ half3 CalculateBlinnPhong(Light light, InputData inputData, SurfaceData surfaceD
 ////////////////////////////////////////////////////////////////////////////////
 /// PBR lighting...
 ////////////////////////////////////////////////////////////////////////////////
-half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData)
+half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData, half4 shadowTint = 0, half warpMapIndex = 0, float shadowBias=0, float customShadowBias=0)
 {
     #if defined(_SPECULARHIGHLIGHTS_OFF)
     bool specularHighlightsOff = true;
@@ -280,6 +304,7 @@ half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData)
     lightingData.giColor = GlobalIllumination(brdfData, brdfDataClearCoat, surfaceData.clearCoatMask,
                                               inputData.bakedGI, aoFactor.indirectAmbientOcclusion, inputData.positionWS,
                                               inputData.normalWS, inputData.viewDirectionWS, inputData.normalizedScreenSpaceUV);
+	lightingData.giColor = lerp(lightingData.giColor, shadowTint.rgb, shadowTint.a);
 #ifdef _LIGHT_LAYERS
     if (IsMatchingLightLayer(mainLight.layerMask, meshRenderingLayers))
 #endif
@@ -287,7 +312,7 @@ half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData)
         lightingData.mainLightColor = LightingPhysicallyBased(brdfData, brdfDataClearCoat,
                                                               mainLight,
                                                               inputData.normalWS, inputData.viewDirectionWS,
-                                                              surfaceData.clearCoatMask, specularHighlightsOff);
+                                                              surfaceData.clearCoatMask, specularHighlightsOff, warpMapIndex);
     }
 
     #if defined(_ADDITIONAL_LIGHTS)
@@ -298,7 +323,7 @@ half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData)
     {
         FORWARD_PLUS_SUBTRACTIVE_LIGHT_CHECK
 
-        Light light = GetAdditionalLight(lightIndex, inputData, shadowMask, aoFactor);
+        Light light = GetAdditionalLight(lightIndex, inputData, shadowMask, aoFactor, inputData.shadowCoord.x);
 
 #ifdef _LIGHT_LAYERS
         if (IsMatchingLightLayer(light.layerMask, meshRenderingLayers))
@@ -306,13 +331,13 @@ half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData)
         {
             lightingData.additionalLightsColor += LightingPhysicallyBased(brdfData, brdfDataClearCoat, light,
                                                                           inputData.normalWS, inputData.viewDirectionWS,
-                                                                          surfaceData.clearCoatMask, specularHighlightsOff);
+                                                                          surfaceData.clearCoatMask, specularHighlightsOff, warpMapIndex);
         }
     }
     #endif
 
     LIGHT_LOOP_BEGIN(pixelLightCount)
-        Light light = GetAdditionalLight(lightIndex, inputData, shadowMask, aoFactor);
+        Light light = GetAdditionalLight(lightIndex, inputData, shadowMask, aoFactor, inputData.shadowCoord.x);
 
 #ifdef _LIGHT_LAYERS
         if (IsMatchingLightLayer(light.layerMask, meshRenderingLayers))
@@ -320,7 +345,7 @@ half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData)
         {
             lightingData.additionalLightsColor += LightingPhysicallyBased(brdfData, brdfDataClearCoat, light,
                                                                           inputData.normalWS, inputData.viewDirectionWS,
-                                                                          surfaceData.clearCoatMask, specularHighlightsOff);
+                                                                          surfaceData.clearCoatMask, specularHighlightsOff, warpMapIndex);
         }
     LIGHT_LOOP_END
     #endif
