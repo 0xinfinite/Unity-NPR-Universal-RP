@@ -57,7 +57,9 @@ Confine the additional shadow frustum to the face to apply natural cartoon hair 
 
 ## Works on Android
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/kwWVc1ryGLs?si=qsOO6tYRzaSjJ8Yr" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+[![IMAGE ALT TEXT](http://img.youtube.com/vi/kwWVc1ryGLs/0.jpg)](http://www.youtube.com/watch?v=kwWVc1ryGLs "Video Title")
+
+Click to watch video
 
 Device : Samsung Galaxy S8+
 
