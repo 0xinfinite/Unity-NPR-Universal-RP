@@ -49,10 +49,21 @@ usage
 <img src="https://github.com/0xinfinite/0xinfinite.github.io/blob/master/img/main%20character%20shadow.gif?raw=true">
 Increases the shadow resolution of the main character or increase performance by focusing the shadow frustum on the main character.
 
-### Face Focused Hair Shadow
+### 2D Hair Shadow
 
 <img src = "https://github.com/0xinfinite/0xinfinite.github.io/blob/master/img/2d-hair-shadow.png?raw=true">
 Confine the additional shadow frustum to the face to apply natural cartoon hair shadows. (It's difficult to archive this with built-in shadow)
+
+
+## Works on Android
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/kwWVc1ryGLs?si=qsOO6tYRzaSjJ8Yr" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+
+Device : Samsung Galaxy S8+
+
+Adapted Settings : Deferred Rendering, Warp Texture Shading, Custom Shadow(Main Character Focused Light Shadow, 2D Hair Shadow)
+
+(Disclaimer : This repository is not guaranteed to work properly on your build. The video above demonstrates the optimization of the implementation in a different repository.)
 
 
 # WIP or Planned in future
