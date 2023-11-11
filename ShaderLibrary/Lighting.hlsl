@@ -185,6 +185,7 @@ half3 CalculateLightingColor(LightingData lightingData, half3 albedo)
     if (IsLightingFeatureEnabled(DEBUGLIGHTINGFEATUREFLAGS_MAIN_LIGHT))
     {
         lightingColor += lightingData.mainLightColor;
+        lightingColor -= lerp(0, lightingData.giColor, saturate((lightingData.mainLightColor.r+ lightingData.mainLightColor.g+ lightingData.mainLightColor.b)*0.33334));
     }
 
     if (IsLightingFeatureEnabled(DEBUGLIGHTINGFEATUREFLAGS_ADDITIONAL_LIGHTS))
@@ -301,6 +302,11 @@ half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData, half4 s
     uint meshRenderingLayers = GetMeshRenderingLayer();
     Light mainLight = GetMainLight(inputData, shadowMask, aoFactor);
 
+#if defined(CUSTOM_SHADOW_ONLY_MAIN_LIGHT)
+    half customAttenuation = CustomShadows(inputData.shadowCoord.y, inputData.positionWS);
+    mainLight.shadowAttenuation = min(mainLight.shadowAttenuation, customAttenuation);
+#endif
+
     // NOTE: We don't apply AO to the GI here because it's done in the lighting calculation below...
     MixRealtimeAndBakedGI(mainLight, inputData.normalWS, inputData.bakedGI);
 
@@ -310,6 +316,7 @@ half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData, half4 s
                                               inputData.bakedGI, aoFactor.indirectAmbientOcclusion, inputData.positionWS,
                                               inputData.normalWS, inputData.viewDirectionWS, inputData.normalizedScreenSpaceUV);
 	lightingData.giColor = lerp(lightingData.giColor, shadowTint.rgb, shadowTint.a);
+
 #ifdef _LIGHT_LAYERS
     if (IsMatchingLightLayer(mainLight.layerMask, meshRenderingLayers))
 #endif
@@ -330,6 +337,11 @@ half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData, half4 s
 
         Light light = GetAdditionalLight(lightIndex, inputData, shadowMask, aoFactor, inputData.shadowCoord.x);
 
+#if defined(CUSTOM_SHADOW_ON)
+        half customAttenuation = CustomShadows(inputData.shadowCoord.y, inputData.positionWS);
+        light.shadowAttenuation = min(light.shadowAttenuation, customAttenuation);
+#endif
+
 #ifdef _LIGHT_LAYERS
         if (IsMatchingLightLayer(light.layerMask, meshRenderingLayers))
 #endif
@@ -343,6 +355,11 @@ half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData, half4 s
 
     LIGHT_LOOP_BEGIN(pixelLightCount)
         Light light = GetAdditionalLight(lightIndex, inputData, shadowMask, aoFactor, inputData.shadowCoord.x);
+
+#if defined(CUSTOM_SHADOW_ON)
+    half customAttenuation = CustomShadows(inputData.shadowCoord.y, inputData.positionWS);
+    light.shadowAttenuation = min(light.shadowAttenuation, customAttenuation);
+#endif
 
 #ifdef _LIGHT_LAYERS
         if (IsMatchingLightLayer(light.layerMask, meshRenderingLayers))

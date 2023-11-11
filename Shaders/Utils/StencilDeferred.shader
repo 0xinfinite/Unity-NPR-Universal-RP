@@ -340,6 +340,7 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
 			{
 				BRDFData brdfData = BRDFDataFromGbuffer(gbuffer0, gbuffer1.xxxw, gbuffer2);
 				color = LightingPhysicallyBased(brdfData, unityLight, inputData.normalWS, inputData.viewDirectionWS, materialSpecularHighlightsOff, warpMapOffset);
+                alpha = 1-saturate((color.r + color.g + color.b) * 0.33334);
                 //color = half3(warpMapOffset, 0, 0);
 			}
 			else

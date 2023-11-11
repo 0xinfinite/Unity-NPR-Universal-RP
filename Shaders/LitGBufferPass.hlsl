@@ -222,6 +222,8 @@ FragmentOutput LitGBufferPassFragment(Varyings input)
     half3 _ShadowColor = 0;
 #if defined(_SHADOWCOLORMAP)
     _ShadowColor = SampleAlbedoAlpha(input.uv, TEXTURE2D_ARGS(_ShadowColorMap, sampler_BaseMap)) * _ShadowTint.rgb;
+#elif defined(_SHADOWCOLOR)
+    _ShadowColor = surfaceData.albedo * _ShadowTint.rgb;
 #endif
     half3 color = lerp(GlobalIllumination(brdfData, inputData.bakedGI, surfaceData.occlusion, inputData.positionWS, inputData.normalWS, inputData.viewDirectionWS), _ShadowColor,_ShadowTint.a);
 

@@ -520,7 +520,8 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
 
             var hasShadowColorMap = material.GetTexture("_ShadowColorMap");
             var shadowTintAlpha = material.GetColor("_ShadowTint");
-            CoreUtils.SetKeyword(material, "_SHADOWCOLORMAP", hasShadowColorMap|| shadowTintAlpha.a>0);
+            CoreUtils.SetKeyword(material, "_SHADOWCOLORMAP", hasShadowColorMap);
+            CoreUtils.SetKeyword(material, "_SHADOWCOLOR", shadowTintAlpha.a > 0);
 
             //var hasWarpMap = material.GetTexture("_WarpMap");
             var warpMapIndex = material.GetFloat("_WarpMapIndex");

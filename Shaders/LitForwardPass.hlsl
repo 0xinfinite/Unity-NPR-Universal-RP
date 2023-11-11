@@ -234,9 +234,11 @@ void LitPassFragment(
 #endif
     half3 _ShadowColor = 0;
 #if defined(_SHADOWCOLORMAP)
-    _ShadowColor = SampleAlbedoAlpha(input.uv, TEXTURE2D_ARGS(_ShadowColorMap, sampler_BaseMap));
+    _ShadowColor = SampleAlbedoAlpha(input.uv, TEXTURE2D_ARGS(_ShadowColorMap, sampler_BaseMap)) * _ShadowTint.rgb;
+#elif defined(_SHADOWCOLOR)
+    _ShadowColor = surfaceData.albedo * _ShadowTint.rgb;
 #endif
-    half4 color = UniversalFragmentPBR(inputData, surfaceData, half4(_ShadowColor *_ShadowTint.rgb,_ShadowTint.a), _WarpMapIndex);
+    half4 color = UniversalFragmentPBR(inputData, surfaceData, half4(_ShadowColor ,_ShadowTint.a), _WarpMapIndex);
     color.rgb = MixFog(color.rgb, inputData.fogCoord);
     color.a = OutputAlpha(color.a, IsSurfaceTypeTransparent(_Surface));
 
