@@ -95,9 +95,9 @@ half3 LightingPhysicallyBased(BRDFData brdfData, BRDFData brdfDataClearCoat, Lig
 	half3 shadowAttenuation = light.shadowAttenuation;
 	half3 distanceAttenuation = light.distanceAttenuation;
 	#if defined(_WARPMAP_ATLAS) || defined(_USE_WARPMAP_ON_DEFERRED)
-    shadowAttenuation.r = saturate(SAMPLE_TEXTURE2D(_WarpMapAtlas, sampler_WarpMapAtlas, GetWarpMapUVFromAtlas(shadowAttenuation.r, warpMapOffset, _WarpMapCount)).r);
-    shadowAttenuation.g = saturate(SAMPLE_TEXTURE2D(_WarpMapAtlas, sampler_WarpMapAtlas, GetWarpMapUVFromAtlas(shadowAttenuation.g, warpMapOffset, _WarpMapCount)).g);
-    shadowAttenuation.b = saturate(SAMPLE_TEXTURE2D(_WarpMapAtlas, sampler_WarpMapAtlas, GetWarpMapUVFromAtlas(shadowAttenuation.b, warpMapOffset, _WarpMapCount)).b);
+    shadowAttenuation.r = saturate(SAMPLE_TEXTURE2D(_WarpMapAtlas, sampler_WarpMapAtlas, GetWarpMapUVFromAtlas(shadowAttenuation.r, 0.99, _WarpMapCount)).r);
+    shadowAttenuation.g = saturate(SAMPLE_TEXTURE2D(_WarpMapAtlas, sampler_WarpMapAtlas, GetWarpMapUVFromAtlas(shadowAttenuation.g, 0.99, _WarpMapCount)).g);
+    shadowAttenuation.b = saturate(SAMPLE_TEXTURE2D(_WarpMapAtlas, sampler_WarpMapAtlas, GetWarpMapUVFromAtlas(shadowAttenuation.b, 0.99, _WarpMapCount)).b);
 	distanceAttenuation.r = saturate(SAMPLE_TEXTURE2D(_DistanceAttenuationMapAtlas, sampler_DistanceAttenuationMapAtlas, GetWarpMapUVFromAtlas(distanceAttenuation.r, distanceMapOffset, _DistanceAttenuationMapCount)).r);
     distanceAttenuation.g = saturate(SAMPLE_TEXTURE2D(_DistanceAttenuationMapAtlas, sampler_DistanceAttenuationMapAtlas, GetWarpMapUVFromAtlas(distanceAttenuation.g, distanceMapOffset, _DistanceAttenuationMapCount)).g);
     distanceAttenuation.b = saturate(SAMPLE_TEXTURE2D(_DistanceAttenuationMapAtlas, sampler_DistanceAttenuationMapAtlas, GetWarpMapUVFromAtlas(distanceAttenuation.b, distanceMapOffset, _DistanceAttenuationMapCount)).b);
