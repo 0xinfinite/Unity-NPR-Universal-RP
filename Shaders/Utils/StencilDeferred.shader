@@ -277,12 +277,13 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
         half surfaceDataOcclusion = gbuffer1.a;
         uint materialFlags = UnpackMaterialFlags(gbuffer0.a);
         bool stylizedShade = (materialFlags & kMaterialFlagStylizedShade) != 0;
+        bool viewSpaceNormal = (materialFlags & kMaterialFlagScreenSpaceNormal) != 0;
 		half shadowDepthBias = 0;
         half customShadowDepthBias = 0;
-		if(stylizedShade)
+		if(viewSpaceNormal)
         {
 			shadowDepthBias = gbuffer1.z;
-			customShadowDepthBias = gbuffer1.w;
+			customShadowDepthBias = gbuffer2.z;
 		}
 
         half3 color = 0.0.xxx;
@@ -327,7 +328,7 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             #endif
         #endif
 
-        InputData inputData = InputDataFromGbufferAndWorldPosition(gbuffer2, posWS.xyz);
+        InputData inputData = InputDataFromGbufferAndWorldPosition(gbuffer2, posWS.xyz, viewSpaceNormal);
 
         #if defined(_LIT)
             #if SHADER_API_MOBILE || SHADER_API_SWITCH
@@ -338,10 +339,10 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             #endif
 			if(stylizedShade)
 			{
+                unityLight.shadowAttenuation *= surfaceDataOcclusion;
 				BRDFData brdfData = BRDFDataFromGbuffer(gbuffer0, gbuffer1.xxxw, gbuffer2);
 				color = LightingPhysicallyBased(brdfData, unityLight, inputData.normalWS, inputData.viewDirectionWS, materialSpecularHighlightsOff, warpMapOffset);
-                alpha = 1-saturate((color.r + color.g + color.b) * 0.33334);
-                //color = half3(warpMapOffset, 0, 0);
+                alpha *= 1-saturate((color.r + color.g + color.b) * 0.33334);
 			}
 			else
             {

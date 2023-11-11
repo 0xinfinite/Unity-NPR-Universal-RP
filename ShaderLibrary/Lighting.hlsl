@@ -306,7 +306,9 @@ half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData, half4 s
     half customAttenuation = CustomShadows(inputData.shadowCoord.y, inputData.positionWS);
     mainLight.shadowAttenuation = min(mainLight.shadowAttenuation, customAttenuation);
 #endif
-
+    #if defined(_SHADOWCOLOR) || defined(_SHADOWCOLORMAP)
+    mainLight.shadowAttenuation *= surfaceData.occlusion;
+    #endif
     // NOTE: We don't apply AO to the GI here because it's done in the lighting calculation below...
     MixRealtimeAndBakedGI(mainLight, inputData.normalWS, inputData.bakedGI);
 
@@ -336,7 +338,9 @@ half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData, half4 s
         FORWARD_PLUS_SUBTRACTIVE_LIGHT_CHECK
 
         Light light = GetAdditionalLight(lightIndex, inputData, shadowMask, aoFactor, inputData.shadowCoord.x);
-
+#if defined(_SHADOWCOLOR) || defined(_SHADOWCOLORMAP)
+        light.shadowAttenuation *= surfaceData.occlusion;
+#endif
 #if defined(CUSTOM_SHADOW_ON)
         half customAttenuation = CustomShadows(inputData.shadowCoord.y, inputData.positionWS);
         light.shadowAttenuation = min(light.shadowAttenuation, customAttenuation);
@@ -355,7 +359,9 @@ half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData, half4 s
 
     LIGHT_LOOP_BEGIN(pixelLightCount)
         Light light = GetAdditionalLight(lightIndex, inputData, shadowMask, aoFactor, inputData.shadowCoord.x);
-
+#if defined(_SHADOWCOLOR) || defined(_SHADOWCOLORMAP)
+    light.shadowAttenuation *= surfaceData.occlusion;
+#endif
 #if defined(CUSTOM_SHADOW_ON)
     half customAttenuation = CustomShadows(inputData.shadowCoord.y, inputData.positionWS);
     light.shadowAttenuation = min(light.shadowAttenuation, customAttenuation);

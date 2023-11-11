@@ -59,6 +59,7 @@
 #define kMaterialFlagSubtractiveMixedLighting 4 // The geometry uses subtractive mixed lighting
 #define kMaterialFlagSpecularSetup            8 // Lit material use specular setup instead of metallic setup
 #define kMaterialFlagStylizedShade            16 // Lit material use StylizedShade
+#define kMaterialFlagScreenSpaceNormal        32
 
 // Light flags.
 #define kLightFlagSubtractiveMixedLighting    4 // The light uses subtractive mixed lighting.
@@ -259,7 +260,7 @@ FragmentOutput BRDFDataToGbuffer(BRDFData brdfData, InputData inputData, half sm
     materialFlags |= kMaterialFlagSubtractiveMixedLighting;
     #endif
 
-    #if defined(_WARPMAP_ATLAS) || defined(_SHADOWCOLORMAP) || defined(_PER_MATERIAL_SHADOW_BIAS)
+    #if defined(_WARPMAP_ATLAS) || defined(_SHADOWCOLORMAP) || defined(_PER_MATERIAL_SHADOW_BIAS) || defined(_SHADOWCOLOR)
 
     materialFlags |= kMaterialFlagStylizedShade;
     packedSpecular = float3(packedSpecular.r, warpMapIndex, 0); 
@@ -267,7 +268,9 @@ FragmentOutput BRDFDataToGbuffer(BRDFData brdfData, InputData inputData, half sm
 
     #if defined(_PER_MATERIAL_SHADOW_BIAS)
     packedSpecular.z = inputData.shadowCoord.x;
-    occlusion = inputData.shadowCoord.y;
+    packedNormalWS = PackNormal( TransformWorldToViewNormal(inputData.normalWS) ); //
+    packedNormalWS.z = inputData.shadowCoord.y;
+    materialFlags |= kMaterialFlagScreenSpaceNormal;
 #endif
 
     FragmentOutput output;
@@ -327,12 +330,17 @@ BRDFData BRDFDataFromGbuffer(half4 gbuffer0, half4 gbuffer1, half4 gbuffer2)
     return brdfData;
 }
 
-InputData InputDataFromGbufferAndWorldPosition(half4 gbuffer2, float3 wsPos)
+InputData InputDataFromGbufferAndWorldPosition(half4 gbuffer2, float3 wsPos, bool viewSpaceNormal = false)
 {
     InputData inputData = (InputData)0;
 
     inputData.positionWS = wsPos;
     inputData.normalWS = normalize(UnpackNormal(gbuffer2.xyz)); // normalize() is required because terrain shaders use additive blending for normals (not unit-length anymore)
+    if (viewSpaceNormal) {
+        gbuffer2.z = cos(length(gbuffer2.xy) * 3.14159 * 0.5);
+        half3 viewNormal = UnpackNormal(gbuffer2.xyz);
+        inputData.normalWS = TransformViewToWorldNormal(viewNormal);
+    }
 
     inputData.viewDirectionWS = GetWorldSpaceNormalizeViewDir(wsPos.xyz);
 
