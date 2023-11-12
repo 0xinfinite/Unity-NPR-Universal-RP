@@ -662,6 +662,8 @@ namespace UnityEngine.Rendering.Universal
                     rendererData.postProcessData = PostProcessData.GetDefaultPostProcessData();
                     rendererData.warpMapAtlas = GetDefaultWarpMap();
                     rendererData.distanceAttenuationMapAtlas = GetDefaultWarpMap();
+                    rendererData.warpMapCount = 4;
+                    rendererData.distanceAttenuationMapCount = 4;
                     return rendererData;
                 }
                 // 2D renderer is experimental
