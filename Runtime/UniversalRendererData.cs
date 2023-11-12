@@ -163,7 +163,7 @@ namespace UnityEngine.Rendering.Universal
         [SerializeField] int m_WarpMapCount = 1;
         [SerializeField] Texture2D m_DistanceAttenuationMapAtlas;
         [SerializeField] int m_BaseIndexOfDistanceAttenuationMap;
-        [SerializeField] int m_DistanceAttenuationMapCount;
+        [SerializeField] int m_DistanceAttenuationMapCount = 1;
         [SerializeField, Range(0,1)] float m_PunctionalLightFallOffStart;
 
 #if UNITY_EDITOR

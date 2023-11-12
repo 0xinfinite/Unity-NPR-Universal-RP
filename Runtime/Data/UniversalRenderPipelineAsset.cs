@@ -660,6 +660,8 @@ namespace UnityEngine.Rendering.Universal
                 {
                     var rendererData = CreateInstance<UniversalRendererData>();
                     rendererData.postProcessData = PostProcessData.GetDefaultPostProcessData();
+                    rendererData.warpMapAtlas = GetDefaultWarpMap();
+                    rendererData.distanceAttenuationMapAtlas = GetDefaultWarpMap();
                     return rendererData;
                 }
                 // 2D renderer is experimental
@@ -671,6 +673,11 @@ namespace UnityEngine.Rendering.Universal
                     // Universal Renderer is the fallback renderer that works on all platforms
                 }
             }
+        }
+        internal static Texture2D GetDefaultWarpMap()
+        {
+            var path = System.IO.Path.Combine(packagePath, "Textures/WarpMaps/WarpMapAtlas.jpg");
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
         }
 
         // Hide: User aren't suppose to have to create it.
