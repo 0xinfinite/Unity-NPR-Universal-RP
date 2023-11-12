@@ -147,7 +147,13 @@ Light GetMainLight(float4 shadowCoord, float3 positionWS, half4 shadowMask)
     Light light = GetMainLight();
 
     float3 biasAdeptedWorldPos = positionWS + (light.direction * shadowCoord.x);      // shadowCoord = float4(shadowDepthBias, additionalShadowDepthBias, GI_LerpTime, (half)warpMapIndex / (half)warpMapCount)
+
+#if defined(_MAIN_LIGHT_SHADOWS_SCREEN)
+    float4 positionCS = TransformWorldToHClip(biasAdeptedWorldPos);
+    shadowCoord = ComputeScreenPos(positionCS);
+#else
     shadowCoord = TransformWorldToShadowCoord(biasAdeptedWorldPos);
+#endif
 
     light.shadowAttenuation = MainLightShadow(shadowCoord, positionWS, shadowMask, _MainLightOcclusionProbes);
 
@@ -173,7 +179,7 @@ Light GetMainLight(InputData inputData, half4 shadowMask, AmbientOcclusionFactor
     return light;
 }
 
-half2 GetDistanceMapUVFromAtlas(half atten, int mapIndex, int count) {
+half2 GetDistanceMapUVFromAtlas(half atten, half mapIndex, half count) {
     half y = (1.0 / (half)max(count, 1));
     return half2(atten, (mapIndex / (half)max(count, 1)) + (y * 0.5));
 }
@@ -188,14 +194,14 @@ Light GetAdditionalPerObjectLight(int perObjectLightIndex, float3 positionWS)
     half4 distanceAndSpotAttenuation = _AdditionalLightsBuffer[perObjectLightIndex].attenuation;
     half4 spotDirection = _AdditionalLightsBuffer[perObjectLightIndex].spotDirection;
     uint lightLayerMask = _AdditionalLightsBuffer[perObjectLightIndex].layerMask;
-    int distAttenOffset = _AdditionalLightsBuffer[perObjectLightIndex].distanceAttenuationOffset;
+    half distAttenOffset = _AdditionalLightsBuffer[perObjectLightIndex].distanceAttenuationOffset;
 #else
     float4 lightPositionWS = _AdditionalLightsPosition[perObjectLightIndex];
     half3 color = _AdditionalLightsColor[perObjectLightIndex].rgb;
     half4 distanceAndSpotAttenuation = _AdditionalLightsAttenuation[perObjectLightIndex];
     half4 spotDirection = _AdditionalLightsSpotDir[perObjectLightIndex];
     uint lightLayerMask = asuint(_AdditionalLightsLayerMasks[perObjectLightIndex]);
-    int distAttenOffset = asint(_AdditionalLightDistanceAttenuationOffset[perObjectLightIndex]);
+    half distAttenOffset = (_AdditionalLightDistanceAttenuationOffset[perObjectLightIndex]);
 #endif
 
     // Directional lights store direction in lightPosition.xyz and have .w set to 0.0.
@@ -315,7 +321,7 @@ Light GetAdditionalLight(uint i, float3 positionWS, half4 shadowMask)
     light.shadowAttenuation = AdditionalLightShadow(lightIndex, positionWS, light.direction, shadowMask, occlusionProbeChannels);
 #if defined(_LIGHT_COOKIES)
     real3 cookieColor = SampleAdditionalLightCookie(lightIndex, positionWS);
-    light.color *= cookieColor;
+    light.color.rgb *= cookieColor;
 #endif
 
     return light;

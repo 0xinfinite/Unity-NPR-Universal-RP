@@ -1,8 +1,8 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
-using UnityEngine.Windows.WebCam;
+
 //using Nothke.Utils;
 
 [System.Serializable]
@@ -30,6 +30,34 @@ public class AdditionalShadowCameraManager : MonoBehaviour
 {
     public static AdditionalShadowCameraManager manager;
 
+
+    const int maxShadowCount = 256;
+
+    static int customShadowmapId = Shader.PropertyToID("_CustomShadowmapAtlas");
+    static int customShadowMatricesId = Shader.PropertyToID("_CustomShadowMatrices");
+    static int customShadowParamsId = Shader.PropertyToID("_CustomShadowParams");
+    static int customShadowParams2Id = Shader.PropertyToID("_CustomShadowParams2");
+    static int customShadowPositionId = Shader.PropertyToID("_CustomShadowPositions");
+    static int customShadowSizeId = Shader.PropertyToID("_CustomShadowmapSize");
+    static int customShadowCountId = Shader.PropertyToID("_CustomShadowCount");
+    static int customShadowOffset0Id = Shader.PropertyToID("_CustomShadowOffset0");
+    static int customShadowOffset1Id = Shader.PropertyToID("_CustomShadowOffset1");
+    //GlobalKeyword customShadowKeyword;
+    const string customShadowKeyword = "CUSTOM_SHADOW_ON";
+    const string
+    //GlobalKeyword
+    customShadowOnlyMainKeyword = "CUSTOM_SHADOW_ONLY_MAIN_LIGHT";
+
+    //static ShaderTagId litShaderTagId = new ShaderTagId("SRPDefaultLit");
+
+    Matrix4x4[] customShadowMatrices;
+    Vector4[] customShadowParams;
+    Vector4[] customShadowParams2;
+    Vector4[] customShadowPosition;
+    bool customShadowOnlyMain;
+
+
+
     public Camera captureCamera;
 
     public List<AdditionalShadowCamera> addtionalShadows = new List<AdditionalShadowCamera>();
@@ -46,27 +74,44 @@ public class AdditionalShadowCameraManager : MonoBehaviour
     private int sliceRowCount = 1;
     public int SliceRowCount { get { return sliceRowCount; } }
 
-    const int maxShadowCount = 256;
+    public bool onlyAffectOnMainLight = true;
+    public bool setCustomShadowOnManager = false;
 
     public Vector4 offset;
 
     private GameObject tempQuad;
 
+
     // Start is called before the first frame update
     void Awake()
     {
-        if (manager == null)
+        if (!setCustomShadowOnManager)
         {
-            manager = this;
-        }
-        else
-        {
-            Destroy(this.gameObject);
-            return;
+            if (manager == null)
+            {
+                manager = this;
+            }
+            else
+            {
+                Destroy(this.gameObject);
+                return;
+            }
         }
 
-        transform.position = Vector3.zero;
-        transform.rotation = Quaternion.identity;
+        if (setCustomShadowOnManager)
+        {
+            customShadowMatrices = new Matrix4x4[maxShadowCount];
+            customShadowParams = new Vector4[maxShadowCount];
+            customShadowParams2 = new Vector4[maxShadowCount];
+            customShadowPosition = new Vector4[maxShadowCount];
+            customShadowOnlyMain = onlyAffectOnMainLight;
+            //customShadowKeyword = GlobalKeyword.Create("CUSTOM_SHADOW_ON");
+            //customShadowOnlyMainKeyword = GlobalKeyword.Create("CUSTOM_SHADOW_ONLY_MAIN_LIGHT");
+        }
+
+
+        //transform.position = Vector3.zero;
+        //transform.rotation = Quaternion.identity;
         transform.localScale = Vector3.one;
         gameObject.layer = LayerMask.NameToLayer("DepthDecoder");
 
@@ -105,7 +150,6 @@ public class AdditionalShadowCameraManager : MonoBehaviour
 
         //customShadowMatrices = new Matrix4x4[maxShadowCount];
         //customShadowParams = new Vector4[maxShadowCount];
-        //customShadowKeyword = GlobalKeyword.Create("CUSTOM_SHADOW_ON");
 
         //light = FindAnyObjectByType<Light>();
         if (previewQuad == null)
@@ -195,7 +239,16 @@ public class AdditionalShadowCameraManager : MonoBehaviour
             shadow.quadRenderer.transform.localPosition = new Vector3(offset.x * scaleOffset + scaleOffset * 0.5f, offset.y * scaleOffset + scaleOffset * 0.5f, 0.5f);
         }
 
+    }
+
+    private void LateUpdate()
+    {
         captureCamera.projectionMatrix = Matrix4x4.Ortho(0, 1, 0, 1, 0.1f, 1);
+
+        if (setCustomShadowOnManager && Application.isPlaying)
+        {
+            SetCustomShadows();
+        }
     }
 
     private void OnDisable()
@@ -207,9 +260,12 @@ public class AdditionalShadowCameraManager : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (manager == this)
+        if (!setCustomShadowOnManager)
         {
-            manager = null;
+            if (manager == this)
+            {
+                manager = null;
+            }
         }
     }
 
@@ -283,5 +339,156 @@ public class AdditionalShadowCameraManager : MonoBehaviour
         if (addtionalShadows.Count > 25) return 6;
 
         return 5;
+    }
+
+    public void SetCustomShadows()
+    {
+        var cmd = new CommandBuffer(); //new CommandBuffer { name =  bufferName}; //
+                                                           // .commandBuffer;
+        //cmd.BeginSample(bufferName);
+        if ( addtionalShadows == null)
+        {
+            //Shader.DisableKeyword(customShadowKeyword);
+            //Shader.DisableKeyword(customShadowOnlyMainKeyword);
+            CoreUtils.SetKeyword(cmd,customShadowKeyword, false);
+            CoreUtils.SetKeyword(cmd,customShadowOnlyMainKeyword, false);
+
+            //cmd.EndSample(bufferName);
+
+            //context.ExecuteCommandBuffer(cmd);
+            //cmd.Clear();
+
+            //context.Submit();
+            //return;
+        }
+        else if (addtionalShadows.Count > 0)
+        {
+
+            SetCustomShadowMatricesAndParams(
+              );
+
+            cmd.SetGlobalTexture(customShadowmapId, depthMap);//(customShadowmapId, depthMap);
+            cmd.SetGlobalMatrixArray(customShadowMatricesId, customShadowMatrices);
+            cmd.SetGlobalVectorArray(customShadowParamsId, customShadowParams);
+            cmd.SetGlobalVectorArray(customShadowParams2Id, customShadowParams2);
+            cmd.SetGlobalVectorArray(customShadowPositionId, customShadowPosition);
+            cmd.SetGlobalInteger(customShadowCountId, addtionalShadows.Count);
+            Vector2 oneDivDepthMapSize = Vector2.one / new Vector2(depthMap.width, depthMap.height);
+            cmd.SetGlobalVector(customShadowSizeId, new Vector4(oneDivDepthMapSize.x, oneDivDepthMapSize.y, depthMap.width, depthMap.height));
+
+            Vector2Int allocatedShadowAtlasSize = new Vector2Int(depthMap.width, depthMap.height);
+            Vector2 invShadowAtlasSize = Vector2.one / allocatedShadowAtlasSize;
+            Vector2 invHalfShadowAtlasSize = invShadowAtlasSize * 0.5f;
+
+            cmd.SetGlobalVector(customShadowOffset0Id,
+                    new Vector4(-invHalfShadowAtlasSize.x, -invHalfShadowAtlasSize.y,
+                        invHalfShadowAtlasSize.x, -invHalfShadowAtlasSize.y));
+            cmd.SetGlobalVector(customShadowOffset1Id,
+                    new Vector4(-invHalfShadowAtlasSize.x, invHalfShadowAtlasSize.y,
+                        invHalfShadowAtlasSize.x, invHalfShadowAtlasSize.y));
+
+            //if (customShadowOnlyMain)
+            //{
+            //    Shader.EnableKeyword(customShadowOnlyMainKeyword);
+            //    Shader.DisableKeyword(customShadowKeyword);
+            //}
+            //else
+            //{
+            //    Shader.EnableKeyword(customShadowKeyword);
+            //    Shader.DisableKeyword(customShadowOnlyMainKeyword);
+            //}
+            CoreUtils.SetKeyword(cmd,customShadowKeyword, customShadowOnlyMain ? false : true);
+            CoreUtils.SetKeyword(cmd,customShadowOnlyMainKeyword, customShadowOnlyMain ? true : false);
+
+            //cmd.EndSample(bufferName);
+
+            //context.ExecuteCommandBuffer(cmd);
+            //cmd.Clear();
+        }
+        else
+        {
+            //Shader.DisableKeyword(customShadowKeyword);
+            //Shader.DisableKeyword(customShadowOnlyMainKeyword);
+            CoreUtils.SetKeyword(cmd,customShadowKeyword, false);
+            CoreUtils.SetKeyword(cmd,customShadowOnlyMainKeyword, false);
+
+
+            //cmd.EndSample(bufferName);
+
+            //context.ExecuteCommandBuffer(cmd);
+            //cmd.Clear();
+        }
+
+        captureCamera.AddCommandBuffer(CameraEvent.AfterForwardOpaque, cmd);
+
+        //cmd.Clear();
+
+        ResetShadowParams();
+
+
+    }
+
+
+    void SetCustomShadowMatricesAndParams()
+    {
+        int count = addtionalShadows.Count;
+
+        Matrix4x4 sliceTransform;
+
+        float scaleOffset = 1.0f / (float)(SliceRowCount);
+        for (int i = 0; i < count; i++)
+        {
+            AdditionalShadowCamera shadow = addtionalShadows[i];
+
+            if (shadow.shadowStrength == 0)
+            {
+                customShadowParams[i] = Vector4.zero;
+                continue;
+            }
+
+            Camera shadowCam = shadow.shadowCamera;
+            shadowCam.ResetProjectionMatrix();
+            shadowCam.ResetWorldToCameraMatrix();
+            sliceTransform = Matrix4x4.identity;
+            sliceTransform.m00 = scaleOffset;//shadow.quadOffset.z;//
+                                             //quadTf.localScale.x;//scaleOffset;// * .offset.z;
+            sliceTransform.m11 = scaleOffset;//shadow.quadOffset.w;//
+                                             //quadTf.localScale.y; //scaleOffset;// * .offset.w;
+
+            Vector2 offset = //shadow.quadOffset;//new Vector2(shadow.quadRenderer.transform.localPosition.x, shadow.quadRenderer.transform.localPosition.y);//
+                                               SetTileViewport(i, SliceRowCount);
+
+
+            sliceTransform.m03 = //shadow.quadOffset.x;//
+                                 //quadTf.localPosition.x; //
+                                 offset.x * scaleOffset;// * scaleOffset;// + .offset.y;
+            sliceTransform.m13 = //shadow.quadOffset.y;//
+                                 //quadTf.localPosition.y; //
+                                offset.y * scaleOffset;// * scaleOffset;// + .offset.z;
+
+            customShadowMatrices[i] = sliceTransform * ShadowUtils.GetShadowTransform(shadowCam.projectionMatrix, shadowCam.worldToCameraMatrix);
+            customShadowParams[i] = new Vector4(shadow.shadowStrength, shadow.softShadow ?
+                (shadow.shadowQuality == SoftShadowQuality.UsePipelineSettings ? 3 : (int)shadow.shadowQuality)
+                : 0//offset.x* scaleOffset, offset.y* scaleOffset /*shadow.softShadow?1:0*/
+                , shadow.bias, shadow.falloffThreshold);
+            //shadow.quadOffset = new Vector4(offset.x * scaleOffset, offset.y * scaleOffset, scaleOffset, scaleOffset);
+            customShadowParams2[i] = new Vector4(offset.x * scaleOffset, offset.x * scaleOffset + scaleOffset, offset.y * scaleOffset, offset.y * scaleOffset + scaleOffset);
+            // Debug.Log(new Vector4(offset.x, offset.x + scaleOffset, offset.y, offset.y + scaleOffset));
+            //new Vector4(1, 1, 1, 1);
+            Vector3 pos = shadow.frustumSetting.isOrthographic ? -shadow.transform.forward : shadow.transform.position;
+            customShadowPosition[i] = new Vector4(pos.x, pos.y, pos.z, shadow.frustumSetting.isOrthographic ? 0 : 1);
+        }
+    }
+
+
+
+    void ResetShadowParams()
+    {
+        for (int i = 0; i < maxShadowCount; i++)
+        {
+            customShadowParams[i] = new Vector4(0, 0, 0, 0);
+            customShadowParams2[i] = new Vector4(0, 0, 0, 0);
+            customShadowPosition[i] = new Vector4(0, 0, 0, 0);
+        }
     }
 }

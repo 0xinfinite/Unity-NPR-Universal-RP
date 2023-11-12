@@ -131,35 +131,35 @@ Shader "Universal Render Pipeline/Complex Lit"
             #pragma shader_feature_local_fragment _ENVIRONMENTREFLECTIONS_OFF
             #pragma shader_feature_local_fragment _SPECULAR_SETUP
 
-            // -------------------------------------
-            // Universal Pipeline keywords
+            //// -------------------------------------
+            //// Universal Pipeline keywords
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
             #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
-            #pragma multi_compile _ EVALUATE_SH_MIXED EVALUATE_SH_VERTEX
+            //#pragma multi_compile _ EVALUATE_SH_MIXED EVALUATE_SH_VERTEX
             #pragma multi_compile_fragment _ _ADDITIONAL_LIGHT_SHADOWS
-            #pragma multi_compile_fragment _ _REFLECTION_PROBE_BLENDING
-            #pragma multi_compile_fragment _ _REFLECTION_PROBE_BOX_PROJECTION
-            #pragma multi_compile_fragment _ _SHADOWS_SOFT
-            #pragma multi_compile_fragment _ _SCREEN_SPACE_OCCLUSION
-            #pragma multi_compile_fragment _ _DBUFFER_MRT1 _DBUFFER_MRT2 _DBUFFER_MRT3
-            #pragma multi_compile_fragment _ _LIGHT_LAYERS
-            #pragma multi_compile_fragment _ _LIGHT_COOKIES
-            #pragma multi_compile _ _FORWARD_PLUS
-            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RenderingLayers.hlsl"
+            //#pragma multi_compile_fragment _ _REFLECTION_PROBE_BLENDING
+            //#pragma multi_compile_fragment _ _REFLECTION_PROBE_BOX_PROJECTION
+            //#pragma multi_compile_fragment _ _SHADOWS_SOFT
+            //#pragma multi_compile_fragment _ _SCREEN_SPACE_OCCLUSION
+            //#pragma multi_compile_fragment _ _DBUFFER_MRT1 _DBUFFER_MRT2 _DBUFFER_MRT3
+            //#pragma multi_compile_fragment _ _LIGHT_LAYERS
+            //#pragma multi_compile_fragment _ _LIGHT_COOKIES
+            //#pragma multi_compile _ _FORWARD_PLUS
+            //#include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RenderingLayers.hlsl"
 
 
-            // -------------------------------------
-            // Unity defined keywords
-            #pragma multi_compile _ LIGHTMAP_SHADOW_MIXING
-            #pragma multi_compile _ SHADOWS_SHADOWMASK
-            #pragma multi_compile _ DIRLIGHTMAP_COMBINED
-            #pragma multi_compile _ LIGHTMAP_ON
-            #pragma multi_compile _ DYNAMICLIGHTMAP_ON
-            #pragma multi_compile_fragment _ LOD_FADE_CROSSFADE
-            #pragma multi_compile_fog
-            #pragma multi_compile_fragment _ DEBUG_DISPLAY
+            //// -------------------------------------
+            //// Unity defined keywords
+            //#pragma multi_compile _ LIGHTMAP_SHADOW_MIXING
+            //#pragma multi_compile _ SHADOWS_SHADOWMASK
+            //#pragma multi_compile _ DIRLIGHTMAP_COMBINED
+            //#pragma multi_compile _ LIGHTMAP_ON
+            //#pragma multi_compile _ DYNAMICLIGHTMAP_ON
+            //#pragma multi_compile_fragment _ LOD_FADE_CROSSFADE
+            //#pragma multi_compile_fog
+            //#pragma multi_compile_fragment _ DEBUG_DISPLAY
 
-            #pragma multi_compile _ DISTANCEATTENUATIONPMAP_ATLAS
+            //#pragma shader_feature_local_fragment _ DISTANCEATTENUATIONPMAP_ATLAS
             //--------------------------------------
             // GPU Instancing
             #pragma multi_compile_instancing

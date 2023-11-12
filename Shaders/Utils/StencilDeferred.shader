@@ -201,7 +201,8 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
 
                 #if defined(_LIGHT_COOKIES)
                     real3 cookieColor = SampleMainLightCookie(posWS);
-                    unityLight.color *= half3(cookieColor);
+                    unityLight.color *= half4(cookieColor, max(max(cookieColor.r, cookieColor.g), cookieColor.b));//
+                    //unityLight.color.rgb *= half3(cookieColor);
                 #endif
             #else
                 unityLight.direction = _LightDirection;
@@ -217,7 +218,7 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
                     #endif
                 }
             #endif
-#if defined(CUSTOM_SHADOW_ON)
+#if defined(CUSTOM_SHADOW_ON) || defined(CUSTOM_SHADOW_ONLY_MAIN_LIGHT)
                 unityLight.shadowAttenuation = min(unityLight.shadowAttenuation, CustomShadows(customShadowDepthBias, posWS.xyz));
 #endif
         #else
@@ -682,11 +683,11 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             #pragma multi_compile_fragment _ _LIGHT_COOKIES
             #pragma multi_compile_fragment _ _FOVEATED_RENDERING_NON_UNIFORM_RASTER
 
-            #pragma multi_compile _ CACHED_SHADOW_ON
-            //#pragma multi_compile _ WARPMAP_ATLAS
-            #pragma multi_compile _ DISTANCEATTENUATIONPMAP_ATLAS
-            #pragma multi_compile _ CUSTOM_SHADOW_ON
-            #pragma multi_compile _ CUSTOM_SHADOW_ONLY_MAIN_LIGHT
+            #pragma multi_compile_fragment _ CACHED_SHADOW_ON
+            ////#pragma shader_feature_local_fragment _ WARPMAP_ATLAS
+            #pragma shader_feature_local_fragment _ DISTANCEATTENUATIONPMAP_ATLAS
+            #pragma multi_compile_fragment _ CUSTOM_SHADOW_ON CUSTOM_SHADOW_ONLY_MAIN_LIGHT
+            //#pragma shader_feature_local_fragment _ CUSTOM_SHADOW_ONLY_MAIN_LIGHT
 
             #pragma multi_compile_fragment _SHADOWCOLOR
             #pragma multi_compile_fragment _SHADOWCOLORMAP
@@ -739,11 +740,11 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             #pragma multi_compile_fragment _ _LIGHT_COOKIES
             #pragma multi_compile_fragment _ _FOVEATED_RENDERING_NON_UNIFORM_RASTER
 
-            #pragma multi_compile _ CACHED_SHADOW_ON
-            //#pragma multi_compile _ WARPMAP_ATLAS
-            #pragma multi_compile _ DISTANCEATTENUATIONPMAP_ATLAS
-            #pragma multi_compile _ CUSTOM_SHADOW_ON
-            #pragma multi_compile _ CUSTOM_SHADOW_ONLY_MAIN_LIGHT
+            #pragma multi_compile_fragment _ CACHED_SHADOW_ON
+            ////#pragma shader_feature_local_fragment _ WARPMAP_ATLAS
+            #pragma shader_feature_local_fragment _ DISTANCEATTENUATIONPMAP_ATLAS
+            #pragma multi_compile_fragment _ CUSTOM_SHADOW_ON CUSTOM_SHADOW_ONLY_MAIN_LIGHT
+            //#pragma shader_feature_local_fragment _ CUSTOM_SHADOW_ONLY_MAIN_LIGHT
 
             #pragma vertex Vertex
             #pragma fragment DeferredShading
@@ -792,11 +793,11 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             #pragma multi_compile_fragment _ _LIGHT_COOKIES
             #pragma multi_compile_fragment _ _FOVEATED_RENDERING_NON_UNIFORM_RASTER
 
-            #pragma multi_compile _ CACHED_SHADOW_ON
-            #pragma multi_compile _ WARPMAP_ATLAS
-            #pragma multi_compile _ DISTANCEATTENUATIONPMAP_ATLAS
-            #pragma multi_compile _ CUSTOM_SHADOW_ON
-            #pragma multi_compile _ CUSTOM_SHADOW_ONLY_MAIN_LIGHT
+            #pragma multi_compile_fragment _ CACHED_SHADOW_ON
+            //#pragma shader_feature_local_fragment _ WARPMAP_ATLAS
+            #pragma shader_feature_local_fragment _ DISTANCEATTENUATIONPMAP_ATLAS
+            #pragma multi_compile_fragment _ CUSTOM_SHADOW_ON CUSTOM_SHADOW_ONLY_MAIN_LIGHT
+            //#pragma shader_feature_local_fragment _ CUSTOM_SHADOW_ONLY_MAIN_LIGHT
 
             #pragma vertex Vertex
             #pragma fragment DeferredPunctualLightShading
@@ -847,8 +848,8 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             #pragma multi_compile_fragment _ _LIGHT_COOKIES
             #pragma multi_compile_fragment _ _FOVEATED_RENDERING_NON_UNIFORM_RASTER
 
-            #pragma multi_compile _ CUSTOM_SHADOW_ON
-                #pragma multi_compile _ CUSTOM_SHADOW_ONLY_MAIN_LIGHT
+            #pragma multi_compile_fragment _ CUSTOM_SHADOW_ON CUSTOM_SHADOW_ONLY_MAIN_LIGHT
+                //#pragma shader_feature_local_fragment _ CUSTOM_SHADOW_ONLY_MAIN_LIGHT
 
             #pragma vertex Vertex
             #pragma fragment DeferredShading
@@ -899,8 +900,8 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             #pragma multi_compile_fragment _ _LIGHT_COOKIES
             #pragma multi_compile_fragment _ _FOVEATED_RENDERING_NON_UNIFORM_RASTER
 
-            #pragma multi_compile _ CUSTOM_SHADOW_ON
-            #pragma multi_compile _ CUSTOM_SHADOW_ONLY_MAIN_LIGHT
+            #pragma multi_compile_fragment _ CUSTOM_SHADOW_ON CUSTOM_SHADOW_ONLY_MAIN_LIGHT
+            //#pragma shader_feature_local_fragment _ CUSTOM_SHADOW_ONLY_MAIN_LIGHT
 
             #pragma vertex Vertex
             #pragma fragment DeferredShading
@@ -951,9 +952,9 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
             #pragma multi_compile_fragment _ _LIGHT_COOKIES
             #pragma multi_compile_fragment _ _FOVEATED_RENDERING_NON_UNIFORM_RASTER
 
-            #pragma multi_compile _ WARPMAP_ATLAS
-            #pragma multi_compile _ CUSTOM_SHADOW_ON
-            #pragma multi_compile _ CUSTOM_SHADOW_ONLY_MAIN_LIGHT
+            //#pragma shader_feature_local_fragment _ WARPMAP_ATLAS
+            #pragma multi_compile_fragment _ CUSTOM_SHADOW_ON CUSTOM_SHADOW_ONLY_MAIN_LIGHT
+            //#pragma shader_feature_local_fragment _ CUSTOM_SHADOW_ONLY_MAIN_LIGHT
 
             #pragma vertex Vertex
             #pragma fragment DeferredShading

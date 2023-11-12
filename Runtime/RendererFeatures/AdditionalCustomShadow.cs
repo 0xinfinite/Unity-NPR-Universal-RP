@@ -98,22 +98,22 @@ public partial class AdditionalCustomShadowPass : ScriptableRenderPass
     {
         var cmd = //new CommandBuffer { name =  bufferName}; //
                                                            renderingData.commandBuffer;
-        cmd.BeginSample(bufferName);
+        //cmd.BeginSample(bufferName);
         if (AdditionalShadowCameraManager.manager == null || AdditionalShadowCameraManager.manager.addtionalShadows==null)
         {
 
             CoreUtils.SetKeyword(cmd, customShadowKeyword, false);
             CoreUtils.SetKeyword(cmd, customShadowOnlyMainKeyword, false);
 
-            cmd.EndSample(bufferName);
+            //cmd.EndSample(bufferName);
 
-            context.ExecuteCommandBuffer(cmd);
-            cmd.Clear();
+            //context.ExecuteCommandBuffer(cmd);
+            //cmd.Clear();
 
             //context.Submit();
-            return;
+            //return;
         }
-        if (AdditionalShadowCameraManager.manager.addtionalShadows.Count > 0)
+        else if (AdditionalShadowCameraManager.manager.addtionalShadows.Count > 0)
         {
 
             SetCustomShadowMatricesAndParams(ref customShadowMatrices, ref customShadowParams,  ref customShadowPosition, ref customShadowParams2
@@ -142,21 +142,28 @@ public partial class AdditionalCustomShadowPass : ScriptableRenderPass
                         invHalfShadowAtlasSize.x, invHalfShadowAtlasSize.y));
 
             CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.SoftShadows, true);
-            CoreUtils.SetKeyword(cmd, customShadowKeyword, true);
-            CoreUtils.SetKeyword(cmd, customShadowOnlyMainKeyword, customShadowOnlyMain);
+            CoreUtils.SetKeyword(cmd, customShadowKeyword, customShadowOnlyMain?false:true);
+            CoreUtils.SetKeyword(cmd, customShadowOnlyMainKeyword, customShadowOnlyMain?true:false);
 
+            //cmd.EndSample(bufferName);
+
+            //context.ExecuteCommandBuffer(cmd);
+            //cmd.Clear();
         }
         else
         {
             CoreUtils.SetKeyword(cmd, customShadowKeyword, false);
             CoreUtils.SetKeyword(cmd, customShadowOnlyMainKeyword, false);
+
+
+            //cmd.EndSample(bufferName);
+
+            //context.ExecuteCommandBuffer(cmd);
+            //cmd.Clear();
         }
         
         
-        cmd.EndSample(bufferName);
-
-        context.ExecuteCommandBuffer(cmd);
-        cmd.Clear();
+       
 
     }
 

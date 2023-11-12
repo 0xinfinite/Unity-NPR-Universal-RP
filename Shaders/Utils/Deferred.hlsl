@@ -56,10 +56,8 @@ Light UnityLightFromPunctualLightDataAndWorldSpacePosition(PunctualLightData pun
         light.shadowAttenuation = AdditionalLightShadow(shadowLightIndex, positionWS + lightDirection * depthBias, lightDirection, shadowMask, punctualLightData.occlusionProbeInfo);
     }
 
-#if defined(CUSTOM_SHADOW_ON)
-#if !defined(CUSTOM_SHADOW_ONLY_MAIN_LIGHT)
+#if defined(CUSTOM_SHADOW_ONLY_MAIN_LIGHT)
     light.shadowAttenuation = min(light.shadowAttenuation, CustomShadows(customShadowDepthBias, positionWS));
-#endif
 #endif
 
     light.layerMask = punctualLightData.layerMask;

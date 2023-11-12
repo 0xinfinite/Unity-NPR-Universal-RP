@@ -61,11 +61,11 @@ half4 LightingStylizedBasedDeferred(BRDFData brdfData, BRDFData brdfDataClearCoa
     half clearCoatMask, bool specularHighlightsOff, half warpMapOffset)
 {
     half3 NdotL = saturate(dot(normalWS, lightDirectionWS)).xxx;
-#if defined(WARPMAP_ATLAS)
+//#if defined(WARPMAP_ATLAS)
     NdotL.r = saturate(SAMPLE_TEXTURE2D(_WarpMapAtlas, sampler_WarpMapAtlas, GetWarpMapUVFromAtlas(NdotL.r, warpMapOffset, _WarpMapCount)).r);
     NdotL.g = saturate(SAMPLE_TEXTURE2D(_WarpMapAtlas, sampler_WarpMapAtlas, GetWarpMapUVFromAtlas(NdotL.g, warpMapOffset, _WarpMapCount)).g);
     NdotL.b = saturate(SAMPLE_TEXTURE2D(_WarpMapAtlas, sampler_WarpMapAtlas, GetWarpMapUVFromAtlas(NdotL.b, warpMapOffset, _WarpMapCount)).b);
-#endif
+//#endif
     half3 attenuation = (lightAttenuation * NdotL);
     half3 radiance = lightColor * attenuation;
 
@@ -125,15 +125,14 @@ half4 LightingStylizedBased(BRDFData brdfData, BRDFData brdfDataClearCoat,
     half3 normalWS, half3 viewDirectionWS,
     half clearCoatMask, bool specularHighlightsOff, half warpMapOffset)
 {
-    half NdotL = saturate(dot(normalWS, lightDirectionWS));
-#if defined(WARPMAP_ATLAS)
-    NdotL = saturate(SAMPLE_TEXTURE2D(_WarpMapAtlas, sampler_WarpMapAtlas, GetWarpMapUVFromAtlas(NdotL, warpMapOffset, _WarpMapCount)).r);
-#endif
-    /*half3 radiance = lightColor * (lightAttenuation * NdotL);
-
-    half3 brdf = brdfData.diffuse;*/
-    half attenuation = lightAttenuation * NdotL;
-    half3 radiance = lightColor;// *attenuation;
+    half3 NdotL = saturate(dot(normalWS, lightDirectionWS)).xxx;
+    //#if defined(WARPMAP_ATLAS)
+    NdotL.r = saturate(SAMPLE_TEXTURE2D(_WarpMapAtlas, sampler_WarpMapAtlas, GetWarpMapUVFromAtlas(NdotL.r, warpMapOffset, _WarpMapCount)).r);
+    NdotL.g = saturate(SAMPLE_TEXTURE2D(_WarpMapAtlas, sampler_WarpMapAtlas, GetWarpMapUVFromAtlas(NdotL.g, warpMapOffset, _WarpMapCount)).g);
+    NdotL.b = saturate(SAMPLE_TEXTURE2D(_WarpMapAtlas, sampler_WarpMapAtlas, GetWarpMapUVFromAtlas(NdotL.b, warpMapOffset, _WarpMapCount)).b);
+    //#endif
+    half3 attenuation = (lightAttenuation * NdotL);
+    half3 radiance = lightColor * attenuation;
     
     half3 brdf = attenuation;// attenuation;//brdfData.diffuse;
 
@@ -161,7 +160,7 @@ half4 LightingStylizedBased(BRDFData brdfData, BRDFData brdfDataClearCoat,
     }
 #endif // _SPECULARHIGHLIGHTS_OFF
 
-    return half4(brdf * radiance, attenuation); 
+    return  half4(brdf * radiance, max(max(attenuation.r, attenuation.g), attenuation.b));
 }
 
 half4 LightingStylizedBased(BRDFData brdfData, Light light, half3 normalWS, half3 viewDirectionWS, half clearCoatMask, bool specularHighlightsOff, half warpMapOffset)
@@ -316,13 +315,14 @@ half4 UniversalFragmentNPR(InputData inputData, SurfaceData surfaceData)
 
 #if defined(CUSTOM_SHADOW_ON)
     half customAttenuation = CustomShadows(inputData.shadowCoord.y, inputData.positionWS);
-#if defined(CUSTOM_SHADOW_ONLY_MAIN_LIGHT)
-    lightingData.mainLightColor.a = min(lightingData.mainLightColor.a, customAttenuation);
-#else
+
     lightingData.mainLightColor.a = min(lightingData.mainLightColor.a, customAttenuation);
     lightingData.additionalLightsColor.a = min(lightingData.additionalLightsColor.a, customAttenuation);
     lightingData.vertexLightingColor.a = min(lightingData.vertexLightingColor.a, customAttenuation);
-#endif
+#elif defined(CUSTOM_SHADOW_ONLY_MAIN_LIGHT)
+    half customAttenuation = CustomShadows(inputData.shadowCoord.y, inputData.positionWS);
+
+    lightingData.mainLightColor.a = min(lightingData.mainLightColor.a, customAttenuation);
 #endif
 
 #if REAL_IS_HALF

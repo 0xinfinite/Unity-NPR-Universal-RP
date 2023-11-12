@@ -358,13 +358,14 @@ half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData)
 
 #if defined(CUSTOM_SHADOW_ON)
     half customAttenuation = CustomShadows(inputData.shadowCoord.y, inputData.positionWS);
-#if defined(CUSTOM_SHADOW_ONLY_MAIN_LIGHT)
-    lightingData.mainLightColor.a = min(lightingData.mainLightColor.a, customAttenuation);
-#else
+
     lightingData.mainLightColor.a = min(lightingData.mainLightColor.a, customAttenuation);
     lightingData.additionalLightsColor.a = min(lightingData.additionalLightsColor.a, customAttenuation);
     lightingData.vertexLightingColor.a = min(lightingData.vertexLightingColor.a, customAttenuation);
-#endif
+#elif defined(CUSTOM_SHADOW_ONLY_MAIN_LIGHT)
+    half customAttenuation = CustomShadows(inputData.shadowCoord.y, inputData.positionWS);
+
+    lightingData.mainLightColor.a = min(lightingData.mainLightColor.a, customAttenuation);
 #endif
 
 #if REAL_IS_HALF

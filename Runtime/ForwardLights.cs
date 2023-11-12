@@ -570,13 +570,13 @@ namespace UnityEngine.Rendering.Universal.Internal
         {
             if (m_WarpMapAtlas)
             {
-                CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.WarpMapAtlas, true);
+                //CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.WarpMapAtlas, true);
                 cmd.SetGlobalTexture(LightConstantBuffer._WarpMapAtlas, m_WarpMapAtlas);
                 cmd.SetGlobalInteger(LightConstantBuffer._WarpMapCount, m_WarpMapCount);
             }
             else
             {
-                CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.WarpMapAtlas, false);
+                //CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.WarpMapAtlas, false);
             }
             if (m_DistanceAttenuationMapAtlas)
             {
