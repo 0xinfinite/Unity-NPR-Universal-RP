@@ -160,7 +160,7 @@ half4 LightingStylizedBased(BRDFData brdfData, BRDFData brdfDataClearCoat,
     }
 #endif // _SPECULARHIGHLIGHTS_OFF
 
-    return  half4(brdf * radiance, max(max(attenuation.r, attenuation.g), attenuation.b));
+    return  half4(brdf * radiance, (attenuation.r+ attenuation.g+ attenuation.b)*0.33334);//max(max(attenuation.r, attenuation.g), attenuation.b));
 }
 
 half4 LightingStylizedBased(BRDFData brdfData, Light light, half3 normalWS, half3 viewDirectionWS, half clearCoatMask, bool specularHighlightsOff, half warpMapOffset)
