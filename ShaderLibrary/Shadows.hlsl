@@ -506,8 +506,8 @@ half CustomShadow(int index, float3 positionWS, float depthBias = 0) {
 
     half shadowTileScale = 1.0 / (half)GetCustomShadowCount();
 
-    float falloff = GetCustomLightFalloff(half3(shadowCoord.x / shadowCoord.w,shadowCoord.y / shadowCoord.w, shadowCoord.z ), half2(shadowParams2.x, shadowParams2.x+shadowTileScale /*shadowParams2.y*/),
-        half2(shadowParams2.z, shadowParams2.z+shadowTileScale /*shadowParams2.w*/),
+    float falloff = GetCustomLightFalloff(half3(shadowCoord.x / shadowCoord.w,shadowCoord.y / shadowCoord.w, shadowCoord.z ), half2(shadowParams2.x, shadowParams2.y/*shadowParams2.y*/),
+        half2(shadowParams2.z, shadowParams2.w/*shadowParams2.w*/),
         shadowParams.w * shadowTileScale * 0.25);
 
     //return falloff;

@@ -318,6 +318,7 @@ public partial class CustomShadowPass : ScriptableRenderPass
                 , shadow.bias, shadow.falloffThreshold);
             //shadow.quadOffset = new Vector4(offset.x * scaleOffset, offset.y * scaleOffset, scaleOffset, scaleOffset);
             shadowParams2[index] = new Vector4(offset.x* scaleOffset, offset.x* scaleOffset + scaleOffset, offset.y* scaleOffset, offset.y* scaleOffset + scaleOffset);
+            //Debug.Log(index + " : " + shadowParams2[index]);
            // Debug.Log(new Vector4(offset.x, offset.x + scaleOffset, offset.y, offset.y + scaleOffset));
                 //new Vector4(1, 1, 1, 1);
             Vector3 pos = shadow.frustumSetting.isOrthographic ? -shadow.transform.forward : shadow.transform.position;
