@@ -277,7 +277,7 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
                 shadowColorMap = BaseShaderGUI.FindProperty("_ShadowColorMap", properties, false);
              shadowTint = BaseShaderGUI.FindProperty("_ShadowTint", properties, false);
              shadowCastOffset = BaseShaderGUI.FindProperty("_ShadowCastOffset", properties, false);
-             additionalShadowCastOffset = BaseShaderGUI.FindProperty("_AdditionalShadowCastOffset", properties, false);
+             additionalShadowCastOffset = BaseShaderGUI.FindProperty("_CustomShadowCastOffset", properties, false);
                 warpMapIndex = BaseShaderGUI.FindProperty("_WarpMapIndex", properties, false);
 																				 
 																							  
@@ -528,7 +528,7 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
             CoreUtils.SetKeyword(material, "_WARPMAP_ATLAS", warpMapIndex>0);
 
             var shadowBias = material.GetFloat("_ShadowCastOffset");
-            var customShadowBias = material.GetFloat("_AdditionalShadowCastOffset");
+            var customShadowBias = material.GetFloat("_CustomShadowCastOffset");
             CoreUtils.SetKeyword(material, "_PER_MATERIAL_SHADOW_BIAS", Mathf.Abs(shadowBias)>0 || Mathf.Abs(customShadowBias)>0 );
 
             // Note: keywords must be based on Material value not on MaterialProperty due to multi-edit & material animation

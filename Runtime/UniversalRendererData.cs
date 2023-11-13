@@ -161,10 +161,10 @@ namespace UnityEngine.Rendering.Universal
         [SerializeField] bool m_DrawOpaque = true;
         [SerializeField] bool m_DrawTransparent = true;
         [SerializeField] Texture2D m_WarpMapAtlas;
-        [SerializeField] int m_WarpMapCount = 1;
+        [SerializeField] int m_WarpMapCount = 5;
         [SerializeField] Texture2D m_DistanceAttenuationMapAtlas;
         [SerializeField] float m_BaseIndexOfDistanceAttenuationMap;
-        [SerializeField] int m_DistanceAttenuationMapCount;
+        [SerializeField] int m_DistanceAttenuationMapCount = 5;
         [SerializeField, Range(0,1)] float m_PunctionalLightFallOffStart;
 #if UNITY_EDITOR
         // Do not strip accurateGbufferNormals on Mobile Vulkan as some GPUs do not support R8G8B8A8_SNorm, which then force us to use accurateGbufferNormals

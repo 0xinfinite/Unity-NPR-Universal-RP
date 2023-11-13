@@ -88,7 +88,7 @@ void InitializeInputData(Varyings input, half3 normalTS, out InputData inputData
     inputData.viewDirectionWS = viewDirWS;
 
     #if defined(_PER_MATERIAL_SHADOW_BIAS)
-        inputData.shadowCoord = float4(_ShadowCastOffset, _AdditionalShadowCastOffset, 0, -1);
+        inputData.shadowCoord = float4(_ShadowCastOffset, _CustomShadowCastOffset, 0, -1);
     #elif defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
         inputData.shadowCoord = input.shadowCoord;
     #elif defined(MAIN_LIGHT_CALCULATE_SHADOWS)

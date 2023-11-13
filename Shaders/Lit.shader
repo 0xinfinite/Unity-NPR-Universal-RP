@@ -14,7 +14,7 @@ Shader "Universal Render Pipeline/Lit"
             _ShadowColorMap("Shadow Color Map", 2D) = "white" {}
         _ShadowTint("Shadow Tint", Color) = (1,1,1,0)
         _ShadowCastOffset("Shadow Cast offset", Float) = 0.0
-        _AdditionalShadowCastOffset("Additional Shadow Cast offset", Float) = 0.0
+        _CustomShadowCastOffset("Custom Shadow Cast offset", Float) = 0.0
         _WarpMapIndex("Warp Map Index From Atlas", Float) = 0
 		
         _Smoothness("Smoothness", Range(0.0, 1.0)) = 0.5

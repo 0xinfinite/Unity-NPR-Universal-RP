@@ -24,7 +24,7 @@ half4 _ShadowTint;
 half4 _SpecColor;
 half4 _EmissionColor;
 half _ShadowCastOffset;
-half _AdditionalShadowCastOffset;
+half _CustomShadowCastOffset;
 					 
 				   
 half _Cutoff;
@@ -52,7 +52,7 @@ UNITY_DOTS_INSTANCING_START(MaterialPropertyMetadata)
     UNITY_DOTS_INSTANCED_PROP(float4, _SpecColor)
     UNITY_DOTS_INSTANCED_PROP(float4, _EmissionColor)
     UNITY_DOTS_INSTANCED_PROP(float , _ShadowCastOffset)
-    UNITY_DOTS_INSTANCED_PROP(float, _AdditionalShadowCastOffset)
+    UNITY_DOTS_INSTANCED_PROP(float, _CustomShadowCastOffset)
     UNITY_DOTS_INSTANCED_PROP(float , _Cutoff)
     UNITY_DOTS_INSTANCED_PROP(float,  _DepthForward)
     UNITY_DOTS_INSTANCED_PROP(float, _WarpMapIndex)
@@ -78,7 +78,7 @@ UNITY_DOTS_INSTANCING_END(MaterialPropertyMetadata)
 #define _SpecColor              UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float4 , _SpecColor)
 #define _EmissionColor          UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float4 , _EmissionColor)
 #define _ShadowCastOffset       UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float  , _ShadowCastOffset)
-#define _AdditionalShadowCastOffset       UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float  , _AdditionalShadowCastOffset)
+#define _CustomShadowCastOffset       UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float  , _CustomShadowCastOffset)
 #define _Cutoff                 UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float  , _Cutoff)
 #define _DepthForward           UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float  , _DepthForward)
 																									   
