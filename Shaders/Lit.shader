@@ -11,6 +11,7 @@ Shader "Universal Render Pipeline/Lit"
         _Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
 
             _DepthForward("Depth Forward Distance", Float) = 0.0
+        _ShadowColorMultiplyMode("ShadowColorMultiplyMode", Float) = 0.0
             _ShadowColorMap("Shadow Color Map", 2D) = "white" {}
         _ShadowTint("Shadow Tint", Color) = (1,1,1,0)
         _ShadowCastOffset("Shadow Cast offset", Float) = 0.0
@@ -125,6 +126,7 @@ Shader "Universal Render Pipeline/Lit"
             // Material Keywords
             #pragma shader_feature_local _SHADOWCOLOR
             #pragma shader_feature_local _SHADOWCOLORMAP
+            #pragma shader_feature_local _SHADOWCOLORMAP_MULTIPLY
             #pragma shader_feature_local _WARPMAP_ATLAS
             #pragma shader_feature_local _NORMALMAP
             #pragma shader_feature_local _PARALLAXMAP
@@ -270,6 +272,7 @@ Shader "Universal Render Pipeline/Lit"
             // Material Keywords
             #pragma shader_feature_local _SHADOWCOLOR
             #pragma shader_feature_local _SHADOWCOLORMAP
+            #pragma shader_feature_local _SHADOWCOLORMAP_MULTIPLY
             #pragma shader_feature_local _WARPMAP_ATLAS
             #pragma shader_feature_local _NORMALMAP
             #pragma shader_feature_local_fragment _ALPHATEST_ON

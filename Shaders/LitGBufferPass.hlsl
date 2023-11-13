@@ -220,7 +220,9 @@ FragmentOutput LitGBufferPassFragment(Varyings input)
     Light mainLight = GetMainLight(inputData.shadowCoord, inputData.positionWS, inputData.shadowMask);
     MixRealtimeAndBakedGI(mainLight, inputData.normalWS, inputData.bakedGI, inputData.shadowMask);
     half3 _ShadowColor = 0;
-#if defined(_SHADOWCOLORMAP)
+#if defined(_SHADOWCOLORMAP_MULTIPLY)
+    _ShadowColor = surfaceData.albedo * SampleAlbedoAlpha(input.uv, TEXTURE2D_ARGS(_ShadowColorMap, sampler_BaseMap)) * _ShadowTint.rgb;
+#elif defined(_SHADOWCOLORMAP)
     _ShadowColor = SampleAlbedoAlpha(input.uv, TEXTURE2D_ARGS(_ShadowColorMap, sampler_BaseMap)) * _ShadowTint.rgb;
 #elif defined(_SHADOWCOLOR)
     _ShadowColor = surfaceData.albedo * _ShadowTint.rgb;

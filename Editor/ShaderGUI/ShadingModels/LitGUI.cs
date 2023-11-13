@@ -133,6 +133,10 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
             public static GUIContent clearCoatSmoothnessText = EditorGUIUtility.TrTextContent("Smoothness",
                 "Specifies the smoothness of the coating." +
                 "\nActs as a multiplier of the clear coat map smoothness value or as a direct smoothness value if no map is specified.");
+
+
+            public static GUIContent shadowColorMultiplyModeText = EditorGUIUtility.TrTextContent("Shadow Color Multiply Mode",
+                "If you wanna multiply shadow color texture on base texture, toggle this.");
         }
 
         /// <summary>
@@ -150,7 +154,7 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
 
             public MaterialProperty depthForward;
 
-											   
+            public MaterialProperty shadowColorMultiplyMode;
 
             public MaterialProperty shadowColorMap;
 
@@ -274,6 +278,8 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
                 // Surface Input Props
 
                   depthForward = BaseShaderGUI.FindProperty("_DepthForward", properties, false);
+
+                shadowColorMultiplyMode = BaseShaderGUI.FindProperty("_ShadowColorMultiplyMode", properties, false);
                 shadowColorMap = BaseShaderGUI.FindProperty("_ShadowColorMap", properties, false);
              shadowTint = BaseShaderGUI.FindProperty("_ShadowTint", properties, false);
              shadowCastOffset = BaseShaderGUI.FindProperty("_ShadowCastOffset", properties, false);
@@ -399,7 +405,8 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
                 materialEditor.FloatProperty(properties.depthForward, "Depth Forward Distance");
 
                 //materialEditor.Proper
-                
+
+                BaseShaderGUI.DrawFloatToggleProperty(Styles.shadowColorMultiplyModeText, properties.shadowColorMultiplyMode);
                 materialEditor.TextureProperty(properties.shadowColorMap, "Shadow Texture");
                 materialEditor.ColorProperty(properties.shadowTint, "Shadow Tint");
                 materialEditor.FloatProperty(properties.shadowCastOffset, "Shadowcast Offset");
@@ -520,6 +527,8 @@ namespace UnityEditor.Rendering.Universal.ShaderGUI
 
             var hasShadowColorMap = material.GetTexture("_ShadowColorMap");
             var shadowTintAlpha = material.GetColor("_ShadowTint");
+            var shadowColorMultiplyMode = material.GetFloat("_ShadowColorMultiplyMode");
+            CoreUtils.SetKeyword(material, "_SHADOWCOLORMAP_MULTIPLY", shadowColorMultiplyMode > 0);
             CoreUtils.SetKeyword(material, "_SHADOWCOLORMAP", hasShadowColorMap);
             CoreUtils.SetKeyword(material, "_SHADOWCOLOR", shadowTintAlpha.a > 0);
 
