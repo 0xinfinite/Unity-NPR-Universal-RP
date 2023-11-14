@@ -65,7 +65,6 @@ Device : Samsung Galaxy S8+
 
 Adapted Settings : Deferred Rendering, Warp Texture Shading, Custom Shadow(Main Character Focused Light Shadow, 2D Hair Shadow)
 
-(Disclaimer : This repository is not guaranteed to work properly on your build. The video above demonstrates the optimization of the implementation in a different repository.)
 
 
 # WIP or Planned in future
