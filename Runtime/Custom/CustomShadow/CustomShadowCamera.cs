@@ -135,6 +135,13 @@ public class CustomShadowCamera : MonoBehaviour
         {
             DestroyImmediate(quadRenderer.gameObject);
         }
+
+        if (shadowCamera.targetTexture != null)
+        {
+            shadowCamera.targetTexture.Release();
+            shadowCamera.targetTexture = null;
+        }
+
         if (CustomShadowCameraManager.manager == null) return;
 
         if (CustomShadowCameraManager.manager.customShadows.Contains(this))
@@ -143,11 +150,7 @@ public class CustomShadowCamera : MonoBehaviour
             CustomShadowCameraManager.manager.RemoveCustomShadow(this);
             CustomShadowCameraManager.manager.OrientChildQuads();
             //CustomShadowCameraManager.manager.cameras.Remove(shadowCamera);
-            if (shadowCamera.targetTexture != null)
-            {
-                shadowCamera.targetTexture.Release();
-                shadowCamera.targetTexture = null;
-            }
+            
         }
 
     }
