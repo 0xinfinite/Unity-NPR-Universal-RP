@@ -16,9 +16,6 @@ internal class CustomShadowFeature : ScriptableRendererFeature
 
     public bool clearPass;
 
-    //public Shader _blitShader;
-    //public Material _copyMat;
-
     public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
     {
         customShadowPass.SliceRowCount = _sliceRowCount;
@@ -34,17 +31,6 @@ internal class CustomShadowFeature : ScriptableRendererFeature
             customShadowPass.depthMap = _depthMap;
         }
     }
-
-    //public override void SetupRenderPasses(ScriptableRenderer renderer, in RenderingData renderingData)
-    //{
-    //    customShadowPass.SetupCustomShadows(ref renderingData);
-    //}
-
-
-    //public override void OnCameraPreCull(ScriptableRenderer renderer, in CameraData cameraData)
-    //{
-    //    //base.OnCameraPreCull(renderer, cameraData);
-    //}
 }
 
 public partial class CustomShadowPass : ScriptableRenderPass
@@ -60,11 +46,9 @@ public partial class CustomShadowPass : ScriptableRenderPass
     static int customShadowCountId = Shader.PropertyToID("_CustomShadowCount");
     static int customShadowOffset0Id = Shader.PropertyToID("_CustomShadowOffset0");
     static int customShadowOffset1Id = Shader.PropertyToID("_CustomShadowOffset1");
-    //GlobalKeyword customShadowKeyword;
+    
     const string customShadowKeyword = "CUSTOM_SHADOW_ON";
     const string customShadowOnlyMainKeyword = "CUSTOM_SHADOW_ONLY_MAIN_LIGHT";
-
-    static ShaderTagId litShaderTagId = new ShaderTagId("SRPDefaultLit");
 
     Matrix4x4[] customShadowMatrices;
     Vector4[] customShadowParams;
@@ -95,15 +79,15 @@ public partial class CustomShadowPass : ScriptableRenderPass
 
     public void AddCustomShadow(CustomShadowCamera shadow)
     {
-        Debug.Log("shadow id " + shadow.GetInstanceID());
+        //Debug.Log("shadow id " + shadow.GetInstanceID());
         if (!customShadows.ContainsKey(shadow))
         {
-            Debug.Log("shadow id " + shadow.GetInstanceID()+" added");
+            //Debug.Log("shadow id " + shadow.GetInstanceID()+" added");
             customShadows.Add(shadow, new CustomShadowProperty(customShadows.Count, shadow.enabled || shadow.gameObject.activeInHierarchy));
         }
         else
         {
-            Debug.Log("shadow id " + shadow.GetInstanceID()+" already in directory");
+            //Debug.Log("shadow id " + shadow.GetInstanceID()+" already in directory");
         }
         
     }
@@ -146,7 +130,7 @@ public partial class CustomShadowPass : ScriptableRenderPass
         {
             customShadows = new Dictionary<CustomShadowCamera, CustomShadowProperty>();//<CustomShadowCamera>();
         }
-        Debug.Log("Pass Created");
+        //Debug.Log("Pass Created");
         //customShadowKeyword = GlobalKeyword.Create("CUSTOM_SHADOW_ON");
     }
 
@@ -166,27 +150,13 @@ public partial class CustomShadowPass : ScriptableRenderPass
         ResetShadowParams();
     }
 
-    const string bufferName = "Custom Shadow Pass";
     public void RenderCustomShadows(ref ScriptableRenderContext context, ref RenderingData renderingData)
     {
-        var cmd = //new CommandBuffer { name =  bufferName}; //
-                                                           renderingData.commandBuffer;
-        //cmd.BeginSample(bufferName);
-
-        //Debug.Log("Count : "+ customShadows.Keys.Count);
+        var cmd = renderingData.commandBuffer;
         if (customShadows==null || SliceRowCount == 0)
         {
-
             CoreUtils.SetKeyword(cmd, customShadowKeyword, false);
             CoreUtils.SetKeyword(cmd, customShadowOnlyMainKeyword, false);
-
-            //cmd.EndSample(bufferName);
-
-            //context.ExecuteCommandBuffer(cmd);
-            //cmd.Clear();
-
-            //context.Submit();
-            //return;
         }
         else if (customShadows.Keys.Count > 0)
         {
@@ -194,9 +164,7 @@ public partial class CustomShadowPass : ScriptableRenderPass
             SetCustomShadowMatricesAndParams(ref customShadowMatrices, ref customShadowParams,  ref customShadowPosition, ref customShadowParams2
               );
 
-            //RenderTexture depthMap = depthMap;
-            ////cmd.GetTemporaryRT(depthMap.GetNativeTexturePtr().ToInt32(), depthMap.width, depthMap.height, depthMap.depth);
-            cmd.SetGlobalTexture(customShadowmapId, depthMap);//(customShadowmapId, depthMap);
+            cmd.SetGlobalTexture(customShadowmapId, depthMap);
             cmd.SetGlobalMatrixArray(customShadowMatricesId, customShadowMatrices);
             cmd.SetGlobalVectorArray(customShadowParamsId, customShadowParams);
             cmd.SetGlobalVectorArray(customShadowParams2Id, customShadowParams2);
@@ -219,22 +187,12 @@ public partial class CustomShadowPass : ScriptableRenderPass
             CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.SoftShadows, true);
             CoreUtils.SetKeyword(cmd, customShadowKeyword, customShadowOnlyMain?false:true);
             CoreUtils.SetKeyword(cmd, customShadowOnlyMainKeyword, customShadowOnlyMain?true:false);
-
-            //cmd.EndSample(bufferName);
-
-            //context.ExecuteCommandBuffer(cmd);
-            //cmd.Clear();
         }
         else
         {
             CoreUtils.SetKeyword(cmd, customShadowKeyword, false);
             CoreUtils.SetKeyword(cmd, customShadowOnlyMainKeyword, false);
 
-
-            //cmd.EndSample(bufferName);
-
-            //context.ExecuteCommandBuffer(cmd);
-            //cmd.Clear();
         }
         
         
@@ -250,16 +208,9 @@ public partial class CustomShadowPass : ScriptableRenderPass
         Matrix4x4 sliceTransform;
 
         float scaleOffset = 1.0f / (float)(SliceRowCount);
-        //scaleOffset *= offset.x;
-        //RenderTexture depthMap = depthMap;
-
-        //cmd.SetRenderTarget(depthMap);
-        //for (int i = 0; i < count; i++)
         foreach(CustomShadowCamera shadow in customShadows.Keys)
         {
-            //CustomShadowCamera shadow = customShadows[i];
             int index = customShadows[shadow].index;
-            //Debug.Log(index);
 
             if(shadow == null)
             {
@@ -283,33 +234,14 @@ public partial class CustomShadowPass : ScriptableRenderPass
             }
             shadowCam.ResetProjectionMatrix();
             shadowCam.ResetWorldToCameraMatrix();
-            //Transform quadTf = shadow.quadRenderer.transform;
             sliceTransform = Matrix4x4.identity;
-            sliceTransform.m00 = scaleOffset;//shadow.quadOffset.z;//
-                                             //quadTf.localScale.x;//scaleOffset;// * offset.z;
-            sliceTransform.m11 = scaleOffset;//shadow.quadOffset.w;//
-                                 //quadTf.localScale.y; //scaleOffset;// * offset.w;
+            sliceTransform.m00 = scaleOffset;
+            sliceTransform.m11 = scaleOffset;
 
-            Vector2 offset = //shadow.quadOffset;//new Vector2(shadow.quadRenderer.transform.localPosition.x, shadow.quadRenderer.transform.localPosition.y);//
-                                               SetTileViewport(index, SliceRowCount);
+            Vector2 offset = SetTileViewport(index, SliceRowCount);
 
-            //Debug.Log(offset);
-
-            sliceTransform.m03 = //shadow.quadOffset.x;//
-                                 //quadTf.localPosition.x; //
-                                 offset.x* scaleOffset;// * scaleOffset;// + offset.y;
-            sliceTransform.m13 = //shadow.quadOffset.y;//
-                                //quadTf.localPosition.y; //
-                                offset.y* scaleOffset;// * scaleOffset;// + offset.z;
-
-            //shadow.quadOffset = new Vector4(offset.x * scaleOffset, offset.y * scaleOffset, scaleOffset,  scaleOffset);
-            //Matrix4x4 viewMatrix = 
-            //     sliceTransform*shadowCam.worldToCameraMatrix;
-
-            //copyMat.SetTexture("_BaseMap", depthMap );
-            //copyMat.SetTexture("_OverlayMap", shadowCam.targetTexture);
-            //copyMat.SetVector("_OverlayMapParams", new Vector4(0,0,1,1));//offset.x * scaleOffset, offset.y * scaleOffset, scaleOffset, scaleOffset));
-            //cmd.Blit(null, depthMap, copyMat);
+            sliceTransform.m03 = offset.x* scaleOffset;
+            sliceTransform.m13 = offset.y* scaleOffset;
 
             matrices[index] = sliceTransform * ShadowUtils.GetShadowTransform(shadowCam.projectionMatrix, shadowCam.worldToCameraMatrix);
             shadowParams[index] = new Vector4(shadow.shadowStrength, shadow.softShadow?
@@ -318,14 +250,10 @@ public partial class CustomShadowPass : ScriptableRenderPass
                 , shadow.bias, shadow.falloffThreshold);
             //shadow.quadOffset = new Vector4(offset.x * scaleOffset, offset.y * scaleOffset, scaleOffset, scaleOffset);
             shadowParams2[index] = new Vector4(offset.x* scaleOffset, offset.x* scaleOffset + scaleOffset, offset.y* scaleOffset, offset.y* scaleOffset + scaleOffset);
-            //Debug.Log(index + " : " + shadowParams2[index]);
-           // Debug.Log(new Vector4(offset.x, offset.x + scaleOffset, offset.y, offset.y + scaleOffset));
-                //new Vector4(1, 1, 1, 1);
+            
             Vector3 pos = shadow.frustumSetting.isOrthographic ? -shadow.transform.forward : shadow.transform.position;
             shadowPos[index] = new Vector4(pos.x, pos.y, pos.z, shadow.frustumSetting.isOrthographic?0:1);
         }
-        //context.ExecuteCommandBuffer(cmd);
-        //cmd.Clear();
     }
 
 

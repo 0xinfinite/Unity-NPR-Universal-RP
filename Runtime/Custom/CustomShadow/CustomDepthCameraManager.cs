@@ -6,44 +6,34 @@ using UnityEngine.Rendering.Universal;
 
 //using Nothke.Utils;
 
-//[System.Serializable]
-//public struct FrustumSetting
-//{
-//    public float range;
-//    public float nearPlane;
-//    public bool isOrthographic;
-//    public float fov;
-//    public float orthoSize;
+[System.Serializable]
+public struct FrustumSetting
+{
+    public float range;
+    public float nearPlane;
+    public bool isOrthographic;
+    public float fov;
+    public float orthoSize;
 
-//    public FrustumSetting(float _range)
-//    {
-//        range = _range;
-//        nearPlane = 0.1f;
-//        isOrthographic = false;
-//        fov = 60;
-//        orthoSize = 5;
-//    }
-//}
+    public FrustumSetting(float _range)
+    {
+        range = _range;
+        nearPlane = 0.1f;
+        isOrthographic = false;
+        fov = 60;
+        orthoSize = 5;
+    }
+}
 
 [ExecuteInEditMode()]
 [RequireComponent(typeof(Camera))]
-public class CustomShadowCameraManager : MonoBehaviour
+public class CustomDepthCameraManager : MonoBehaviour
 {
-    public static CustomShadowCameraManager manager;
-
-    private CustomShadowFeature myFeature;
-
-    const int maxShadowCount = 256;
-
-    Matrix4x4[] customShadowMatrices;
-    Vector4[] customShadowParams;
-    Vector4[] customShadowParams2;
-    Vector4[] customShadowPosition;
-    bool customShadowOnlyMain;
+    private CustomDepthFeature myFeature;
 
     public Camera captureCamera;
 
-    public List<CustomShadowCamera> customShadows = new List<CustomShadowCamera>();
+    public List<CustomDepthCamera> customShadows = new List<CustomDepthCamera>();
 
     public RenderTexture depthMap;
 
@@ -57,8 +47,6 @@ public class CustomShadowCameraManager : MonoBehaviour
     private int sliceRowCount = 1;
     public int SliceRowCount { get { return sliceRowCount; } }
 
-    public bool onlyAffectOnMainLight = true;
-
     public Vector4 offset;
 
     private GameObject tempQuad;
@@ -67,15 +55,6 @@ public class CustomShadowCameraManager : MonoBehaviour
     // Start is called before the first frame update
     void Awake()
     {
-            if (manager == null)
-            {
-                manager = this;
-            }
-            else
-            {
-                Destroy(this.gameObject);
-                return;
-            }
         transform.localScale = Vector3.one;
         gameObject.layer = LayerMask.NameToLayer("DepthDecoder");
 
@@ -87,7 +66,7 @@ public class CustomShadowCameraManager : MonoBehaviour
         {
             gameObject.AddComponent<UniversalAdditionalCameraData>().SetRenderer(1);
         }
-        customShadows = new List<CustomShadowCamera>();
+        customShadows = new List<CustomDepthCamera>();
      
         captureCamera.depth = 2;
         captureCamera.clearFlags = CameraClearFlags.Nothing;
@@ -103,9 +82,9 @@ public class CustomShadowCameraManager : MonoBehaviour
 
         captureCamera.projectionMatrix = Matrix4x4.Ortho(0, 1, 0, 1, 0.1f, 1);
 
-        customShadows = new List<CustomShadowCamera>();
+        customShadows = new List<CustomDepthCamera>();
 
-        CustomShadowCamera[] shadows = GameObject.FindObjectsOfType<CustomShadowCamera>();
+        CustomDepthCamera[] shadows = GameObject.FindObjectsOfType<CustomDepthCamera>();
 
         if (shadows.Length <= 0)
             return;
@@ -132,35 +111,47 @@ public class CustomShadowCameraManager : MonoBehaviour
 
         myFeature = FindMyRendererFeature();
 
-        for (int i = 0; i < customShadows.Count; i++)
+        if (myFeature != null)
         {
-            myFeature.customShadowPass.AddCustomShadow(customShadows[i]); 
+            for (int i = 0; i < customShadows.Count; i++)
+            {
+                myFeature.customDepthPass.AddCustomDepth(customShadows[i]);
+            }
+            myFeature.SetDirty();
         }
-        myFeature.SetDirty();
     }
 
-    public void SetShadowActive(CustomShadowCamera shadow, bool _active)
+    public void SetShadowActive(CustomDepthCamera shadow, bool _active)
     {
-        myFeature.customShadowPass.ChangeStatusShadow(shadow, _active);
-        myFeature.SetDirty();
+        if (myFeature != null)
+        {
+            myFeature.customDepthPass.ChangeStatusDepth(shadow, _active);
+            myFeature.SetDirty();
+        }
     }
 
-    public void AddCustomShadow(CustomShadowCamera shadow)
+    public void AddCustomDepth(CustomDepthCamera shadow)
     {
         if(!customShadows.Contains(shadow))
         customShadows.Add(shadow);
         OrientChildQuads();
-        myFeature.customShadowPass.AddCustomShadow(shadow);
-        myFeature.SetDirty();
+        if (myFeature != null)
+        {
+            myFeature.customDepthPass.AddCustomDepth(shadow);
+            myFeature.SetDirty();
+        }
     }
 
-    public void RemoveCustomShadow(CustomShadowCamera shadow)
+    public void RemoveCustomShadow(CustomDepthCamera shadow)
     {
         if (customShadows.Contains(shadow))
             customShadows.Remove(shadow);
         OrientChildQuads();
-        myFeature.customShadowPass.RemoveCustomShadow(shadow);
-        myFeature.SetDirty();
+        if (myFeature != null)
+        {
+            myFeature.customDepthPass.RemoveCustomDepth(shadow);
+            myFeature.SetDirty();
+        }
     }
 
     Vector2 SetTileViewport(int index, int split)
@@ -192,7 +183,7 @@ public class CustomShadowCameraManager : MonoBehaviour
         }
     }
 
-    CustomShadowFeature FindMyRendererFeature()
+    CustomDepthFeature FindMyRendererFeature()
     {
         var camera = Camera.main;
 
@@ -200,9 +191,9 @@ public class CustomShadowCameraManager : MonoBehaviour
 
         foreach(var feature in selectedRenderer.rendererFeatures)
         {
-            if(feature.GetType() == typeof(CustomShadowFeature))
+            if(feature.GetType() == typeof(CustomDepthFeature))
             {
-                return feature as CustomShadowFeature;
+                return feature as CustomDepthFeature;
             }
         }
 
@@ -221,9 +212,9 @@ public class CustomShadowCameraManager : MonoBehaviour
         sliceRowCount = GetRowCount();
 
         float scaleOffset = 1.0f / (float)SliceRowCount;
-        for (int i = 0; i < customShadows.Count; ++i)// (CustomShadowCamera shadow in customShadows)
+        for (int i = 0; i < customShadows.Count; ++i)// (CustomDepthCamera shadow in customShadows)
         {
-            CustomShadowCamera shadow = customShadows[i];
+            CustomDepthCamera shadow = customShadows[i];
 
             Vector2 offset = SetTileViewport(i, sliceRowCount);
 
@@ -246,13 +237,13 @@ public class CustomShadowCameraManager : MonoBehaviour
 
     private void OnDestroy()
     {
-            if (manager == this)
-            {
-                manager = null;
-            }
+         if(myFeature != null)
+        {
+            myFeature.clearPass = true;
+        }
     }
 
-    public void AddCustomShadow()
+    public void AddCustomDepth()
     {
         if (depthDecoder==null)
         {
@@ -261,8 +252,8 @@ public class CustomShadowCameraManager : MonoBehaviour
         }
 
         GameObject addedGO = new GameObject();
-        addedGO.name = "Custom Shadow";
-        CustomShadowCamera addedCustomShadow = addedGO.AddComponent<CustomShadowCamera>();
+        addedGO.name = "Custom Depth Camera";
+        CustomDepthCamera addedCustomShadow = addedGO.AddComponent<CustomDepthCamera>();
 
         //if (!customShadows.Contains(addedCustomShadow))
         //{
@@ -289,11 +280,13 @@ public class CustomShadowCameraManager : MonoBehaviour
             addedCustomShadow.enabled = true;
             addedGO.AddComponent<UniversalAdditionalCameraData>().SetRenderer(0);
         }
-        AddCustomShadow(addedCustomShadow);
+        AddCustomDepth(addedCustomShadow);
         sliceRowCount = GetRowCount();
-        myFeature._sliceRowCount = sliceRowCount;
-        myFeature.SetDirty();
-        
+        if (myFeature != null)
+        {
+            myFeature._sliceRowCount = sliceRowCount;
+            myFeature.SetDirty();
+        }
         
     }
 

@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: e0ff0b8e56b49384f840bdffb41feff6
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - captureCamera: {instanceID: 0}
+  - depthMap: {instanceID: 0}
+  - depthDecoder: {fileID: -6465566751694194690, guid: 533719eecb008fe48941ce4f29abf1bd, type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

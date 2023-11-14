@@ -3,8 +3,10 @@ using UnityEngine.Rendering.Universal;
 
 [ExecuteInEditMode()]
 [RequireComponent (typeof(Camera))]
-public class CustomShadowCamera : MonoBehaviour
+public class CustomDepthCamera : MonoBehaviour
 {
+    public CustomDepthCameraManager manager;
+
     public Camera shadowCamera;
 
     public FrustumSetting frustumSetting = new FrustumSetting(100f);
@@ -74,13 +76,13 @@ public class CustomShadowCamera : MonoBehaviour
     // Start is called before the first frame update
     void OnEnable()
     {
-        if (CustomShadowCameraManager.manager == null) return;
+        if (manager == null) return;
 
-        if (!CustomShadowCameraManager.manager.customShadows.Contains(this))
+        if (!manager.customShadows.Contains(this))
         {
-            CustomShadowCameraManager.manager.AddCustomShadow(this);
+            manager.AddCustomDepth(this);
         }
-        CustomShadowCameraManager.manager.SetShadowActive(this, true);
+        manager.SetShadowActive(this, true);
 
         if (quadRenderer!=null)
         quadRenderer.gameObject.SetActive(true);
@@ -92,8 +94,8 @@ public class CustomShadowCamera : MonoBehaviour
         if (!Application.isPlaying)
             return;
 
-        if (CustomShadowCameraManager.manager != null)
-        CustomShadowCameraManager.manager.SetShadowActive(this, false);
+        if (manager != null)
+        manager.SetShadowActive(this, false);
 
         if (quadRenderer != null)
             quadRenderer.gameObject.SetActive(false);
@@ -120,14 +122,14 @@ public class CustomShadowCamera : MonoBehaviour
             shadowCamera.targetTexture = null;
         }
 
-        if (CustomShadowCameraManager.manager == null) return;
+        if (manager == null) return;
 
-        if (CustomShadowCameraManager.manager.customShadows.Contains(this))
+        if (manager.customShadows.Contains(this))
         {
-            //CustomShadowCameraManager.manager.customShadows.Remove(this);
-            CustomShadowCameraManager.manager.RemoveCustomShadow(this);
-            CustomShadowCameraManager.manager.OrientChildQuads();
-            //CustomShadowCameraManager.manager.cameras.Remove(shadowCamera);
+            //manager.customShadows.Remove(this);
+            manager.RemoveCustomShadow(this);
+            manager.OrientChildQuads();
+            //manager.cameras.Remove(shadowCamera);
             
         }
 
