@@ -1,5 +1,5 @@
 {
-  "name": "com.imaginaryreactor.rp-universal",
+  "name": "com.unity.render-pipelines.universal",
   "description": "NPR Pipeline for Unity. This package forked from Unity URP",
   "version": "14.0.8",
   "unity": "2022.2",
