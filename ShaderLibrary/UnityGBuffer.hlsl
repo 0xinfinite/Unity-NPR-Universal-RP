@@ -259,7 +259,7 @@ FragmentOutput BRDFDataToGbuffer(BRDFData brdfData, InputData inputData, half sm
     #if defined(LIGHTMAP_ON) && defined(_MIXED_LIGHTING_SUBTRACTIVE)
     materialFlags |= kMaterialFlagSubtractiveMixedLighting;
     #endif
-
+        
     #if defined(_WARPMAP_ATLAS) || defined(_SHADOWCOLORMAP) || defined(_PER_MATERIAL_SHADOW_BIAS) || defined(_SHADOWCOLOR)
 
     materialFlags |= kMaterialFlagStylizedShade;

@@ -274,7 +274,7 @@ half3 CalculateBlinnPhong(Light light, InputData inputData, SurfaceData surfaceD
 ////////////////////////////////////////////////////////////////////////////////
 /// PBR lighting...
 ////////////////////////////////////////////////////////////////////////////////
-half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData, half4 shadowTint = 0, half warpMapIndex = 0)
+half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData, half4 shadowTint = 0, half warpMapIndex = 0)   //for forward and forward+
 {
     #if defined(_SPECULARHIGHLIGHTS_OFF)
     bool specularHighlightsOff = true;
@@ -322,6 +322,9 @@ half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData, half4 s
 #ifdef _LIGHT_LAYERS
     if (IsMatchingLightLayer(mainLight.layerMask, meshRenderingLayers))
 #endif
+#if defined(_CUSTOM_LIGHTING)
+    mainLight = CustomizeLight(mainLight, inputData);
+#endif
     {
         lightingData.mainLightColor = LightingPhysicallyBased(brdfData, brdfDataClearCoat,
                                                               mainLight,
@@ -349,6 +352,9 @@ half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData, half4 s
 #ifdef _LIGHT_LAYERS
         if (IsMatchingLightLayer(light.layerMask, meshRenderingLayers))
 #endif
+#if defined(_CUSTOM_LIGHTING)
+    light = CustomizeLight(light, inputData);
+#endif
         {
             lightingData.additionalLightsColor += LightingPhysicallyBased(brdfData, brdfDataClearCoat, light,
                                                                           inputData.normalWS, inputData.viewDirectionWS,
@@ -369,6 +375,9 @@ half4 UniversalFragmentPBR(InputData inputData, SurfaceData surfaceData, half4 s
 
 #ifdef _LIGHT_LAYERS
         if (IsMatchingLightLayer(light.layerMask, meshRenderingLayers))
+#endif
+#if defined(_CUSTOM_LIGHTING)
+    light = CustomizeLight(light, inputData);
 #endif
         {
             lightingData.additionalLightsColor += LightingPhysicallyBased(brdfData, brdfDataClearCoat, light,

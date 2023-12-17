@@ -19,6 +19,10 @@ public class CustomShadowCameraManagerEditor : Editor
         {
             AddCustomShadow();
         }
+        if (GUILayout.Button("Assign Custom Shadow"))
+        {
+            AssignCustomShadows();
+        }
 
         base.OnInspectorGUI();
     }
@@ -26,5 +30,10 @@ public class CustomShadowCameraManagerEditor : Editor
     public void AddCustomShadow()
     {
         manager.AddCustomShadow();
+    }
+
+    public void AssignCustomShadows()
+    {
+        manager.AssignCustomShadows();
     }
 }

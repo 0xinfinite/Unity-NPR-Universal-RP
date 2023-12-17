@@ -24,7 +24,8 @@ Material:
   m_Shader: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
+  m_ValidKeywords:
+  - _PER_MATERIAL_SHADOW_BIAS
   m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
@@ -121,7 +122,9 @@ Material:
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
     - _Cull: 2
-    - _CustomShadowCastOffset: 0
+    - _CustomClipping: 0
+    - _CustomLighting: 0
+    - _CustomShadowCastOffset: 0.001
     - _Cutoff: 0.5
     - _DepthForward: 0
     - _DetailAlbedoMapScale: 1

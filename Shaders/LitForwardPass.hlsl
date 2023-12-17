@@ -244,7 +244,13 @@ void LitPassFragment(
     color.rgb = MixFog(color.rgb, inputData.fogCoord);
     color.a = OutputAlpha(color.a, IsSurfaceTypeTransparent(_Surface));
 
+#if defined(_CUSTOM_CLIPPING)
+     color.a *= CustomClipping(inputData, surfaceData, color, inputData.normalizedScreenSpaceUV);
+    color.a = saturate(color.a);
+#endif
+    
     outColor = color;
+    
 #ifdef _WRITE_RENDERING_LAYERS
     uint renderingLayers = GetMeshRenderingLayer();
     outRenderingLayers = float4(EncodeMeshRenderingLayer(renderingLayers), 0, 0, 0);

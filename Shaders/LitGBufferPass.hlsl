@@ -218,7 +218,11 @@ FragmentOutput LitGBufferPassFragment(Varyings input)
     InitializeBRDFData(surfaceData.albedo, surfaceData.metallic, surfaceData.specular, surfaceData.smoothness, surfaceData.alpha, brdfData);
 
     Light mainLight = GetMainLight(inputData.shadowCoord, inputData.positionWS, inputData.shadowMask);
+    
     MixRealtimeAndBakedGI(mainLight, inputData.normalWS, inputData.bakedGI, inputData.shadowMask);
+    
+    float shadowAttenuation = mainLight.shadowAttenuation;
+    
     half3 _ShadowColor = 0;
 #if defined(_SHADOWCOLORMAP_MULTIPLY)
     _ShadowColor = surfaceData.albedo * SampleAlbedoAlpha(input.uv, TEXTURE2D_ARGS(_ShadowColorMap, sampler_BaseMap)) * _ShadowTint.rgb;
@@ -227,9 +231,18 @@ FragmentOutput LitGBufferPassFragment(Varyings input)
 #elif defined(_SHADOWCOLOR)
     _ShadowColor = surfaceData.albedo * _ShadowTint.rgb;
 #endif
-    half3 color = lerp(GlobalIllumination(brdfData, inputData.bakedGI, surfaceData.occlusion, inputData.positionWS, inputData.normalWS, inputData.viewDirectionWS), _ShadowColor,_ShadowTint.a);
-
-    return BRDFDataToGbuffer(brdfData, inputData, surfaceData.smoothness, surfaceData.emission + color, surfaceData.occlusion, _WarpMapIndex);
+    half3 color = lerp(GlobalIllumination(brdfData, inputData.bakedGI, surfaceData.occlusion, inputData.positionWS, inputData.normalWS, inputData.viewDirectionWS), _ShadowColor, _ShadowTint.a);
+#if defined(_CUSTOM_CLIPPING)
+     CustomClipping(inputData, surfaceData, half4(color.rgb,1) , inputData.normalizedScreenSpaceUV );
+#endif
+    
+    half customAttenuation = 1;
+#if defined(_CUSTOM_LIGHTING)
+    mainLight = CustomizeLight(mainLight, inputData);
+    customAttenuation = mainLight.shadowAttenuation;
+#endif
+    
+    return BRDFDataToGbuffer(brdfData, inputData, surfaceData.smoothness, surfaceData.emission + color, surfaceData.occlusion * customAttenuation, _WarpMapIndex);
 }
 
 #endif

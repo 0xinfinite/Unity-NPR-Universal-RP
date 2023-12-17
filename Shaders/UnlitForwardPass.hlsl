@@ -13,6 +13,10 @@ struct Attributes
     float4 positionOS : POSITION;
     float2 uv : TEXCOORD0;
 
+#if defined(_APPLY_VERTEX_COLOR)
+    float4 color : COLOR;
+#endif
+    
     #if defined(DEBUG_DISPLAY)
     float3 normalOS : NORMAL;
     float4 tangentOS : TANGENT;
@@ -32,7 +36,11 @@ struct Varyings
     float3 normalWS : TEXCOORD3;
     float3 viewDirWS : TEXCOORD4;
     #endif
-
+    
+#if defined(_APPLY_VERTEX_COLOR)
+    float4 color : TEXCOORD5;
+#endif
+    
     UNITY_VERTEX_INPUT_INSTANCE_ID
     UNITY_VERTEX_OUTPUT_STEREO
 };
@@ -88,6 +96,10 @@ Varyings UnlitPassVertex(Attributes input)
     output.normalWS = normalInput.normalWS;
     output.viewDirWS = viewDirWS;
     #endif
+        
+#if defined(_APPLY_VERTEX_COLOR)
+    output.color = input.color;
+#endif
 
     return output;
 }
@@ -144,7 +156,11 @@ void UnlitPassFragment(
 #endif
     finalColor.rgb = MixFog(finalColor.rgb, fogFactor);
     finalColor.a = OutputAlpha(finalColor.a, IsSurfaceTypeTransparent(_Surface));
-
+        
+#if defined(_APPLY_VERTEX_COLOR)
+    finalColor *= input.color;
+#endif
+        
     outColor = finalColor;
 
 #ifdef _WRITE_RENDERING_LAYERS

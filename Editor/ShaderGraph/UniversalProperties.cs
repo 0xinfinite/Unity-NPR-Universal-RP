@@ -23,6 +23,10 @@ namespace UnityEditor.Rendering.Universal
         public static readonly string CullMode = "_Cull";
         public static readonly string CastShadows = "_CastShadows";
         public static readonly string ReceiveShadows = "_ReceiveShadows";
+
+        public static readonly string CustomClipping = "_CustomClipping";
+        public static readonly string CustomLighting = "_CustomLighting";
+
         public static readonly string QueueOffset = "_QueueOffset";
 
         // for ShaderGraph shaders only
@@ -33,5 +37,7 @@ namespace UnityEditor.Rendering.Universal
         // Global Illumination requires some properties to be named specifically:
         public static readonly string EmissionMap = "_EmissionMap";
         public static readonly string EmissionColor = "_EmissionColor";
+
+        public static readonly string ApplyVertexColor = "_ApplyVertexColor";
     }
 }

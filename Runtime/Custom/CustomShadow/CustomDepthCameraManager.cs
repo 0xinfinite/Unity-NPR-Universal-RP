@@ -51,6 +51,8 @@ public class CustomDepthCameraManager : MonoBehaviour
 
     private GameObject tempQuad;
 
+    [Range(0, 1)]
+    public float featureStrength = 1;
 
     // Start is called before the first frame update
     void Awake()
@@ -226,6 +228,10 @@ public class CustomDepthCameraManager : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (myFeature != null)
+        {
+            myFeature._featureStrength = featureStrength;
+        }
         captureCamera.projectionMatrix = Matrix4x4.Ortho(0, 1, 0, 1, 0.1f, 1);
     }
 

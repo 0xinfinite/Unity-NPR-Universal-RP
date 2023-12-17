@@ -18,7 +18,8 @@ public class CustomDepthCamera : MonoBehaviour
 
     public Vector4 quadOffset;
 
-    public int depthmapResolution = 256;
+    public int depthmapWidth = 256;
+    public int depthmapHeight = 256;
 
     [Range(0,1)]public float shadowStrength = 1;
 
@@ -56,14 +57,14 @@ public class CustomDepthCamera : MonoBehaviour
         }
         SetCameraToFrustumSetting(frustumSetting);
 
-        if( shadowCamera.targetTexture==null || shadowCamera.targetTexture.width != depthmapResolution)
+        if( shadowCamera.targetTexture==null || shadowCamera.targetTexture.width != depthmapWidth || shadowCamera.targetTexture.height != depthmapHeight)
         {
             if (shadowCamera.targetTexture != null)
             {
                 shadowCamera.targetTexture.Release();
                 shadowCamera.targetTexture = null;
             }
-            shadowCamera.targetTexture = new RenderTexture(depthmapResolution, depthmapResolution, 16, RenderTextureFormat.Depth);
+            shadowCamera.targetTexture = new RenderTexture(depthmapWidth, depthmapHeight, 16, RenderTextureFormat.Depth);
         }
     }
 

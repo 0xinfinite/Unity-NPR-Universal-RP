@@ -264,6 +264,11 @@ namespace UnityEditor
             public static readonly GUIContent receiveShadowText = EditorGUIUtility.TrTextContent("Receive Shadows",
                 "When enabled, other GameObjects can cast shadows onto this GameObject.");
 
+            public static readonly GUIContent customClippingText = EditorGUIUtility.TrTextContent("Custom Clipping",
+                "If you want clipping with custom feature, Enable this.");
+            public static readonly GUIContent customLightingText = EditorGUIUtility.TrTextContent("Custom Lighting",
+                "If you want to tweak Lighting, Enable this.");
+
             /// <summary>
             /// The text and tooltip for the base map GUI.
             /// </summary>
@@ -310,6 +315,10 @@ namespace UnityEditor
             /// The text and tooltip for the help reference GUI.
             /// </summary>
             public static readonly GUIContent documentationIcon = EditorGUIUtility.TrIconContent("_Help", $"Open Reference for URP Shaders.");
+
+
+            public static readonly GUIContent applyVertexColorText = EditorGUIUtility.TrTextContent("Apply Vertex Color",
+                "If you want to apply vertex color to material, Enable this.");
         }
 
         #endregion
@@ -371,6 +380,11 @@ namespace UnityEditor
         /// </summary>
         protected MaterialProperty receiveShadowsProp { get; set; }
 
+        protected MaterialProperty customClippingProp { get; set; }
+
+        protected MaterialProperty customLightingProp { get; set; }
+
+        protected MaterialProperty applyVertexColorProp { get; set; }
 
         // Common Surface Input properties
 
@@ -456,6 +470,10 @@ namespace UnityEditor
 
             // ShaderGraph Lit, and Lit.shader
             receiveShadowsProp = FindProperty(Property.ReceiveShadows, properties, false);
+
+            customClippingProp = FindProperty(Property.CustomClipping, properties, false);
+            customLightingProp = FindProperty(Property.CustomLighting, properties, false);
+            applyVertexColorProp = FindProperty(Property.ApplyVertexColor, properties, false);
 
             // The following are not mandatory for shadergraphs (it's up to the user to add them to their graph)
             alphaCutoffProp = FindProperty("_Cutoff", properties, false);
@@ -586,8 +604,13 @@ namespace UnityEditor
             if ((alphaClipProp != null) && (alphaCutoffProp != null) && (alphaClipProp.floatValue == 1))
                 materialEditor.ShaderProperty(alphaCutoffProp, Styles.alphaClipThresholdText, 1);
 
+            DrawFloatToggleProperty(Styles.applyVertexColorText, applyVertexColorProp);
+
             DrawFloatToggleProperty(Styles.castShadowText, castShadowsProp);
             DrawFloatToggleProperty(Styles.receiveShadowText, receiveShadowsProp);
+
+            DrawFloatToggleProperty(Styles.customClippingText, customClippingProp);
+            DrawFloatToggleProperty(Styles.customLightingText, customLightingProp);
         }
 
         /// <summary>
@@ -766,6 +789,11 @@ namespace UnityEditor
             // Receive Shadows
             if (material.HasProperty(Property.ReceiveShadows))
                 CoreUtils.SetKeyword(material, ShaderKeywordStrings._RECEIVE_SHADOWS_OFF, material.GetFloat(Property.ReceiveShadows) == 0.0f);
+
+            if (material.HasProperty(Property.CustomClipping))
+                CoreUtils.SetKeyword(material, ShaderKeywordStrings._CUSTOM_CLIPPING, material.GetFloat(Property.CustomClipping) == 1.0f);
+            if (material.HasProperty(Property.CustomLighting))
+                CoreUtils.SetKeyword(material, ShaderKeywordStrings._CUSTOM_LIGHTING, material.GetFloat(Property.CustomLighting) == 1.0f);
         }
 
         // this function is shared between ShaderGraph and hand-written GUIs
@@ -904,6 +932,11 @@ namespace UnityEditor
             if (material.HasProperty(Property.AlphaClip))
                 alphaClip = material.GetFloat(Property.AlphaClip) >= 0.5;
             CoreUtils.SetKeyword(material, ShaderKeywordStrings._ALPHATEST_ON, alphaClip);
+
+            bool applyVertexColor = false;
+            if (material.HasProperty(Property.ApplyVertexColor))
+                applyVertexColor = material.GetFloat(Property.ApplyVertexColor) >= 0.5;
+            CoreUtils.SetKeyword(material, ShaderKeywordStrings.ApplyVertexColor, applyVertexColor);
 
             // default is to use the shader render queue
             int renderQueue = material.shader.renderQueue;

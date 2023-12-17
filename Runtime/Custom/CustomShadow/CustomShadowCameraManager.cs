@@ -132,11 +132,7 @@ public class CustomShadowCameraManager : MonoBehaviour
 
         myFeature = FindMyRendererFeature();
 
-        for (int i = 0; i < customShadows.Count; i++)
-        {
-            myFeature.customShadowPass.AddCustomShadow(customShadows[i]); 
-        }
-        myFeature.SetDirty();
+        AssignCustomShadows();
     }
 
     public void SetShadowActive(CustomShadowCamera shadow, bool _active)
@@ -327,6 +323,21 @@ public class CustomShadowCameraManager : MonoBehaviour
         if (customShadows.Count > 25) return 6;
 
         return 5;
+    }
+
+    public void AssignCustomShadows()
+    {
+        if(myFeature == null)
+        {
+            Debug.LogWarning("Features not assigned!");
+            return;
+        }
+
+        for (int i = 0; i < customShadows.Count; i++)
+        {
+            myFeature.customShadowPass.AddCustomShadow(customShadows[i]);
+        }
+        myFeature.SetDirty();
     }
     
 }

@@ -1171,6 +1171,9 @@ namespace UnityEngine.Rendering.Universal
         /// <summary> Keyword used for receiving shadows. </summary>
         public const string _RECEIVE_SHADOWS_OFF = "_RECEIVE_SHADOWS_OFF";
 
+        public const string _CUSTOM_CLIPPING = "_CUSTOM_CLIPPING";
+        public const string _CUSTOM_LIGHTING = "_CUSTOM_LIGHTING";
+
         /// <summary> Keyword used for opaque or transparent surface types. </summary>
         public const string _SURFACE_TYPE_TRANSPARENT = "_SURFACE_TYPE_TRANSPARENT";
 
@@ -1225,6 +1228,7 @@ namespace UnityEngine.Rendering.Universal
         public const string CachedShadow = "CACHED_SHADOW_ON";
         public const string DistanceAttenuationMapAtlas = "DISTANCEATTENUATIONPMAP_ATLAS";
         public const string UseWarpMapAtlasOnDeferred = "_USE_WARPMAP_ON_DEFERRED";
+        public const string ApplyVertexColor = "_APPLY_VERTEX_COLOR";
     }
 
     public sealed partial class UniversalRenderPipeline

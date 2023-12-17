@@ -17,6 +17,7 @@ public class CustomDepthFeature : ScriptableRendererFeature
     public string customDepthPositionIdName = "_CustomDepthPositions";
     public string customDepthSizeIdName = "_CustomDepthmapSize";
     public string customDepthCountIdName = "_CustomDepthCount";
+    public string customDepthFeatureStrengthName = "_CustomDepthFeatureStrength";
     public string customDepthOffset0IdName = "_CustomDepthOffset0";
     public string customDepthOffset1IdName = "_CustomDepthOffset1";
 
@@ -24,6 +25,7 @@ public class CustomDepthFeature : ScriptableRendererFeature
     
 
     public RenderTexture _depthMap;
+    public float _featureStrength = 1;
     public int _sliceRowCount;
 
     public bool clearPass;
@@ -31,7 +33,8 @@ public class CustomDepthFeature : ScriptableRendererFeature
     public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
     {
         customDepthPass.SliceRowCount = _sliceRowCount;
-        if(customDepthPass.depthMap == null)
+        customDepthPass.FeatureStrength = _featureStrength;
+        if (customDepthPass.depthMap == null)
         {
             customDepthPass.depthMap = _depthMap;
         }
@@ -49,6 +52,7 @@ public class CustomDepthFeature : ScriptableRendererFeature
         customDepthPass.customDepthPositionIdName = customDepthPositionIdName;
         customDepthPass.customDepthSizeIdName = customDepthSizeIdName;
         customDepthPass.customDepthCountIdName = customDepthCountIdName;
+        customDepthPass.customDepthFeatureStrengthName = customDepthFeatureStrengthName;
         customDepthPass.customDepthOffset0IdName = customDepthOffset0IdName;
         customDepthPass.customDepthOffset1IdName = customDepthOffset1IdName;
 
@@ -77,6 +81,7 @@ public partial class CustomDepthPass : ScriptableRenderPass
     public string customDepthPositionIdName;
     public string customDepthSizeIdName;
     public string customDepthCountIdName;
+    public string customDepthFeatureStrengthName;
     public string customDepthOffset0IdName;
     public string customDepthOffset1IdName;
 
@@ -99,6 +104,7 @@ public partial class CustomDepthPass : ScriptableRenderPass
     Vector4[] customDepthParams;
     Vector4[] customDepthParams2;
     Vector4[] customDepthPosition;
+    public float FeatureStrength;
     bool customDepthOnlyMain;
 
     public RenderTexture depthMap;
@@ -213,12 +219,12 @@ public partial class CustomDepthPass : ScriptableRenderPass
         var cmd = renderingData.commandBuffer;
         if (customDepths==null || SliceRowCount == 0)
         {
-            Debug.Log("Disabled custom depth features");
+            //Debug.Log("Disabled custom depth features");
             CoreUtils.SetKeyword(cmd, customDepthKeywordName, false);
         }
         else if (customDepths.Keys.Count > 0)
         {
-            Debug.Log("custom depth key counts : " + customDepths.Keys.Count);
+            //Debug.Log("custom depth key counts : " + customDepths.Keys.Count);
             SetCustomDepthMatricesAndParams(ref customDepthMatrices, ref customDepthParams,  ref customDepthPosition, ref customDepthParams2
               );
 
@@ -228,6 +234,7 @@ public partial class CustomDepthPass : ScriptableRenderPass
             cmd.SetGlobalVectorArray(customDepthParams2IdName, customDepthParams2);
             cmd.SetGlobalVectorArray(customDepthPositionIdName, customDepthPosition);
             cmd.SetGlobalInteger(customDepthCountIdName, customDepths.Count);
+            cmd.SetGlobalFloat(customDepthFeatureStrengthName, FeatureStrength);
             Vector2 oneDivDepthMapSize = Vector2.one / new Vector2(depthMap.width, depthMap.height);
             cmd.SetGlobalVector(customDepthSizeIdName, new Vector4(oneDivDepthMapSize.x, oneDivDepthMapSize.y, depthMap.width, depthMap.height));
 
@@ -247,7 +254,7 @@ public partial class CustomDepthPass : ScriptableRenderPass
         }
         else
         {
-            Debug.Log("Disabled custom depth features2");
+            //Debug.Log("Disabled custom depth features2");
             CoreUtils.SetKeyword(cmd, customDepthKeywordName, false);
 
         }
@@ -306,7 +313,8 @@ public partial class CustomDepthPass : ScriptableRenderPass
                 :0//offset.x* scaleOffset, offset.y* scaleOffset /*shadow.softDepth?1:0*/
                 , shadow.bias, shadow.falloffThreshold);
             //shadow.quadOffset = new Vector4(offset.x * scaleOffset, offset.y * scaleOffset, scaleOffset, scaleOffset);
-            shadowParams2[index] = new Vector4(offset.x* scaleOffset, offset.x* scaleOffset + scaleOffset, offset.y* scaleOffset, offset.y* scaleOffset + scaleOffset);
+            shadowParams2[index] = 
+                new Vector4(offset.x, offset.y, scaleOffset, shadowCam.farClipPlane);
             
             Vector3 pos = shadow.frustumSetting.isOrthographic ? -shadow.transform.forward : shadow.transform.position;
             shadowPos[index] = new Vector4(pos.x, pos.y, pos.z, shadow.frustumSetting.isOrthographic?0:1);
