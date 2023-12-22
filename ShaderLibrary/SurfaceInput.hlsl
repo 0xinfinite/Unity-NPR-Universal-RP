@@ -18,7 +18,7 @@ SAMPLER(sampler_EmissionMap);
 ///////////////////////////////////////////////////////////////////////////////
 //                      Material Property Helpers                            //
 ///////////////////////////////////////////////////////////////////////////////
-half Alpha(half albedoAlpha, half4 color, half cutoff)
+half Alpha(half albedoAlpha, half4 color, half cutoff, float2 screenPos = float2(0.5, 0.5))
 {
 #if !defined(_SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A) && !defined(_GLOSSINESS_FROM_BASE_ALPHA)
     half alpha = albedoAlpha * color.a;
@@ -26,7 +26,7 @@ half Alpha(half albedoAlpha, half4 color, half cutoff)
     half alpha = color.a;
 #endif
 
-    alpha = AlphaDiscard(alpha, cutoff);
+    alpha = AlphaDiscard(alpha, cutoff, screenPos);
 
     return alpha;
 }

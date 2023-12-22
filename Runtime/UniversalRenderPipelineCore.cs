@@ -1173,6 +1173,8 @@ namespace UnityEngine.Rendering.Universal
 
         public const string _CUSTOM_CLIPPING = "_CUSTOM_CLIPPING";
         public const string _CUSTOM_LIGHTING = "_CUSTOM_LIGHTING";
+        public const string _DITHERING = "_DITHERING";
+        public const string _DOTS_DEFORMATION_ON = "_DOTS_DEFORMATION_ON";
 
         /// <summary> Keyword used for opaque or transparent surface types. </summary>
         public const string _SURFACE_TYPE_TRANSPARENT = "_SURFACE_TYPE_TRANSPARENT";

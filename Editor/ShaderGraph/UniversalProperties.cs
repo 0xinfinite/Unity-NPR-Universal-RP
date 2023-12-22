@@ -26,6 +26,8 @@ namespace UnityEditor.Rendering.Universal
 
         public static readonly string CustomClipping = "_CustomClipping";
         public static readonly string CustomLighting = "_CustomLighting";
+        public static readonly string Dithering = "_Dithering";
+        public static readonly string DOTSDeformationOn = "_DOTS_Deformation_On";
 
         public static readonly string QueueOffset = "_QueueOffset";
 

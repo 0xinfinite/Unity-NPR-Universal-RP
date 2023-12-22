@@ -7,6 +7,8 @@
     #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
 #endif
 
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DotsDeformation.hlsl"
+
 // TODO: Currently we support viewDirTS caclulated in vertex shader and in fragments shader.
 // As both solutions have their advantages and disadvantages (etc. shader target 2.0 has only 8 interpolators).
 // We need to find out if we can stick to one solution, which we needs testing.
@@ -30,6 +32,9 @@ struct Attributes
     float2 staticLightmapUV   : TEXCOORD1;
     float2 dynamicLightmapUV  : TEXCOORD2;
     UNITY_VERTEX_INPUT_INSTANCE_ID
+#if defined(_DOTS_DEFORMATION_ON)
+    uint vertexId : SV_VertexID;
+#endif
 };
 
 struct Varyings
@@ -127,7 +132,17 @@ Varyings LitGBufferPassVertex(Attributes input)
     UNITY_SETUP_INSTANCE_ID(input);
     UNITY_TRANSFER_INSTANCE_ID(input, output);
     UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
-
+    
+    #if defined(_DOTS_DEFORMATION_ON)
+    float3 dotsPos = float3(0,0,0);
+    float3 dotsNorm = float3(0,0,1);
+    float3 dotsTan = float3(0,1,0);
+    ComputeDeformedVertex(input.vertexId, dotsPos, dotsNorm, dotsTan);
+    input.positionOS.xyz = dotsPos;
+    input.normalOS.xyz = dotsNorm;
+    input.tangentOS.xyz = dotsTan;
+#endif
+    
     VertexPositionInputs vertexInput = GetVertexPositionInputs(input.positionOS.xyz);
 
     // normalWS and tangentWS already normalize.
@@ -206,6 +221,10 @@ FragmentOutput LitGBufferPassFragment(Varyings input)
     InitializeInputData(input, surfaceData.normalTS, inputData);
     SETUP_DEBUG_TEXTURE_DATA(inputData, input.uv, _BaseMap);
 
+#if defined(_DITHERING)
+        clip(Dithering(surfaceData.alpha,  inputData.normalizedScreenSpaceUV ));
+#endif
+    
 #ifdef _DBUFFER
     ApplyDecalToSurfaceData(input.positionCS, surfaceData, inputData);
 #endif

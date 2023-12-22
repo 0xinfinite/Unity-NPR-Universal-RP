@@ -13,6 +13,24 @@
 #define _DETAIL
 #endif
 
+//#if defined(DOTS_INSTANCING_ON)
+//// DOTS instancing definitions
+////UNITY_DOTS_INSTANCING_START(MaterialPropertyMetadata)
+////	UNITY_DOTS_INSTANCED_PROP({0}, {1})
+////UNITY_DOTS_INSTANCING_END(MaterialPropertyMetadata)
+//// DOTS instancing usage macros
+//#define UNITY_ACCESS_HYBRID_INSTANCED_PROP(var, type) UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(type, var)
+//#elif defined(UNITY_INSTANCING_ENABLED)
+//// Unity instancing definitions
+////UNITY_INSTANCING_BUFFER_START(SGPerInstanceData)
+////	UNITY_DEFINE_INSTANCED_PROP({0}, {1})
+////UNITY_INSTANCING_BUFFER_END(SGPerInstanceData)
+//// Unity instancing usage macros
+//#define UNITY_ACCESS_HYBRID_INSTANCED_PROP(var, type) UNITY_ACCESS_INSTANCED_PROP(SGPerInstanceData, var)
+//#else
+//#define UNITY_ACCESS_HYBRID_INSTANCED_PROP(var, type) var
+//#endif
+
 // NOTE: Do not ifdef the properties here as SRP batcher can not handle different layouts.
 CBUFFER_START(UnityPerMaterial)
 float4 _BaseMap_ST;
@@ -25,7 +43,8 @@ half4 _SpecColor;
 half4 _EmissionColor;
 half _ShadowCastOffset;
 half _CustomShadowCastOffset;
-					 
+					
+float _ComputeMeshIndex;
 				   
 half _Cutoff;
 half _DepthForward;
@@ -57,7 +76,7 @@ UNITY_DOTS_INSTANCING_START(MaterialPropertyMetadata)
     UNITY_DOTS_INSTANCED_PROP(float,  _DepthForward)
     UNITY_DOTS_INSTANCED_PROP(float, _WarpMapIndex)
 												 
-													  
+    UNITY_DOTS_INSTANCED_PROP(float  , _ComputeMeshIndex)
 													
     UNITY_DOTS_INSTANCED_PROP(float , _Smoothness)
     UNITY_DOTS_INSTANCED_PROP(float , _Metallic)
@@ -93,6 +112,8 @@ UNITY_DOTS_INSTANCING_END(MaterialPropertyMetadata)
 #define _DetailAlbedoMapScale   UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float  , _DetailAlbedoMapScale)
 #define _DetailNormalMapScale   UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float  , _DetailNormalMapScale)
 #define _Surface                UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float  , _Surface)
+
+#define _ComputeMeshIndex       UNITY_ACCESS_DOTS_INSTANCED_PROP_WITH_DEFAULT(float  , _ComputeMeshIndex)
 #endif
 
 TEXTURE2D(_ParallaxMap);        SAMPLER(sampler_ParallaxMap);

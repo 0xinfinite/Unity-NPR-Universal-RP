@@ -3,6 +3,7 @@
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderVariablesFunctions.deprecated.hlsl"
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Debug/DebuggingCommon.hlsl"
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Dither.hlsl"
 
 VertexPositionInputs GetVertexPositionInputs(float3 positionOS)
 {
@@ -211,17 +212,20 @@ half AlphaClip(half alpha, half cutoff)
 // When _ALPHATEST_ON is not defined: The returned value is equal to the original alpha input parameter
 //
 // NOTE: When _ALPHATEST_ON is not defined, this function is effectively a no-op.
-real AlphaDiscard(real alpha, real cutoff, real offset = real(0.0))
+real AlphaDiscard(real alpha, real cutoff, real offset = real(0.0), float2 screenPos = float2(0.5, 0.5))
 {
 #ifdef _ALPHATEST_ON
     if (IsAlphaDiscardEnabled())
         alpha = AlphaClip(alpha, cutoff + offset);
 #endif
+#ifdef _DITHERING
+        clip(Dithering(alpha, screenPos));
+#endif
 
     return alpha;
 }
 
-half OutputAlpha(half alpha, bool isTransparent)
+half OutputAlpha(half alpha, bool isTransparent, float2 screenPos = float2(0.5, 0.5))
 {
     if (isTransparent)
     {
@@ -232,6 +236,9 @@ half OutputAlpha(half alpha, bool isTransparent)
 #if defined(_ALPHATEST_ON)
         // Opaque materials should always export an alpha value of 1.0 unless alpha-to-coverage is available
         return IsAlphaToMaskAvailable() ? alpha : 1.0;
+#elif defined(_DITHERING)
+        clip(Dithering(alpha, screenPos));
+        return alpha;
 #else
         return 1.0;
 #endif

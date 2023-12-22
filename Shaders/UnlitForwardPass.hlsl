@@ -137,8 +137,11 @@ void UnlitPassFragment(
 
     half4 finalColor = UniversalFragmentUnlit(inputData, color, alpha);
 
+        float2 normalizedScreenSpaceUV = 0.5;
+#if (defined(_SCREEN_SPACE_OCCLUSION) && !defined(_SURFACE_TYPE_TRANSPARENT))||defined(_DITHERING)
+    normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(input.positionCS);
+#endif
 #if defined(_SCREEN_SPACE_OCCLUSION) && !defined(_SURFACE_TYPE_TRANSPARENT)
-    float2 normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(input.positionCS);
     AmbientOcclusionFactor aoFactor = GetScreenSpaceAmbientOcclusion(normalizedScreenSpaceUV);
     finalColor.rgb *= aoFactor.directAmbientOcclusion;
 #endif
@@ -155,7 +158,7 @@ void UnlitPassFragment(
     half fogFactor = input.fogCoord;
 #endif
     finalColor.rgb = MixFog(finalColor.rgb, fogFactor);
-    finalColor.a = OutputAlpha(finalColor.a, IsSurfaceTypeTransparent(_Surface));
+        finalColor.a = OutputAlpha(finalColor.a, IsSurfaceTypeTransparent(_Surface), normalizedScreenSpaceUV);
         
 #if defined(_APPLY_VERTEX_COLOR)
     finalColor *= input.color;

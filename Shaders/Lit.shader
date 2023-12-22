@@ -66,9 +66,11 @@ Shader "Universal Render Pipeline/Lit"
         [HideInInspector] _AlphaToMask("__alphaToMask", Float) = 0.0
 
         [ToggleUI] _ReceiveShadows("Receive Shadows", Float) = 1.0
-
+        
+        [ToggleUI] _Dithering("Dithering", Float) = 0.0
         [ToggleUI] _CustomClipping("Custom Clipping", Float) = 0.0
         [ToggleUI] _CustomLighting("Custom Lighting", Float) = 0.0
+        [ToggleUI] _DOTS_Deformation_On("Enable DOTS Deformation", Float) = 0.0
 
         // Editmode props
         _QueueOffset("Queue offset", Float) = 0.0
@@ -83,6 +85,8 @@ Shader "Universal Render Pipeline/Lit"
         [HideInInspector][NoScaleOffset]unity_Lightmaps("unity_Lightmaps", 2DArray) = "" {}
         [HideInInspector][NoScaleOffset]unity_LightmapsInd("unity_LightmapsInd", 2DArray) = "" {}
         [HideInInspector][NoScaleOffset]unity_ShadowMasks("unity_ShadowMasks", 2DArray) = "" {}
+
+        [HideInInspector]_ComputeMeshIndex("Compute Mesh Buffer index Offset", Float) = 0
     }
 
     SubShader
@@ -146,8 +150,10 @@ Shader "Universal Render Pipeline/Lit"
             #pragma shader_feature_local_fragment _SPECULARHIGHLIGHTS_OFF
             #pragma shader_feature_local_fragment _ENVIRONMENTREFLECTIONS_OFF
             #pragma shader_feature_local_fragment _SPECULAR_SETUP
+            #pragma shader_feature_local_fragment _DITHERING
             #pragma shader_feature_local_fragment _CUSTOM_CLIPPING
             #pragma shader_feature_local_fragment _CUSTOM_LIGHTING
+            #pragma shader_feature_local_vertex _DOTS_DEFORMATION_ON
 
             // -------------------------------------
             // Universal Pipeline keywords
@@ -229,6 +235,8 @@ Shader "Universal Render Pipeline/Lit"
             // Material Keywords
             #pragma shader_feature_local_fragment _ALPHATEST_ON
             #pragma shader_feature_local_fragment _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+            #pragma shader_feature_local_fragment _DITHERING
+            #pragma shader_feature_local_vertex _DOTS_DEFORMATION_ON
 
             //--------------------------------------
             // GPU Instancing
@@ -300,8 +308,10 @@ Shader "Universal Render Pipeline/Lit"
             #pragma shader_feature_local_fragment _ENVIRONMENTREFLECTIONS_OFF
             #pragma shader_feature_local_fragment _SPECULAR_SETUP
             #pragma shader_feature_local _RECEIVE_SHADOWS_OFF
+            #pragma shader_feature_local_fragment _DITHERING
             #pragma shader_feature_local_fragment _CUSTOM_CLIPPING
             #pragma shader_feature_local_fragment _CUSTOM_LIGHTING
+            #pragma shader_feature_local_vertex _DOTS_DEFORMATION_ON
 
             // -------------------------------------
             // Universal Pipeline keywords
@@ -377,6 +387,8 @@ Shader "Universal Render Pipeline/Lit"
             // Material Keywords
             #pragma shader_feature_local_fragment _ALPHATEST_ON
             #pragma shader_feature_local_fragment _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+            #pragma shader_feature_local_fragment _DITHERING
+            #pragma shader_feature_local_vertex _DOTS_DEFORMATION_ON
 
             // -------------------------------------
             // Unity defined keywords
@@ -423,6 +435,8 @@ Shader "Universal Render Pipeline/Lit"
             #pragma shader_feature_local _ _DETAIL_MULX2 _DETAIL_SCALED
             #pragma shader_feature_local_fragment _ALPHATEST_ON
             #pragma shader_feature_local_fragment _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+            #pragma shader_feature_local_fragment _DITHERING
+            #pragma shader_feature_local_vertex _DOTS_DEFORMATION_ON
 
             // -------------------------------------
             // Unity defined keywords

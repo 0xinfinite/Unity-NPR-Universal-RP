@@ -6,6 +6,7 @@
 #if defined(LOD_FADE_CROSSFADE)
     #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
 #endif
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DotsDeformation.hlsl"
 
 // Shadow Casting Light geometric parameters. These variables are used when applying the shadow Normal Bias and are set by UnityEngine.Rendering.Universal.ShadowUtils.SetupShadowCasterConstantBuffer in com.unity.render-pipelines.universal/Runtime/ShadowUtils.cs
 // For Directional lights, _LightDirection is used when applying shadow Normal Bias.
@@ -19,6 +20,9 @@ struct Attributes
     float3 normalOS     : NORMAL;
     float2 texcoord     : TEXCOORD0;
     UNITY_VERTEX_INPUT_INSTANCE_ID
+#if defined(_DOTS_DEFORMATION_ON)
+    uint vertexId : SV_VertexID;
+#endif
 };
 
 struct Varyings
@@ -29,6 +33,15 @@ struct Varyings
 
 float4 GetShadowPositionHClip(Attributes input)
 {
+    #if defined(_DOTS_DEFORMATION_ON)
+    float3 dotsPos = float3(0,0,0);
+    float3 dotsNorm = float3(0,0,1);
+    float3 dotsTan = float3(0,1,0);
+    ComputeDeformedVertex(input.vertexId, dotsPos, dotsNorm, dotsTan);
+    input.positionOS.xyz = dotsPos;
+    input.normalOS.xyz = dotsNorm;
+#endif
+    
     float3 positionWS = TransformObjectToWorld(input.positionOS.xyz);
     float3 normalWS = TransformObjectToWorldNormal(input.normalOS);
 

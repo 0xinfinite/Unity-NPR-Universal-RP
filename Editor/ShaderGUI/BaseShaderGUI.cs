@@ -268,6 +268,10 @@ namespace UnityEditor
                 "If you want clipping with custom feature, Enable this.");
             public static readonly GUIContent customLightingText = EditorGUIUtility.TrTextContent("Custom Lighting",
                 "If you want to tweak Lighting, Enable this.");
+            public static readonly GUIContent dotsDeformationText = EditorGUIUtility.TrTextContent("Enable DOTS Deformation",
+                "If you want to deform skinned mesh on subscene, You have to enable this.");
+            public static readonly GUIContent ditheringText = EditorGUIUtility.TrTextContent("Dithering",
+                "Enable dithring with alpha.");
 
             /// <summary>
             /// The text and tooltip for the base map GUI.
@@ -381,8 +385,9 @@ namespace UnityEditor
         protected MaterialProperty receiveShadowsProp { get; set; }
 
         protected MaterialProperty customClippingProp { get; set; }
-
         protected MaterialProperty customLightingProp { get; set; }
+        protected MaterialProperty ditheringProp { get; set; }
+        protected MaterialProperty dotsDeformationProp { get; set; }
 
         protected MaterialProperty applyVertexColorProp { get; set; }
 
@@ -473,6 +478,8 @@ namespace UnityEditor
 
             customClippingProp = FindProperty(Property.CustomClipping, properties, false);
             customLightingProp = FindProperty(Property.CustomLighting, properties, false);
+            ditheringProp = FindProperty(Property.Dithering, properties, false);
+            dotsDeformationProp = FindProperty(Property.DOTSDeformationOn, properties, false);
             applyVertexColorProp = FindProperty(Property.ApplyVertexColor, properties, false);
 
             // The following are not mandatory for shadergraphs (it's up to the user to add them to their graph)
@@ -600,6 +607,7 @@ namespace UnityEditor
                 materialEditor.IntPopupShaderProperty(ztestProp, Styles.ztestText.text, Styles.ztestNames, Styles.ztestValues);
 
             DrawFloatToggleProperty(Styles.alphaClipText, alphaClipProp);
+            DrawFloatToggleProperty(Styles.ditheringText, ditheringProp);
 
             if ((alphaClipProp != null) && (alphaCutoffProp != null) && (alphaClipProp.floatValue == 1))
                 materialEditor.ShaderProperty(alphaCutoffProp, Styles.alphaClipThresholdText, 1);
@@ -611,6 +619,7 @@ namespace UnityEditor
 
             DrawFloatToggleProperty(Styles.customClippingText, customClippingProp);
             DrawFloatToggleProperty(Styles.customLightingText, customLightingProp);
+            DrawFloatToggleProperty(Styles.dotsDeformationText, dotsDeformationProp);
         }
 
         /// <summary>
@@ -790,10 +799,14 @@ namespace UnityEditor
             if (material.HasProperty(Property.ReceiveShadows))
                 CoreUtils.SetKeyword(material, ShaderKeywordStrings._RECEIVE_SHADOWS_OFF, material.GetFloat(Property.ReceiveShadows) == 0.0f);
 
+            if (material.HasProperty(Property.Dithering))
+                CoreUtils.SetKeyword(material, ShaderKeywordStrings._DITHERING, material.GetFloat(Property.Dithering) == 1.0f);
             if (material.HasProperty(Property.CustomClipping))
                 CoreUtils.SetKeyword(material, ShaderKeywordStrings._CUSTOM_CLIPPING, material.GetFloat(Property.CustomClipping) == 1.0f);
             if (material.HasProperty(Property.CustomLighting))
                 CoreUtils.SetKeyword(material, ShaderKeywordStrings._CUSTOM_LIGHTING, material.GetFloat(Property.CustomLighting) == 1.0f);
+            if (material.HasProperty(Property.DOTSDeformationOn))
+                CoreUtils.SetKeyword(material, ShaderKeywordStrings._DOTS_DEFORMATION_ON, material.GetFloat(Property.DOTSDeformationOn) == 1.0f);
         }
 
         // this function is shared between ShaderGraph and hand-written GUIs

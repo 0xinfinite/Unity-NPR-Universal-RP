@@ -6,6 +6,8 @@
     #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
 #endif
 
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DotsDeformation.hlsl"
+
 // GLES2 has limited amount of interpolators
 #if defined(_PARALLAXMAP) && !defined(SHADER_API_GLES)
 #define REQUIRES_TANGENT_SPACE_VIEW_DIR_INTERPOLATOR
@@ -26,6 +28,9 @@ struct Attributes
     float2 staticLightmapUV   : TEXCOORD1;
     float2 dynamicLightmapUV  : TEXCOORD2;
     UNITY_VERTEX_INPUT_INSTANCE_ID
+#if defined(_DOTS_DEFORMATION_ON)
+    uint vertexId : SV_VertexID;
+#endif
 };
 
 struct Varyings
@@ -139,6 +144,16 @@ Varyings LitPassVertex(Attributes input)
     UNITY_SETUP_INSTANCE_ID(input);
     UNITY_TRANSFER_INSTANCE_ID(input, output);
     UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
+    
+#if  defined(_DOTS_DEFORMATION_ON)
+    float3 dotsPos = float3(0,0,0);
+    float3 dotsNorm = float3(0,0,1);
+    float3 dotsTan = float3(0,1,0);
+    ComputeDeformedVertex(input.vertexId, dotsPos, dotsNorm, dotsTan);
+    input.positionOS.xyz = dotsPos;
+    input.normalOS.xyz = dotsNorm;
+    input.tangentOS.xyz = dotsTan;
+#endif
 
     VertexPositionInputs vertexInput = GetVertexPositionInputs(input.positionOS.xyz);
 
@@ -242,7 +257,7 @@ void LitPassFragment(
 #endif
     half4 color = UniversalFragmentPBR(inputData, surfaceData, half4(_ShadowColor ,_ShadowTint.a), _WarpMapIndex);
     color.rgb = MixFog(color.rgb, inputData.fogCoord);
-    color.a = OutputAlpha(color.a, IsSurfaceTypeTransparent(_Surface));
+    color.a = OutputAlpha(color.a, IsSurfaceTypeTransparent(_Surface), inputData.normalizedScreenSpaceUV);
 
 #if defined(_CUSTOM_CLIPPING)
      color.a *= CustomClipping(inputData, surfaceData, color, inputData.normalizedScreenSpaceUV);
